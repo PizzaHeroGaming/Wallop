@@ -2965,49 +2965,69 @@ const player = {
 };
 
 // ============================================================
-// PLAYER MESH — KayKit Knight loaded via GLTFLoader
-// Animations from two separate GLBs:
-//   movement.glb  -> Walking_A / Running_A / jump clips
-//   general.glb   -> Idle_A / Hit_A / Death_A
+// PLAYER MESH — KayKit character loaded via GLTFLoader
+// CHARACTER_MODELS maps catalog slugs → GLB paths.
+// Animation clips (Idle_A, Walking_A, Running_A) are loaded once from the two
+// shared animation GLBs and reused across all characters.
+// _applyCharacterModel() can be called on every resetGame() so equipping a
+// different character in the Armory takes effect on the next run.
 // ============================================================
+const CHARACTER_MODELS = {
+  pizza_hero:   'assets/characters/knight.glb',
+  oven_knight:  'assets/characters/barbarian.glb',
+  frost_baker:  'assets/characters/mage.glb',
+  crust_runner: 'assets/characters/rogue.glb',
+};
+
 let playerMixer = null;
 let playerIdleAction = null;
 let playerWalkAction = null;
-let playerRunAction = null;
-let _playerMoving = false;
+let playerRunAction  = null;
+let _playerMoving    = false;
+let _loadedCharSlug  = null;
+let _animClips       = null;
 
 player.group = new THREE.Group();
 scene.add(player.group);
 
-// Load character + animations immediately; game is playable before they arrive
-// (player.group is empty until the promise resolves, so the player is invisible
-// until the GLBs download, typically < 2s on a fast connection).
 const _gltfLoader = new THREE.GLTFLoader();
 function _loadGLB(url) {
   return new Promise((res, rej) => _gltfLoader.load(url, res, null, rej));
 }
+
+function _bindAnimActions(mixer) {
+  const get = name => _animClips && _animClips.find(c => c.name === name);
+  playerIdleAction = get('Idle_A')    ? mixer.clipAction(get('Idle_A'))    : null;
+  playerWalkAction = get('Walking_A') ? mixer.clipAction(get('Walking_A')) : null;
+  playerRunAction  = get('Running_A') ? mixer.clipAction(get('Running_A')) : null;
+  if (playerIdleAction) playerIdleAction.play();
+}
+
+function _applyCharacterModel() {
+  const slug = (typeof Profile !== 'undefined' && Profile.get().equippedCharacter) || 'pizza_hero';
+  if (slug === _loadedCharSlug && player.group.children.length > 0) return Promise.resolve();
+  const url = CHARACTER_MODELS[slug] || CHARACTER_MODELS.pizza_hero;
+  _loadedCharSlug = slug;
+  return _loadGLB(url).then(charGltf => {
+    while (player.group.children.length) player.group.remove(player.group.children[0]);
+    const model = THREE.SkeletonUtils.clone(charGltf.scene);
+    model.scale.setScalar(1.0);
+    model.traverse(c => { if (c.isMesh) c.castShadow = true; });
+    player.group.add(model);
+    if (playerMixer) playerMixer.stopAllAction();
+    playerMixer = new THREE.AnimationMixer(model);
+    _bindAnimActions(playerMixer);
+  }).catch(err => console.error('[WALLOP] Character model load failed:', err));
+}
+
+// Load shared animation clips first, then the equipped character model
 Promise.all([
-  _loadGLB('assets/characters/knight.glb'),
   _loadGLB('assets/characters/movement.glb'),
   _loadGLB('assets/characters/general.glb'),
-]).then(([charGltf, moveGltf, genGltf]) => {
-  const model = THREE.SkeletonUtils.clone(charGltf.scene);
-  // Scale + shadow
-  model.scale.setScalar(1.0);
-  model.traverse(c => { if (c.isMesh) c.castShadow = true; });
-  player.group.add(model);
-
-  // Merge clips from both animation GLBs
-  const allClips = [...moveGltf.animations, ...genGltf.animations];
-  playerMixer = new THREE.AnimationMixer(model);
-
-  const getClip = name => allClips.find(c => c.name === name);
-  playerIdleAction = getClip('Idle_A') ? playerMixer.clipAction(getClip('Idle_A')) : null;
-  playerWalkAction = getClip('Walking_A') ? playerMixer.clipAction(getClip('Walking_A')) : null;
-  playerRunAction  = getClip('Running_A') ? playerMixer.clipAction(getClip('Running_A')) : null;
-
-  if (playerIdleAction) playerIdleAction.play();
-}).catch(err => console.error('[WALLOP] Knight load failed:', err));
+]).then(([moveGltf, genGltf]) => {
+  _animClips = [...moveGltf.animations, ...genGltf.animations];
+  return _applyCharacterModel();
+}).catch(err => console.error('[WALLOP] Animation load failed:', err));
 
 // ============================================================
 // ENTITY POOLS
@@ -5978,10 +5998,11 @@ function resetGame() {
   player.pos.set(0, 0, 0);
   player.vel.set(0, 0, 0);
   _playerMoving = false;
-  if (playerMixer) {
-    playerMixer.stopAllAction();
-    if (playerIdleAction) playerIdleAction.play();
-  }
+  // Swap character model if player equipped a different character in the Armory.
+  // _applyCharacterModel is a no-op when the slug hasn't changed.
+  _applyCharacterModel().then(() => {
+    if (playerMixer) { playerMixer.stopAllAction(); if (playerIdleAction) playerIdleAction.play(); }
+  });
   player.hp = 120; player.maxHp = 120;
   player.xp = 0; player.level = 1; player.xpToNext = 5;
   player.baseSpeed = CFG.PLAYER_SPEED;
