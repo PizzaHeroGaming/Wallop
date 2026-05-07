@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Pizza Hero Gaming — Splash Screen</title>
+
+<!-- ============================================================
+     PIZZA HERO GAMING SPLASH SCREEN  (v3 — Studio Bumper)
+
+     Clean, character-free typographic intro. Drop into any HTML5 game.
+
+     INTEGRATION (3 steps):
+       1. Copy the <style id="phs-styles"> block into your game's <head>.
+       2. Copy the <script id="phs-module"> block into your game's <body>.
+       3. Call it before your game starts:
+
+            PizzaHeroSplash.show({ onComplete: () => startGame() });
+
+     OPTIONS:
+       duration       (number)  ms before auto-dismiss. Default 3800.
+       skipOnInput    (boolean) Click/keypress dismisses early. Default true.
+       tagline        (string)  Small text under wordmark. Default "GAMING".
+       onComplete     (function) Fires after fade-out.
+     ============================================================ -->
+
+<style id="phs-styles">
+  @import url('https://fonts.googleapis.com/css2?family=Bungee&family=Outfit:wght@400;600;800&display=swap');
+
+  /* ---------- SPLASH OVERLAY ---------- */
+  .phs-splash {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+    font-family: 'Outfit', system-ui, sans-serif;
+    background:
+      radial-gradient(ellipse at 50% 40%, #2a0810 0%, #100308 55%, #000 100%);
+    opacity: 0;
+    animation: phs-fade-in 0.4s ease-out forwards;
+  }
+  .phs-splash.phs-out {
+    animation: phs-fade-out 0.55s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+  }
+  /* Camera shake on the wordmark slam */
+  .phs-splash.phs-shake {
+    animation: phs-fade-in 0.4s ease-out forwards, phs-shake 0.45s ease-out;
+  }
+  @keyframes phs-fade-in  { to { opacity: 1; } }
+  @keyframes phs-fade-out { to { opacity: 0; transform: scale(1.06); } }
+  @keyframes phs-shake {
+    0%, 100% { transform: translate(0, 0); }
+    20% { transform: translate(-6px, 4px); }
+    40% { transform: translate(5px, -3px); }
+    60% { transform: translate(-3px, 4px); }
+    80% { transform: translate(3px, -1px); }
+  }
+
+  /* halftone dot texture */
+  .phs-splash::before {
+    content: '';
+    position: absolute; inset: 0;
+    background-image: radial-gradient(circle, rgba(255,200,100,0.07) 1px, transparent 1.5px);
+    background-size: 7px 7px;
+    mix-blend-mode: overlay;
+    pointer-events: none;
+  }
+  /* vignette */
+  .phs-splash::after {
+    content: '';
+    position: absolute; inset: 0;
+    background: radial-gradient(ellipse at center, transparent 35%, rgba(0,0,0,0.7) 100%);
+    pointer-events: none;
+  }
+
+  /* ---------- COMIC BURST RAYS ---------- */
+  .phs-rays {
+    position: absolute;
+    top: 50%; left: 50%;
+    width: 160vmax; height: 160vmax;
+    background: repeating-conic-gradient(
+      from 0deg,
+      rgba(244, 197, 66, 0.16) 0deg 3deg,
+      transparent 3deg 22deg
+    );
+    transform: translate(-50%, -50%) scale(0.5) rotate(0deg);
+    opacity: 0;
+    animation:
+      phs-rays-in 0.7s 0.3s cubic-bezier(0.34, 1.4, 0.64, 1) forwards,
+      phs-rays-spin 40s 1s linear infinite;
+  }
+  @keyframes phs-rays-in {
+    to { opacity: 1; transform: translate(-50%, -50%) scale(1) rotate(15deg); }
+  }
+  @keyframes phs-rays-spin {
+    from { transform: translate(-50%, -50%) scale(1) rotate(15deg); }
+    to   { transform: translate(-50%, -50%) scale(1) rotate(375deg); }
+  }
+
+  /* ---------- SHOCKWAVE on wordmark slam ---------- */
+  .phs-shockwave {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    border: 4px solid #f4c542;
+    transform: translate(-50%, -50%) scale(0);
+    opacity: 0;
+    pointer-events: none;
+    z-index: 1;
+    animation: phs-shockwave 0.9s 1.05s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+  @keyframes phs-shockwave {
+    0%   { opacity: 0.85; transform: translate(-50%, -50%) scale(0); border-width: 5px; }
+    100% { opacity: 0;    transform: translate(-50%, -50%) scale(7); border-width: 1px; }
+  }
+
+  /* ---------- WORDMARK ---------- */
+  .phs-title {
+    position: relative;
+    z-index: 2;
+    margin: 0;
+    font-family: 'Bungee', sans-serif;
+    font-size: clamp(44px, 9.5vw, 104px);
+    color: #f4c542;
+    letter-spacing: 0.035em;
+    line-height: 0.95;
+    text-shadow:
+      2px 2px 0 #c8102e,
+      4px 4px 0 #8b0a1f,
+      6px 6px 0 #4a0410,
+      8px 10px 24px rgba(0,0,0,0.65);
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 0.015em;
+  }
+  .phs-title span {
+    display: inline-block;
+    opacity: 0;
+    transform: scale(2.5) translateY(-30px) rotate(-6deg);
+    animation: phs-letter 0.5s cubic-bezier(0.34, 1.7, 0.64, 1) forwards;
+  }
+  .phs-title .phs-space { width: 0.35em; }
+  @keyframes phs-letter {
+    0%   { opacity: 0; transform: scale(2.5) translateY(-30px) rotate(-6deg); }
+    60%  { opacity: 1; transform: scale(0.9) translateY(0) rotate(2deg); }
+    100% { opacity: 1; transform: scale(1) translateY(0) rotate(0); }
+  }
+
+  /* ---------- TAGLINE ---------- */
+  .phs-tagline {
+    position: relative;
+    z-index: 2;
+    margin: 18px 0 0;
+    padding-left: 0.5em;
+    font-family: 'Outfit', sans-serif;
+    font-weight: 800;
+    font-size: clamp(13px, 1.9vw, 19px);
+    letter-spacing: 0.5em;
+    color: #f5e6c8;
+    opacity: 0;
+    transform: translateY(16px);
+    animation: phs-tagline-in 0.6s 1.7s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  }
+  @keyframes phs-tagline-in { to { opacity: 1; transform: translateY(0); } }
+
+  /* ---------- LOADER BAR ---------- */
+  .phs-loader {
+    position: relative;
+    z-index: 2;
+    width: clamp(180px, 22vw, 260px);
+    height: 3px;
+    margin-top: 36px;
+    background: rgba(245, 230, 200, 0.14);
+    border-radius: 2px;
+    overflow: hidden;
+    opacity: 0;
+    animation: phs-fade-up 0.4s 2.1s ease-out forwards;
+  }
+  .phs-loader-fill {
+    width: 0%;
+    height: 100%;
+    background: linear-gradient(90deg, #c8102e 0%, #f4c542 100%);
+    box-shadow: 0 0 14px rgba(244, 197, 66, 0.65);
+    border-radius: 2px;
+    animation: phs-loader-fill 1.5s 2.1s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+  }
+  @keyframes phs-fade-up { to { opacity: 1; } }
+  @keyframes phs-loader-fill { to { width: 100%; } }
+
+  /* ---------- BOTTOM PROMPT ---------- */
+  .phs-prompt {
+    position: absolute;
+    bottom: 48px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-family: 'Outfit', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.4em;
+    text-transform: uppercase;
+    color: rgba(245, 230, 200, 0.75);
+    opacity: 0;
+    animation:
+      phs-fade-up 0.4s 2.6s ease-out forwards,
+      phs-prompt-pulse 1.8s 2.6s ease-in-out infinite;
+  }
+  @keyframes phs-prompt-pulse {
+    0%, 100% { opacity: 0.35; }
+    50%      { opacity: 0.95; }
+  }
+
+  /* ---------- STUDIO MARK ---------- */
+  .phs-mark {
+    position: absolute;
+    top: 28px;
+    right: 30px;
+    font-family: 'Outfit', sans-serif;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.35em;
+    color: rgba(245, 230, 200, 0.45);
+    text-transform: uppercase;
+    opacity: 0;
+    animation: phs-fade-up 0.5s 2.3s ease-out forwards;
+  }
+  .phs-mark::before {
+    content: '◆';
+    margin-right: 8px;
+    color: #c8102e;
+  }
+
+  /* ===== DEMO PAGE STYLING (not part of splash module) ===== */
+  body {
+    margin: 0;
+    background: #0a0608;
+    color: #f5e6c8;
+    font-family: 'Outfit', system-ui, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .demo {
+    text-align: center;
+    padding: 40px 24px;
+    max-width: 520px;
+  }
+  .demo h1 {
+    font-family: 'Bungee', sans-serif;
+    color: #f4c542;
+    font-size: clamp(28px, 6vw, 38px);
+    margin: 0 0 8px;
+    letter-spacing: 0.03em;
+  }
+  .demo p {
+    color: #a89888;
+    margin: 0 0 28px;
+    line-height: 1.55;
+    font-size: 15px;
+  }
+  .demo button {
+    background: linear-gradient(135deg, #c8102e, #8b0a1f);
+    color: #fff;
+    border: 2px solid #f4c542;
+    padding: 14px 30px;
+    font-family: 'Bungee', sans-serif;
+    font-size: 14px;
+    letter-spacing: 0.06em;
+    border-radius: 4px;
+    cursor: pointer;
+    box-shadow: 0 4px 0 #5a0612, 0 6px 22px rgba(200, 16, 46, 0.4);
+    transition: transform 0.12s, box-shadow 0.12s;
+  }
+  .demo button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 0 #5a0612, 0 9px 26px rgba(200, 16, 46, 0.5);
+  }
+  .demo button:active {
+    transform: translateY(2px);
+    box-shadow: 0 2px 0 #5a0612, 0 4px 12px rgba(200, 16, 46, 0.3);
+  }
+  .demo code {
+    display: inline-block;
+    background: #1a0d0f;
+    border: 1px solid #2e1a1d;
+    color: #f4c542;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-family: ui-monospace, 'SF Mono', monospace;
+    font-size: 12px;
+  }
+</style>
+</head>
+<body>
+
+<div class="demo">
+  <h1>Pizza Hero Gaming</h1>
+  <p>Clean studio bumper. Burst rays sweep in, the pizza emblem pops, the wordmark slams down with a shockwave, then tagline + loader. Click, press any key, or wait — then <code>onComplete</code> fires.</p>
+  <button id="replayBtn">▶ Replay Splash</button>
+</div>
+
+<script id="phs-module">
+/* ============================================================
+   PIZZA HERO GAMING — SPLASH MODULE (v3 — Studio Bumper)
+   ============================================================ */
+const PizzaHeroSplash = (function () {
+
+  const TITLE = 'PIZZA HERO';
+
+  function buildLetters(text) {
+    return text.split('').map((ch, i) => {
+      const delay = (1.05 + i * 0.05).toFixed(2);
+      if (ch === ' ') return `<span class="phs-space" style="animation-delay:${delay}s">&nbsp;</span>`;
+      return `<span style="animation-delay:${delay}s">${ch}</span>`;
+    }).join('');
+  }
+
+  function show(opts = {}) {
+    const {
+      duration    = 3800,
+      skipOnInput = true,
+      tagline     = 'GAMING',
+      onComplete  = () => {}
+    } = opts;
+
+    document.querySelectorAll('.phs-splash').forEach(el => el.remove());
+
+    const splash = document.createElement('div');
+    splash.className = 'phs-splash';
+    splash.setAttribute('role', 'dialog');
+    splash.setAttribute('aria-label', 'Pizza Hero Gaming intro');
+    splash.innerHTML = `
+      <div class="phs-rays" aria-hidden="true"></div>
+      <div class="phs-mark">PHG · MMXXVI</div>
+      <div class="phs-shockwave" aria-hidden="true"></div>
+      <h1 class="phs-title" aria-label="Pizza Hero">${buildLetters(TITLE)}</h1>
+      <p class="phs-tagline">${tagline.split('').join(' ')}</p>
+      <div class="phs-loader" aria-hidden="true"><div class="phs-loader-fill"></div></div>
+      <div class="phs-prompt">${skipOnInput ? 'Click or Press Any Key' : 'Loading…'}</div>
+    `;
+    document.body.appendChild(splash);
+
+    /* Camera shake at the moment the wordmark slams in (~1.05s) */
+    setTimeout(() => splash.classList.add('phs-shake'), 1050);
+
+    let dismissed = false;
+    function dismiss() {
+      if (dismissed) return;
+      dismissed = true;
+      window.removeEventListener('keydown', onKey);
+      splash.removeEventListener('click', onClick);
+      splash.classList.add('phs-out');
+      setTimeout(() => {
+        splash.remove();
+        try { onComplete(); } catch (e) { console.error(e); }
+      }, 560);
+    }
+
+    const onKey   = () => skipOnInput && dismiss();
+    const onClick = () => skipOnInput && dismiss();
+
+    if (skipOnInput) {
+      window.addEventListener('keydown', onKey);
+      splash.addEventListener('click', onClick);
+    }
+    if (duration > 0) setTimeout(dismiss, duration);
+
+    return { dismiss };
+  }
+
+  return { show };
+})();
+
+/* ===== DEMO ===== */
+function playSplash() {
+  PizzaHeroSplash.show({
+    onComplete: () => console.log('[PizzaHeroSplash] done — game starts here')
+  });
+}
+document.getElementById('replayBtn').addEventListener('click', playSplash);
+window.addEventListener('load', playSplash);
+</script>
+
+</body>
+</html>

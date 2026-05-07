@@ -1,0 +1,35 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(node --check*)",
+      "Bash(node *)",
+      "Bash(python3 *)",
+      "Bash(grep *)",
+      "Bash(rg *)",
+      "Bash(find *)",
+      "Bash(ls *)",
+      "Bash(cat *)",
+      "Bash(wc *)",
+      "Bash(head *)",
+      "Bash(tail *)",
+      "Bash(diff *)",
+      "Bash(git status)",
+      "Bash(git diff*)",
+      "Bash(git log*)",
+      "Bash(git add*)",
+      "Bash(git commit*)",
+      "Bash(git branch*)",
+      "Bash(git checkout*)",
+      "Bash(git restore*)",
+      "Bash(git stash*)",
+      "Bash(npm install*)",
+      "Bash(npm run*)",
+      "Bash(npm list*)",
+      "Bash(npx *)",
+      "Bash(./scripts/*)",
+      "Read",
+      "Edit",
+      "Write"
+    ]
+  }
+}

@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Background fills the entire icon area, important for maskable icons
+       so Android can crop into circles/squircles without showing the page. -->
+  <rect width="512" height="512" fill="#0d1126"/>
+
+  <!-- Impact starburst behind the slice — yellow rays radiating from center.
+       8 rays alternating long/short for the classic "POW!" comic effect. -->
+  <g transform="translate(256 256)">
+    <!-- Long rays -->
+    <g fill="#ffd23f">
+      <polygon points="0,-220 20,-90 -20,-90"/>
+      <polygon points="0,220 20,90 -20,90"/>
+      <polygon points="-220,0 -90,20 -90,-20"/>
+      <polygon points="220,0 90,20 90,-20"/>
+    </g>
+    <!-- Short rays at 45° -->
+    <g fill="#ffd23f" transform="rotate(45)">
+      <polygon points="0,-180 16,-80 -16,-80"/>
+      <polygon points="0,180 16,80 -16,80"/>
+      <polygon points="-180,0 -80,16 -80,-16"/>
+      <polygon points="180,0 80,16 80,-16"/>
+    </g>
+  </g>
+
+  <!-- Pizza slice — triangle pointing down-right with crust at top.
+       Centered with safe-zone padding so it survives Android's mask crop. -->
+  <g transform="translate(256 256) rotate(-12)">
+    <!-- Drop shadow (chunky retro offset shadow) -->
+    <path d="M -120 -100 L 120 -100 L 0 130 Z" fill="#000" transform="translate(8 10)"/>
+
+    <!-- Crust (top edge, slightly puffy) -->
+    <path d="M -132 -112 L 132 -112 L 132 -88 L -132 -88 Z" fill="#d4a04a" stroke="#000" stroke-width="8" stroke-linejoin="round"/>
+
+    <!-- Cheese / sauce body of the slice -->
+    <path d="M -120 -100 L 120 -100 L 0 130 Z" fill="#ff3864" stroke="#000" stroke-width="10" stroke-linejoin="round"/>
+
+    <!-- Cheese drips at the bottom edge of the crust, drooping into the sauce -->
+    <path d="M -100 -88 L -100 -68 L -75 -78 L -75 -55 L -50 -65 L -50 -50 L -25 -60 L -25 -45 L 0 -55 L 0 -42 L 25 -52 L 25 -38 L 50 -50 L 50 -34 L 75 -45 L 75 -28 L 100 -40 L 100 -88 Z"
+          fill="#ffd23f" stroke="#000" stroke-width="6" stroke-linejoin="round"/>
+
+    <!-- Pepperoni (3 circles) -->
+    <circle cx="-50" cy="-15" r="22" fill="#a02040" stroke="#000" stroke-width="6"/>
+    <circle cx="40" cy="20" r="20" fill="#a02040" stroke="#000" stroke-width="6"/>
+    <circle cx="-15" cy="55" r="18" fill="#a02040" stroke="#000" stroke-width="6"/>
+
+    <!-- Highlight specks on the cheese -->
+    <circle cx="-30" cy="-50" r="4" fill="#fff" opacity="0.7"/>
+    <circle cx="55" cy="-30" r="3" fill="#fff" opacity="0.7"/>
+    <circle cx="20" cy="65" r="3" fill="#fff" opacity="0.7"/>
+  </g>
+
+  <!-- Subtle vignette around edges so the icon reads at small sizes -->
+  <rect width="512" height="512" fill="url(#vignette)" opacity="0.35"/>
+  <defs>
+    <radialGradient id="vignette" cx="50%" cy="50%" r="55%">
+      <stop offset="60%" stop-color="#000" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#000" stop-opacity="1"/>
+    </radialGradient>
+  </defs>
+</svg>

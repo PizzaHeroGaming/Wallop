@@ -1,0 +1,37 @@
+# Node / npm (only present if you set up Capacitor or other tooling)
+node_modules/
+package-lock.json
+npm-debug.log*
+
+# Local Claude Code state (your machine only — not for sharing)
+# We DO commit .claude/settings.json so the team shares permissions,
+# but everything else under .claude/ is per-machine.
+.claude/cache/
+.claude/sessions/
+.claude/local-*
+
+# Capacitor / native wrappers (auto-generated, don't commit)
+android/
+ios/
+www/
+
+# Build output
+dist/
+build/
+
+# OS junk
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# Editor / IDE
+.vscode/
+.idea/
+*.code-workspace
+
+# Logs / scratch
+*.log
+/tmp-*
+/scratch-*

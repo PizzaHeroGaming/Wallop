@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<title>WALLOP Icon Preview</title>
+<style>
+  body {
+    margin: 0; padding: 40px;
+    background: #1b1f3a; color: white;
+    font-family: system-ui, -apple-system, sans-serif;
+    min-height: 100vh;
+  }
+  h1 { color: #ffd23f; font-size: 24px; margin-bottom: 6px; }
+  .subtitle { color: #b8bce0; margin-bottom: 30px; font-size: 14px; }
+  .preview-row {
+    display: flex; align-items: center; gap: 30px;
+    margin-bottom: 32px; flex-wrap: wrap;
+  }
+  .preview-col { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .preview-col .label {
+    font-size: 12px; color: #b8bce0; text-align: center;
+  }
+  .preview-col .label b { color: white; }
+  /* Square */
+  .icon-square {
+    background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" fill="%230d1126"/><g transform="translate(256 256)"><g fill="%23ffd23f"><polygon points="0,-220 20,-90 -20,-90"/><polygon points="0,220 20,90 -20,90"/><polygon points="-220,0 -90,20 -90,-20"/><polygon points="220,0 90,20 90,-20"/></g><g fill="%23ffd23f" transform="rotate(45)"><polygon points="0,-180 16,-80 -16,-80"/><polygon points="0,180 16,80 -16,80"/><polygon points="-180,0 -80,16 -80,-16"/><polygon points="180,0 80,16 80,-16"/></g></g><g transform="translate(256 256) rotate(-12)"><path d="M -120 -100 L 120 -100 L 0 130 Z" fill="%23000" transform="translate(8 10)"/><path d="M -132 -112 L 132 -112 L 132 -88 L -132 -88 Z" fill="%23d4a04a" stroke="%23000" stroke-width="8" stroke-linejoin="round"/><path d="M -120 -100 L 120 -100 L 0 130 Z" fill="%23ff3864" stroke="%23000" stroke-width="10" stroke-linejoin="round"/><path d="M -100 -88 L -100 -68 L -75 -78 L -75 -55 L -50 -65 L -50 -50 L -25 -60 L -25 -45 L 0 -55 L 0 -42 L 25 -52 L 25 -38 L 50 -50 L 50 -34 L 75 -45 L 75 -28 L 100 -40 L 100 -88 Z" fill="%23ffd23f" stroke="%23000" stroke-width="6" stroke-linejoin="round"/><circle cx="-50" cy="-15" r="22" fill="%23a02040" stroke="%23000" stroke-width="6"/><circle cx="40" cy="20" r="20" fill="%23a02040" stroke="%23000" stroke-width="6"/><circle cx="-15" cy="55" r="18" fill="%23a02040" stroke="%23000" stroke-width="6"/></g></svg>');
+    background-size: cover;
+    background-position: center;
+  }
+  .icon-512 { width: 256px; height: 256px; }
+  .icon-192 { width: 192px; height: 192px; }
+  .icon-96 { width: 96px; height: 96px; }
+  .icon-64 { width: 64px; height: 64px; }
+  .icon-48 { width: 48px; height: 48px; }
+  .icon-32 { width: 32px; height: 32px; }
+  .icon-16 { width: 16px; height: 16px; }
+  /* Maskable simulations: how Android crops the icon */
+  .mask-circle { border-radius: 50%; }
+  .mask-squircle { border-radius: 24%; }
+  .mask-rounded { border-radius: 12%; }
+</style>
+</head>
+<body>
+<h1>WALLOP icon — preview at install sizes</h1>
+<p class="subtitle">How the icon will appear in different contexts on phones, browsers, and stores.</p>
+
+<h2 style="font-size:14px;color:#42c9f5;margin-top:30px;">Square (raw icon)</h2>
+<div class="preview-row">
+  <div class="preview-col"><div class="icon-square icon-512"></div><div class="label"><b>512×512</b><br>Play Store / iOS app icon</div></div>
+  <div class="preview-col"><div class="icon-square icon-192"></div><div class="label"><b>192×192</b><br>PWA / Home screen</div></div>
+  <div class="preview-col"><div class="icon-square icon-96"></div><div class="label"><b>96×96</b><br>Android launcher</div></div>
+  <div class="preview-col"><div class="icon-square icon-48"></div><div class="label"><b>48×48</b><br>Notification</div></div>
+</div>
+
+<h2 style="font-size:14px;color:#42c9f5;margin-top:30px;">Android adaptive masks (how it'll appear cropped on Pixel/Samsung/etc.)</h2>
+<div class="preview-row">
+  <div class="preview-col"><div class="icon-square icon-192 mask-circle"></div><div class="label"><b>Circle</b><br>Pixel default</div></div>
+  <div class="preview-col"><div class="icon-square icon-192 mask-squircle"></div><div class="label"><b>Squircle</b><br>Samsung One UI</div></div>
+  <div class="preview-col"><div class="icon-square icon-192 mask-rounded"></div><div class="label"><b>Rounded square</b><br>iOS home screen</div></div>
+</div>
+
+<h2 style="font-size:14px;color:#42c9f5;margin-top:30px;">Browser favicon scale</h2>
+<div class="preview-row">
+  <div class="preview-col"><div class="icon-square icon-32"></div><div class="label"><b>32×32</b><br>Browser tab</div></div>
+  <div class="preview-col"><div class="icon-square icon-16"></div><div class="label"><b>16×16</b><br>Bookmark bar</div></div>
+</div>
+
+</body>
+</html>
