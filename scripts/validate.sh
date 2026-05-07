@@ -10,18 +10,38 @@ if [ ! -f src/wallop.html ]; then
   exit 1
 fi
 
-# Extract every inline <script> block into a single concatenated file,
-# then run node --check on it. Skips <script src="..."> tags.
-python3 - <<'PYEOF'
-import re, sys
-with open('src/wallop.html') as f:
+# On Windows the App Execution Alias stub intercepts 'python3', so prefer the real install.
+PYTHON3=""
+for candidate in \
+    "/c/Users/ruien/AppData/Local/Programs/Python/Python313/python.exe" \
+    "$(command -v python3 2>/dev/null)" \
+    "$(command -v python 2>/dev/null)"; do
+  if [ -x "$candidate" ] && "$candidate" -c "import sys; sys.exit(0 if sys.version_info >= (3,) else 1)" 2>/dev/null; then
+    PYTHON3="$candidate"
+    break
+  fi
+done
+
+if [ -z "$PYTHON3" ]; then
+  echo "ERROR: python3 not found" >&2
+  exit 1
+fi
+
+# Extract every inline <script> block into a temp file, then run node --check on it.
+# Skips <script src="..."> tags.
+JSFILE=$("$PYTHON3" - <<'PYEOF'
+import re, tempfile, os
+with open('src/wallop.html', encoding='utf-8') as f:
     html = f.read()
 scripts = re.findall(r'<script(?![^>]*\bsrc=)[^>]*>(.*?)</script>', html, re.DOTALL)
 combined = '\n;\n'.join(scripts)
-open('/tmp/wallop-inline.js', 'w').write(combined)
+out = os.path.join(tempfile.gettempdir(), 'wallop-inline.js')
+open(out, 'w', encoding='utf-8').write(combined)
+print(out)
 PYEOF
+)
 
-node --check /tmp/wallop-inline.js
+node --check "$JSFILE"
 
 # Lint check: scene.remove(*.mesh) leaks GPU resources — see CLAUDE.md gotcha #1
 LEAKS=$(grep -n 'scene\.remove(' src/wallop.html | grep -v 'difference between scene.remove' || true)
