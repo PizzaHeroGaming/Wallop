@@ -315,6 +315,10 @@
   .btn:active { transform: translate(4px, 4px); box-shadow: 2px 2px 0 #000; }
   .btn.hot { background: var(--hot); color: white; }
   .btn.hot:hover { background: #ff6b8a; }
+  .btn.dim { background: var(--panel-2); color: var(--ink-dim); border-color: #000; }
+  .btn.dim:hover { background: var(--panel); color: var(--ink); }
+  .end-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 4px; }
+  .end-actions .btn { font-size: 11px; padding: 12px 16px; }
 
   /* Start screen — actions row + slice counter */
   .start-actions {
@@ -1695,7 +1699,7 @@ window.addEventListener('load', () => {
 <div id="gameover-screen" class="overlay hidden">
   <div id="gameover-title">YOU DIED</div>
   <div id="gameover-stats"></div>
-  <button class="btn" id="restart-btn">RUN IT BACK</button>
+  <div id="gameover-btns"></div>
 </div>
 
 <!-- Pause menu -->
@@ -6793,14 +6797,13 @@ function triggerGameOver(victory) {
     title.classList.remove('victory');
   }
   const stats = document.getElementById('gameover-stats');
+  const btns = document.getElementById('gameover-btns');
   const m = Math.floor(gameState.gameTime / 60).toString().padStart(2, '0');
   const s = Math.floor(gameState.gameTime % 60).toString().padStart(2, '0');
-  // Build the slice-earned line only if they got any this run, so death-on-spawn
-  // runs don't show a "0 slices" line that just feels like rubbing it in.
   const sliceLine = (gameState.slicesEarned > 0)
     ? `<div class="lbl">🍕 SLICES</div><div class="val slices-val">+${gameState.slicesEarned}</div>`
     : '';
-  stats.innerHTML = `
+  const statsHTML = `
     <div class="lbl">TIME</div><div class="val">${m}:${s}</div>
     <div class="lbl">LEVEL</div><div class="val">${player.level}</div>
     <div class="lbl">KILLS</div><div class="val">${gameState.kills}</div>
@@ -6808,6 +6811,23 @@ function triggerGameOver(victory) {
     <div class="lbl">WEAPONS</div><div class="val">${player.weapons.length}</div>
     ${sliceLine}
   `;
+
+  if (victory) {
+    // Stats hidden until player asks — keep the screen clean on first look
+    stats.innerHTML = statsHTML;
+    stats.style.display = 'none';
+    btns.innerHTML = `
+      <div class="end-actions">
+        <button class="btn" id="restart-btn">RUN IT BACK</button>
+        <button class="btn dim" id="stats-btn">SEE STATS</button>
+        <button class="btn dim" id="mainmenu-btn">MAIN MENU</button>
+      </div>`;
+  } else {
+    stats.innerHTML = statsHTML;
+    stats.style.display = '';
+    btns.innerHTML = `<button class="btn" id="restart-btn">RUN IT BACK</button>`;
+  }
+
   ov.classList.remove('hidden');
   if (mouseLocked) document.exitPointerLock();
 
@@ -6933,11 +6953,29 @@ document.getElementById('start-btn').addEventListener('click', () => {
   if (!isMobile()) renderer.domElement.requestPointerLock();
 });
 
-document.getElementById('restart-btn').addEventListener('click', () => {
-  document.getElementById('gameover-screen').classList.add('hidden');
-  enterFullscreenAndLockOrientation();
-  resetGame();
-  if (!isMobile()) renderer.domElement.requestPointerLock();
+document.getElementById('gameover-screen').addEventListener('click', e => {
+  const id = e.target.id;
+  if (id === 'restart-btn') {
+    document.getElementById('gameover-screen').classList.add('hidden');
+    enterFullscreenAndLockOrientation();
+    resetGame();
+    if (!isMobile()) renderer.domElement.requestPointerLock();
+  } else if (id === 'stats-btn') {
+    const stats = document.getElementById('gameover-stats');
+    const hidden = stats.style.display === 'none';
+    stats.style.display = hidden ? '' : 'none';
+    e.target.textContent = hidden ? 'HIDE STATS' : 'SEE STATS';
+  } else if (id === 'mainmenu-btn') {
+    document.getElementById('gameover-screen').classList.add('hidden');
+    document.getElementById('hud').style.display = 'none';
+    document.getElementById('start-screen').classList.remove('hidden');
+    gameState.state = 'start';
+    if (document.pointerLockElement) document.exitPointerLock();
+    for (const e of enemies) killMesh(e.mesh); enemies.length = 0;
+    for (const p of projectiles) killMesh(p.mesh); projectiles.length = 0;
+    for (const p of enemyProjectiles) killMesh(p.mesh); enemyProjectiles.length = 0;
+    syncSliceDisplays();
+  }
 });
 
 // =====================================================================
