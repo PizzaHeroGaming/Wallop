@@ -1750,6 +1750,8 @@ window.addEventListener('load', () => {
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/RenderPass.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/ShaderPass.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
 <script>
 'use strict';
 
@@ -2962,391 +2964,50 @@ const player = {
   gold: 0,
 };
 
-(function buildPlayer() {
-  // ============================================================
-  // PIZZA HERO — Pizza Delivery Hero
-  // Realistic-ish humanoid proportions (head ~1/7 of body height)
-  // No cape. Pizza box satchel on the back.
-  // ============================================================
+// ============================================================
+// PLAYER MESH — KayKit Knight loaded via GLTFLoader
+// Animations from two separate GLBs:
+//   movement.glb  -> Walking_A / Running_A / jump clips
+//   general.glb   -> Idle_A / Hit_A / Death_A
+// ============================================================
+let playerMixer = null;
+let playerIdleAction = null;
+let playerWalkAction = null;
+let playerRunAction = null;
+let _playerMoving = false;
 
-  // ---- Materials ----
-  // Skin: warm with subtle shine, slightly desaturated for a more grounded look
-  const skin   = new THREE.MeshPhongMaterial({ color: 0xd9a07c, shininess: 12 });
-  // Polo shirt: red + black with PHG yellow trim (matches the splash screen palette)
-  const shirt    = new THREE.MeshPhongMaterial({ color: 0xc8102e, shininess: 12 });
-  const shirtDk  = new THREE.MeshPhongMaterial({ color: 0x8b0a1f, shininess: 8 });
-  const collar   = new THREE.MeshPhongMaterial({ color: 0xf4c542, shininess: 18 });
-  // Jeans
-  const jeans    = new THREE.MeshPhongMaterial({ color: 0x2c4a78, shininess: 4 });
-  const jeansDk  = new THREE.MeshPhongMaterial({ color: 0x1f3556, shininess: 4 });
-  const belt     = new THREE.MeshPhongMaterial({ color: 0x1a1006, shininess: 24 });
-  const buckle   = new THREE.MeshPhongMaterial({ color: 0xc9a93a, shininess: 90 });
-  // Sneakers
-  const shoe     = new THREE.MeshPhongMaterial({ color: 0xf5f5f5, shininess: 22 });
-  const shoeSole = new THREE.MeshPhongMaterial({ color: 0x141414, shininess: 12 });
-  const shoeAcc  = new THREE.MeshPhongMaterial({ color: 0xc8102e, shininess: 30 });
-  // Hair
-  const hair   = new THREE.MeshPhongMaterial({ color: 0x3a2210, shininess: 18 });
-  // Cap (baseball style)
-  const cap    = new THREE.MeshPhongMaterial({ color: 0xc8102e, shininess: 8 });
-  const capDk  = new THREE.MeshPhongMaterial({ color: 0x8b0a1f, shininess: 8 });
-  const logoMat= new THREE.MeshPhongMaterial({ color: 0xf4c542, shininess: 60 });
-  // Pizza box (the satchel)
-  const boxMat = new THREE.MeshPhongMaterial({ color: 0xe8d8b2, shininess: 4 });
-  const boxLogo= new THREE.MeshPhongMaterial({ color: 0xc8102e, shininess: 8 });
-  const strapMat = new THREE.MeshPhongMaterial({ color: 0x141414, shininess: 16 });
+player.group = new THREE.Group();
+scene.add(player.group);
 
-  player.group = new THREE.Group();
+// Load character + animations immediately; game is playable before they arrive
+// (player.group is empty until the promise resolves, so the player is invisible
+// until the GLBs download, typically < 2s on a fast connection).
+const _gltfLoader = new THREE.GLTFLoader();
+function _loadGLB(url) {
+  return new Promise((res, rej) => _gltfLoader.load(url, res, null, rej));
+}
+Promise.all([
+  _loadGLB('assets/characters/knight.glb'),
+  _loadGLB('assets/characters/movement.glb'),
+  _loadGLB('assets/characters/general.glb'),
+]).then(([charGltf, moveGltf, genGltf]) => {
+  const model = THREE.SkeletonUtils.clone(charGltf.scene);
+  // Scale + shadow
+  model.scale.setScalar(1.0);
+  model.traverse(c => { if (c.isMesh) c.castShadow = true; });
+  player.group.add(model);
 
-  // Reference proportions: total height ~1.85 units, head ~0.26, leg-pivot at hip ~0.95.
-  // We'll keep the leg-pivot/hip height similar to the old build so movement feels the same.
+  // Merge clips from both animation GLBs
+  const allClips = [...moveGltf.animations, ...genGltf.animations];
+  playerMixer = new THREE.AnimationMixer(model);
 
-  // ---- Legs (pivots at hips) ----
-  player.legL = new THREE.Group();
-  player.legR = new THREE.Group();
-  player.legL.position.set(-0.13, 0.92, 0);
-  player.legR.position.set( 0.13, 0.92, 0);
-  player.group.add(player.legL, player.legR);
+  const getClip = name => allClips.find(c => c.name === name);
+  playerIdleAction = getClip('Idle_A') ? playerMixer.clipAction(getClip('Idle_A')) : null;
+  playerWalkAction = getClip('Walking_A') ? playerMixer.clipAction(getClip('Walking_A')) : null;
+  playerRunAction  = getClip('Running_A') ? playerMixer.clipAction(getClip('Running_A')) : null;
 
-  for (const leg of [player.legL, player.legR]) {
-    // Thigh — slightly tapered cylinder
-    const thigh = new THREE.Mesh(new THREE.CylinderGeometry(0.115, 0.10, 0.46, 14), jeans);
-    thigh.position.y = -0.23; thigh.castShadow = true; leg.add(thigh);
-    // Knee bulge (very subtle)
-    const knee = new THREE.Mesh(new THREE.SphereGeometry(0.105, 12, 10), jeansDk);
-    knee.position.y = -0.46; knee.scale.set(1, 0.7, 1); leg.add(knee);
-    // Calf
-    const calf = new THREE.Mesh(new THREE.CylinderGeometry(0.10, 0.085, 0.42, 14), jeans);
-    calf.position.y = -0.67; calf.castShadow = true; leg.add(calf);
-    // Pant cuff (tiny darker ring)
-    const cuff = new THREE.Mesh(new THREE.CylinderGeometry(0.105, 0.105, 0.05, 14), jeansDk);
-    cuff.position.y = -0.88; leg.add(cuff);
-    // Sneaker — main shoe body
-    const shoeBody = new THREE.Mesh(new THREE.BoxGeometry(0.20, 0.14, 0.34), shoe);
-    shoeBody.position.set(0, -0.95, 0.07);
-    shoeBody.castShadow = true;
-    leg.add(shoeBody);
-    // Sole (darker, slightly wider)
-    const sole = new THREE.Mesh(new THREE.BoxGeometry(0.21, 0.05, 0.36), shoeSole);
-    sole.position.set(0, -1.025, 0.08);
-    leg.add(sole);
-    // Toe cap
-    const toe = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.10, 0.06), shoeSole);
-    toe.position.set(0, -0.95, 0.21);
-    leg.add(toe);
-    // Side red swoosh accent
-    const swoosh = new THREE.Mesh(new THREE.BoxGeometry(0.005, 0.08, 0.16), shoeAcc);
-    swoosh.position.set(0.10, -0.94, 0.04);
-    leg.add(swoosh);
-    const swoosh2 = swoosh.clone();
-    swoosh2.position.x = -0.10;
-    leg.add(swoosh2);
-  }
-
-  // ---- Torso ----
-  // Anatomy: human torso has clear V-taper (narrow waist → broad chest), and is
-  // about 60% as deep as it is wide. We build it as stacked tapered boxes
-  // rather than a single cylinder so the silhouette reads as a person, not a can.
-  player.torso = new THREE.Group();
-  player.torso.position.y = 1.05;
-  player.group.add(player.torso);
-
-  // --- Hips (widest at the bottom of the torso) ---
-  const hips = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.18, 0.26), shirt);
-  hips.position.y = -0.04;
-  hips.castShadow = true;
-  player.torso.add(hips);
-  // Soften the hip corners with side rounding spheres so the body doesn't look like a brick
-  for (const sx of [-0.20, 0.20]) {
-    const hipRound = new THREE.Mesh(new THREE.SphereGeometry(0.11, 12, 10), shirt);
-    hipRound.scale.set(0.7, 0.9, 1.1);
-    hipRound.position.set(sx, -0.04, 0);
-    player.torso.add(hipRound);
-  }
-
-  // --- Belt (rests on top of the hips, at the waist crease) ---
-  const beltStrap = new THREE.Mesh(new THREE.BoxGeometry(0.44, 0.07, 0.28), belt);
-  beltStrap.position.y = 0.07;
-  player.torso.add(beltStrap);
-  // Buckle
-  const buckleM = new THREE.Mesh(new THREE.BoxGeometry(0.10, 0.08, 0.025), buckle);
-  buckleM.position.set(0, 0.07, 0.145);
-  player.torso.add(buckleM);
-
-  // --- Waist (narrowest point of the torso) ---
-  const waist = new THREE.Mesh(new THREE.BoxGeometry(0.36, 0.16, 0.22), shirt);
-  waist.position.y = 0.18;
-  waist.castShadow = true;
-  player.torso.add(waist);
-
-  // --- Ribcage / chest (V-taper: narrower at waist, broader at shoulders) ---
-  // Built as a tapered box: wider at top, narrower at bottom.
-  // We use a BoxGeometry then non-uniformly scale for the taper.
-  const chest = new THREE.Mesh(new THREE.BoxGeometry(0.50, 0.36, 0.30), shirt);
-  chest.position.y = 0.42;
-  chest.castShadow = true;
-  player.torso.add(chest);
-  // Soften the front of the chest so it has a slight curve instead of a flat plane
-  const chestFront = new THREE.Mesh(new THREE.SphereGeometry(0.28, 14, 12), shirt);
-  chestFront.scale.set(1.0, 0.65, 0.45);
-  chestFront.position.set(0, 0.45, 0.10);
-  player.torso.add(chestFront);
-  // Subtle pec separation — a thin shadow groove down the center
-  const pecGroove = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.20, 0.04), shirtDk);
-  pecGroove.position.set(0, 0.42, 0.16);
-  player.torso.add(pecGroove);
-  // Round the chest sides so they meet the shoulders smoothly
-  for (const sx of [-0.25, 0.25]) {
-    const ribRound = new THREE.Mesh(new THREE.SphereGeometry(0.13, 12, 10), shirt);
-    ribRound.scale.set(0.75, 0.95, 1.0);
-    ribRound.position.set(sx, 0.42, 0);
-    player.torso.add(ribRound);
-  }
-
-  // --- Upper chest / clavicle yoke (the slope from shoulders down to the neck) ---
-  const yoke = new THREE.Mesh(new THREE.BoxGeometry(0.54, 0.10, 0.26), shirt);
-  yoke.position.y = 0.59;
-  yoke.castShadow = true;
-  player.torso.add(yoke);
-
-  // --- Polo collar (yellow band around the neckline) ---
-  const collarRing = new THREE.Mesh(new THREE.TorusGeometry(0.10, 0.022, 6, 16, Math.PI), collar);
-  collarRing.rotation.x = -Math.PI / 2;
-  collarRing.rotation.z = Math.PI;
-  collarRing.position.set(0, 0.66, 0.10);
-  player.torso.add(collarRing);
-  // Polo placket — vertical strip down from the collar
-  const placket = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.18, 0.02), shirtDk);
-  placket.position.set(0, 0.52, 0.155);
-  player.torso.add(placket);
-  for (const py of [0.56, 0.49]) {
-    const btn = new THREE.Mesh(new THREE.SphereGeometry(0.016, 6, 6), buckle);
-    btn.position.set(0, py, 0.165);
-    player.torso.add(btn);
-  }
-
-  // --- PHG chest logo — yellow diamond with red center (left chest) ---
-  const logoBack = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.13, 0.012), logoMat);
-  logoBack.rotation.z = Math.PI / 4;
-  logoBack.position.set(-0.16, 0.46, 0.155);
-  player.torso.add(logoBack);
-  const logoCenter = new THREE.Mesh(new THREE.BoxGeometry(0.065, 0.065, 0.012), shirtDk);
-  logoCenter.rotation.z = Math.PI / 4;
-  logoCenter.position.set(-0.16, 0.46, 0.162);
-  player.torso.add(logoCenter);
-
-  // --- Shoulder caps (rounded deltoid bulges) ---
-  // Slightly tucked toward the body and forward so the arm pivots line up correctly.
-  for (const sx of [-0.30, 0.30]) {
-    const sh = new THREE.Mesh(new THREE.SphereGeometry(0.13, 14, 12), shirt);
-    sh.scale.set(1.05, 0.85, 1.0);
-    sh.position.set(sx, 0.59, 0);
-    sh.castShadow = true;
-    player.torso.add(sh);
-  }
-
-  // ---- Arms ----
-  // Pivots are placed at the shoulder cap centers so the arms hang naturally.
-  player.armL = new THREE.Group();
-  player.armR = new THREE.Group();
-  player.armL.position.set(-0.30, 0.59, 0);
-  player.armR.position.set( 0.30, 0.59, 0);
-  player.armL.rotation.z =  0.10;
-  player.armR.rotation.z = -0.10;
-  player.torso.add(player.armL, player.armR);
-
-  for (const arm of [player.armL, player.armR]) {
-    // Sleeve (short polo sleeve with darker trim)
-    const sleeve = new THREE.Mesh(new THREE.CylinderGeometry(0.105, 0.095, 0.18, 12), shirt);
-    sleeve.position.y = -0.09; sleeve.castShadow = true; arm.add(sleeve);
-    const sleeveTrim = new THREE.Mesh(new THREE.CylinderGeometry(0.10, 0.10, 0.025, 12), shirtDk);
-    sleeveTrim.position.y = -0.18; arm.add(sleeveTrim);
-    // Bicep / upper arm
-    const upper = new THREE.Mesh(new THREE.CylinderGeometry(0.085, 0.075, 0.20, 12), skin);
-    upper.position.y = -0.30; upper.castShadow = true; arm.add(upper);
-    // Elbow
-    const elbow = new THREE.Mesh(new THREE.SphereGeometry(0.08, 10, 8), skin);
-    elbow.position.y = -0.42; arm.add(elbow);
-    // Forearm
-    const forearm = new THREE.Mesh(new THREE.CylinderGeometry(0.075, 0.065, 0.30, 12), skin);
-    forearm.position.y = -0.58; forearm.castShadow = true; arm.add(forearm);
-    // Wrist + hand
-    const wrist = new THREE.Mesh(new THREE.SphereGeometry(0.07, 10, 8), skin);
-    wrist.position.y = -0.74; arm.add(wrist);
-    const hand = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.16, 0.10), skin);
-    hand.position.y = -0.84; hand.castShadow = true; arm.add(hand);
-    // Fingers (subtle)
-    const fingers = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.05, 0.10), skin);
-    fingers.position.y = -0.93;
-    arm.add(fingers);
-  }
-
-  // ---- Neck ----
-  const neck = new THREE.Mesh(new THREE.CylinderGeometry(0.085, 0.10, 0.10, 12), skin);
-  neck.position.y = 0.69;
-  player.torso.add(neck);
-
-  // ---- Head ----
-  player.head = new THREE.Group();
-  player.head.position.y = 0.85;
-  player.torso.add(player.head);
-
-  // Head shape — slightly oval, smaller than the previous build for proper proportions
-  const headBase = new THREE.Mesh(new THREE.SphereGeometry(0.18, 18, 16), skin);
-  headBase.scale.set(1.0, 1.10, 0.95);
-  headBase.castShadow = true;
-  player.head.add(headBase);
-
-  // Jaw (tapered chin)
-  const jaw = new THREE.Mesh(new THREE.SphereGeometry(0.13, 12, 10), skin);
-  jaw.scale.set(1.05, 0.85, 1.0);
-  jaw.position.set(0, -0.10, 0.02);
-  player.head.add(jaw);
-
-  // Ears
-  for (const ex of [-0.18, 0.18]) {
-    const ear = new THREE.Mesh(new THREE.SphereGeometry(0.04, 8, 8), skin);
-    ear.scale.set(0.5, 1.1, 0.8);
-    ear.position.set(ex, -0.01, 0);
-    player.head.add(ear);
-  }
-
-  // Hair — sides peeking out from under the cap
-  const hairSides = new THREE.Mesh(
-    new THREE.SphereGeometry(0.185, 18, 12, 0, Math.PI * 2, 0, Math.PI * 0.45),
-    hair
-  );
-  hairSides.scale.set(1.02, 0.85, 1.05);
-  hairSides.position.y = -0.02;
-  player.head.add(hairSides);
-  // A few wisps in front (under the cap brim)
-  const bangs = new THREE.Mesh(new THREE.BoxGeometry(0.20, 0.04, 0.02), hair);
-  bangs.position.set(0, 0.10, 0.165);
-  bangs.rotation.x = -0.2;
-  player.head.add(bangs);
-  // Sideburns
-  for (const sx of [-0.15, 0.15]) {
-    const sb = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.10, 0.05), hair);
-    sb.position.set(sx, -0.02, 0.04);
-    player.head.add(sb);
-  }
-
-  // Eyes
-  const eyeWhite = new THREE.MeshPhongMaterial({ color: 0xffffff, shininess: 30 });
-  const eyeIris  = new THREE.MeshPhongMaterial({ color: 0x4a3520, shininess: 40 });
-  const eyePupil = new THREE.MeshPhongMaterial({ color: 0x080808, shininess: 90 });
-  for (const ex of [-0.06, 0.06]) {
-    const w = new THREE.Mesh(new THREE.SphereGeometry(0.030, 10, 8), eyeWhite);
-    w.scale.set(1.1, 0.9, 0.7);
-    w.position.set(ex, 0.025, 0.155);
-    player.head.add(w);
-    const iris = new THREE.Mesh(new THREE.SphereGeometry(0.020, 8, 8), eyeIris);
-    iris.position.set(ex, 0.025, 0.175);
-    player.head.add(iris);
-    const pupil = new THREE.Mesh(new THREE.SphereGeometry(0.011, 6, 6), eyePupil);
-    pupil.position.set(ex, 0.025, 0.187);
-    player.head.add(pupil);
-  }
-
-  // Eyebrows
-  for (const bx of [-0.075, 0.075]) {
-    const brow = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.012, 0.02), hair);
-    brow.position.set(bx, 0.07, 0.17);
-    brow.rotation.z = bx > 0 ? -0.1 : 0.1;
-    player.head.add(brow);
-  }
-
-  // Nose (a few stacked subtle pieces)
-  const noseBridge = new THREE.Mesh(new THREE.BoxGeometry(0.025, 0.07, 0.04), skin);
-  noseBridge.position.set(0, 0.0, 0.18);
-  player.head.add(noseBridge);
-  const noseTip = new THREE.Mesh(new THREE.SphereGeometry(0.025, 8, 6), skin);
-  noseTip.position.set(0, -0.04, 0.20);
-  player.head.add(noseTip);
-
-  // Mouth — tiny smile
-  const mouth = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.012, 0.012), shirtDk);
-  mouth.position.set(0, -0.075, 0.175);
-  player.head.add(mouth);
-
-  // ---- Cap (baseball-style with PHG logo) ----
-  // Cap dome
-  const dome = new THREE.Mesh(
-    new THREE.SphereGeometry(0.20, 18, 12, 0, Math.PI * 2, 0, Math.PI / 2),
-    cap
-  );
-  dome.position.y = 0.10;
-  dome.scale.set(1.05, 0.95, 1.05);
-  dome.castShadow = true;
-  player.head.add(dome);
-  // Cap stripe trim (thin darker ring around the base)
-  const capRing = new THREE.Mesh(new THREE.CylinderGeometry(0.205, 0.205, 0.025, 16), capDk);
-  capRing.position.y = 0.105;
-  player.head.add(capRing);
-  // Cap brim — flat curved disc projecting forward
-  const brim = new THREE.Mesh(new THREE.CylinderGeometry(0.20, 0.20, 0.025, 16, 1, false, -Math.PI / 2.6, Math.PI / 1.3), cap);
-  brim.position.set(0, 0.10, 0.13);
-  brim.rotation.x = -0.05;
-  brim.scale.set(1.05, 1, 1.4);
-  brim.castShadow = true;
-  player.head.add(brim);
-  // PHG logo on cap — yellow diamond with red center
-  const capLogoBack = new THREE.Mesh(new THREE.BoxGeometry(0.085, 0.085, 0.008), logoMat);
-  capLogoBack.rotation.z = Math.PI / 4;
-  capLogoBack.position.set(0, 0.18, 0.20);
-  player.head.add(capLogoBack);
-  const capLogoCenter = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.04, 0.008), shirtDk);
-  capLogoCenter.rotation.z = Math.PI / 4;
-  capLogoCenter.position.set(0, 0.18, 0.21);
-  player.head.add(capLogoCenter);
-  // Top button
-  const capBtn = new THREE.Mesh(new THREE.SphereGeometry(0.020, 8, 6), capDk);
-  capBtn.position.y = 0.30;
-  player.head.add(capBtn);
-
-  // ---- Pizza box satchel (slung diagonally across the back) ----
-  // Strap going from left shoulder (top) across the chest to the right hip (bottom).
-  // Length ≈ vertical distance (shoulder y=0.59 to hip y=-0.04 ≈ 0.63) plus some.
-  const strap = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.85, 0.025), strapMat);
-  strap.position.set(0.0, 0.27, 0.0);
-  strap.rotation.z = -0.55;
-  player.torso.add(strap);
-  // Second strap segment behind the back to imply it goes around
-  const strapBack = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.55, 0.025), strapMat);
-  strapBack.position.set(0.04, 0.30, -0.13);
-  strapBack.rotation.z = 0.3;
-  player.torso.add(strapBack);
-
-  // The bag itself — a pizza box, hanging at the right side of the lower back
-  player.bag = new THREE.Group();
-  player.bag.position.set(0.20, 0.00, -0.20);
-  player.bag.rotation.x = -0.05;
-  player.bag.rotation.y = 0.15;
-  player.torso.add(player.bag);
-  const box = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.42, 0.10), boxMat);
-  box.castShadow = true;
-  player.bag.add(box);
-  // Box edges (slightly darker rim so it reads as a 3D box, not a flat panel)
-  const boxRim = new THREE.Mesh(new THREE.BoxGeometry(0.43, 0.43, 0.012), shirtDk);
-  boxRim.position.z = 0.052;
-  player.bag.add(boxRim);
-  // PHG logo on the box — diamond
-  const bagLogo = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.16, 0.012), boxLogo);
-  bagLogo.rotation.z = Math.PI / 4;
-  bagLogo.position.z = 0.058;
-  player.bag.add(bagLogo);
-  // Logo inner
-  const bagLogoInner = new THREE.Mesh(new THREE.BoxGeometry(0.07, 0.07, 0.012), logoMat);
-  bagLogoInner.rotation.z = Math.PI / 4;
-  bagLogoInner.position.z = 0.062;
-  player.bag.add(bagLogoInner);
-
-  scene.add(player.group);
-
-  // Backwards-compatible refs used elsewhere
-  player.headRef = player.head;
-  player.arms = [player.armL, player.armR];
-})();
+  if (playerIdleAction) playerIdleAction.play();
+}).catch(err => console.error('[WALLOP] Knight load failed:', err));
 
 // ============================================================
 // ENTITY POOLS
@@ -6316,6 +5977,11 @@ function resetGame() {
   // reset player
   player.pos.set(0, 0, 0);
   player.vel.set(0, 0, 0);
+  _playerMoving = false;
+  if (playerMixer) {
+    playerMixer.stopAllAction();
+    if (playerIdleAction) playerIdleAction.play();
+  }
   player.hp = 120; player.maxHp = 120;
   player.xp = 0; player.level = 1; player.xpToNext = 5;
   player.baseSpeed = CFG.PLAYER_SPEED;
@@ -7748,6 +7414,7 @@ function update(dt) {
   gameState.gameTime += dt;
   updateSpawning(dt);
   updatePlayer(dt);
+  if (playerMixer) playerMixer.update(dt);
   updateEnemies(dt);
   updateProjectiles(dt);
   updateEnemyProjectiles(dt);
@@ -7851,44 +7518,29 @@ function updatePlayer(dt) {
   while (dy < -Math.PI) dy += Math.PI * 2;
   player.group.rotation.y += dy * Math.min(1, dt * 12);
 
-  // walking animation: legs swing, arms swing opposite, torso bobs, cape sways
-  const moving = mag > 0.05 && player.grounded;
-  if (moving) {
-    player.walkBob += dt * 9.5;
-    const a = Math.sin(player.walkBob);
-    const b = Math.sin(player.walkBob + Math.PI);
-    // Legs swing at hip
-    player.legL.rotation.x = a * 0.7;
-    player.legR.rotation.x = b * 0.7;
-    // Arms swing opposite to legs
-    player.armL.rotation.x = b * 0.55;
-    player.armR.rotation.x = a * 0.55;
-    // Slight body bob (twice the leg frequency feels natural)
-    player.torso.position.y = 1.10 + Math.abs(a) * 0.05;
-    // Subtle head tilt
-    player.head.rotation.z = Math.sin(player.walkBob * 0.5) * 0.03;
-    // Lean forward a bit when running
-    player.torso.rotation.x = 0.06;
-  } else {
-    // Idle: ease limbs back to neutral, breathing motion on torso
-    const t = performance.now() * 0.0022;
-    player.legL.rotation.x *= 0.85;
-    player.legR.rotation.x *= 0.85;
-    player.armL.rotation.x *= 0.85;
-    player.armR.rotation.x *= 0.85;
-    player.torso.position.y = 1.10 + Math.sin(t) * 0.018;
-    player.head.rotation.z *= 0.85;
-    player.torso.rotation.x *= 0.85;
-  }
-  // Pizza box bag bobs naturally with the walk cycle
-  if (player.bag) {
-    const t = performance.now() * 0.001;
-    if (moving) {
-      player.bag.rotation.x = Math.sin(player.walkBob * 2) * 0.04 - 0.05;
-      player.bag.rotation.z = Math.sin(player.walkBob) * 0.025;
-    } else {
-      player.bag.rotation.x = Math.sin(t * 1.5) * 0.015 - 0.05;
-      player.bag.rotation.z *= 0.9;
+  // Animation — crossfade between idle / walk / run via AnimationMixer
+  const moving = mag > 0.05;
+  const dashing = player.dashTimer > 0;
+  if (playerMixer) {
+    const wantRun  = moving && dashing  && playerRunAction;
+    const wantWalk = moving && !dashing && playerWalkAction;
+    const wantIdle = !moving            && playerIdleAction;
+    const nowMoving = moving !== _playerMoving || dashing;
+    _playerMoving = moving;
+    if (nowMoving) {
+      if (wantRun) {
+        if (playerIdleAction) playerIdleAction.fadeOut(0.15);
+        if (playerWalkAction) playerWalkAction.fadeOut(0.15);
+        playerRunAction.reset().fadeIn(0.15).play();
+      } else if (wantWalk) {
+        if (playerIdleAction) playerIdleAction.fadeOut(0.2);
+        if (playerRunAction)  playerRunAction.fadeOut(0.15);
+        playerWalkAction.reset().fadeIn(0.2).play();
+      } else if (wantIdle) {
+        if (playerWalkAction) playerWalkAction.fadeOut(0.2);
+        if (playerRunAction)  playerRunAction.fadeOut(0.2);
+        playerIdleAction.reset().fadeIn(0.2).play();
+      }
     }
   }
 
