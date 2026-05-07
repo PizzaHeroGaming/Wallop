@@ -6812,21 +6812,14 @@ function triggerGameOver(victory) {
     ${sliceLine}
   `;
 
-  if (victory) {
-    // Stats hidden until player asks — keep the screen clean on first look
-    stats.innerHTML = statsHTML;
-    stats.style.display = 'none';
-    btns.innerHTML = `
-      <div class="end-actions">
-        <button class="btn" id="restart-btn">RUN IT BACK</button>
-        <button class="btn dim" id="stats-btn">SEE STATS</button>
-        <button class="btn dim" id="mainmenu-btn">MAIN MENU</button>
-      </div>`;
-  } else {
-    stats.innerHTML = statsHTML;
-    stats.style.display = '';
-    btns.innerHTML = `<button class="btn" id="restart-btn">RUN IT BACK</button>`;
-  }
+  stats.innerHTML = statsHTML;
+  stats.style.display = 'none';
+  btns.innerHTML = `
+    <div class="end-actions">
+      <button class="btn" id="restart-btn">RUN IT BACK</button>
+      <button class="btn dim" id="stats-btn">SEE STATS</button>
+      <button class="btn dim" id="mainmenu-btn">MAIN MENU</button>
+    </div>`;
 
   ov.classList.remove('hidden');
   if (mouseLocked) document.exitPointerLock();
