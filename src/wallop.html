@@ -4126,6 +4126,16 @@ function spawnEnemy(typeKey, opts = {}) {
     enemy.walkAction = _getClip('Walking_A') ? enemy.mixer.clipAction(_getClip('Walking_A')) : null;
     if (enemy.idleAction) enemy.idleAction.play();
     enemy._animState = 'idle';
+  } else if (!enemy.mesh._isSkeletonGLB) {
+    // GLB not ready yet — tag for hot-swap once it loads
+    const _glbSlugMap = { goblin:'skeleton_minion', skelly:'skeleton_minion',
+                          brute:'skeleton_warrior', warlord:'skeleton_warrior',
+                          archer:'skeleton_rogue' };
+    const _glbScaleMap = { goblin:0.62, skelly:0.9, brute:1.25, warlord:1.6, archer:0.85 };
+    if (_glbSlugMap[def.body]) {
+      enemy._pendingGLBSlug  = _glbSlugMap[def.body];
+      enemy._pendingGLBScale = _glbScaleMap[def.body];
+    }
   }
 
   // Spawn at edge of view
@@ -8012,6 +8022,31 @@ function updatePlayer(dt) {
 
 function updateEnemies(dt) {
   for (const e of enemies) {
+    // Hot-swap procedural fallback mesh for GLB once the asset has loaded
+    if (e._pendingGLBSlug && _enemyAssets[e._pendingGLBSlug]) {
+      const newMesh = _cloneEnemyMesh(e._pendingGLBSlug);
+      if (newMesh) {
+        const sc = e._pendingGLBScale * (e.isElite ? 1.18 : 1);
+        newMesh.scale.setScalar(sc);
+        newMesh.position.copy(e.mesh.position);
+        if (!e.isElite) newMesh.traverse(c => { if (c.isMesh) c.castShadow = false; });
+        if (e.eliteHalo) { e.mesh.remove(e.eliteHalo); newMesh.add(e.eliteHalo); }
+        scene.add(newMesh);
+        killMesh(e.mesh);
+        e.mesh = newMesh;
+        delete e._pendingGLBSlug;
+        delete e._pendingGLBScale;
+        if (_skelAnimClips) {
+          e.mixer = new THREE.AnimationMixer(e.mesh);
+          const gc = n => _skelAnimClips.find(c => c.name === n);
+          e.idleAction = gc('Idle_A') ? e.mixer.clipAction(gc('Idle_A')) : null;
+          e.walkAction = gc('Walking_A') ? e.mixer.clipAction(gc('Walking_A')) : null;
+          if (e.idleAction) e.idleAction.play();
+          e._animState = 'idle';
+        }
+      }
+    }
+
     // movement toward player
     tmp.subVectors(player.pos, e.pos);
     if (e.flying) {
