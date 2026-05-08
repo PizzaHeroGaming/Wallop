@@ -3045,6 +3045,25 @@ Promise.all([
 ]).then(([moveGltf, genGltf]) => {
   _skelAnimClips = [...moveGltf.animations, ...genGltf.animations];
   console.log('[WALLOP] Skeleton anim clips loaded:', _skelAnimClips.map(c => c.name));
+  // GPU pre-warm: clone one of each skeleton type at an off-screen position so the
+  // renderer compiles their shaders and uploads buffers NOW — before the first enemy
+  // spawn — eliminating the hitch players would otherwise feel.
+  const _warmSlugs = ['skeleton_minion', 'skeleton_warrior', 'skeleton_rogue'];
+  const _warmMeshes = [];
+  for (const slug of _warmSlugs) {
+    if (!_enemyAssets[slug]) continue;
+    const m = _cloneEnemyMesh(slug);
+    if (!m) continue;
+    m.position.set(0, -9999, 0); // far below scene — never visible
+    scene.add(m);
+    _warmMeshes.push(m);
+  }
+  if (_warmMeshes.length) {
+    // Let the renderer process them for two frames, then dispose
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      _warmMeshes.forEach(m => killMesh(m));
+    }));
+  }
 }).catch(err => console.error('[WALLOP] Skeleton animation load failed:', err));
 
 function _bindAnimActions(mixer) {
@@ -8032,9 +8051,14 @@ function updatePlayer(dt) {
 }
 
 function updateEnemies(dt) {
+  // Rate-limit expensive skeleton work to avoid hitches: max 1 hot-swap + 1 mixer
+  // setup per frame. Remaining enemies are deferred to the next frame naturally.
+  let _swapsThisFrame = 0;
+  let _mixerSetupsThisFrame = 0;
+
   for (const e of enemies) {
     // Hot-swap procedural fallback mesh for GLB once the asset has loaded
-    if (e._pendingGLBSlug && _enemyAssets[e._pendingGLBSlug]) {
+    if (_swapsThisFrame < 1 && e._pendingGLBSlug && _enemyAssets[e._pendingGLBSlug]) {
       const newMesh = _cloneEnemyMesh(e._pendingGLBSlug);
       if (newMesh) {
         const sc = e._pendingGLBScale * (e.isElite ? 1.18 : 1);
@@ -8047,6 +8071,7 @@ function updateEnemies(dt) {
         e.mesh = newMesh;
         delete e._pendingGLBSlug;
         delete e._pendingGLBScale;
+        _swapsThisFrame++;
         if (_skelAnimClips) {
           e.mixer = new THREE.AnimationMixer(e.mesh);
           const gc = n => _skelAnimClips.find(c => c.name === n);
@@ -8054,19 +8079,21 @@ function updateEnemies(dt) {
           e.walkAction = gc('Walking_A') ? e.mixer.clipAction(gc('Walking_A')) : null;
           if (e.idleAction) e.idleAction.play();
           e._animState = 'idle';
+          _mixerSetupsThisFrame++;
         }
         // else: anim clips not ready yet — the block below will set up mixer once they load
       }
     }
 
     // Bind AnimationMixer once _skelAnimClips arrives for any GLB enemy that missed it
-    if (e.mesh._isSkeletonGLB && !e.mixer && _skelAnimClips) {
+    if (_mixerSetupsThisFrame < 1 && e.mesh._isSkeletonGLB && !e.mixer && _skelAnimClips) {
       e.mixer = new THREE.AnimationMixer(e.mesh);
       const gc = n => _skelAnimClips.find(c => c.name === n);
       e.idleAction = gc('Idle_A') ? e.mixer.clipAction(gc('Idle_A')) : null;
       e.walkAction = gc('Walking_A') ? e.mixer.clipAction(gc('Walking_A')) : null;
       if (e.idleAction) e.idleAction.play();
       e._animState = 'idle';
+      _mixerSetupsThisFrame++;
     }
 
     // movement toward player
