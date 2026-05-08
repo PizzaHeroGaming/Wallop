@@ -27,7 +27,7 @@
 (function(){
   var iconSvg = document.querySelector('link[rel="apple-touch-icon"]').href;
   var m = {
-    name: 'Wallop', short_name: 'Wallop', start_url: '.', display: 'fullscreen',
+    name: 'Wallop', short_name: 'Wallop', start_url: window.location.href.split('?')[0].split('#')[0], display: 'fullscreen',
     orientation: 'landscape', background_color: '#0d1126', theme_color: '#0d1126',
     icons: [{ src: iconSvg, sizes: 'any', type: 'image/svg+xml', purpose: 'any maskable' }]
   };
