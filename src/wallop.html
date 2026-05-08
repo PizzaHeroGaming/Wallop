@@ -5148,17 +5148,19 @@ defWeapon('boomerang', {
       const isCrit = Math.random() < player.critChance;
       const baseDmg = w.dmg * player.damageMult;
       const dmg = isCrit ? baseDmg * player.critMult : baseDmg;
+      const boomStart = start.clone();
+      const boomDir = dir.clone().normalize();
       spawnProjectile({
-        pos: start, vel: dir.multiplyScalar(18), damage: dmg,
+        pos: start, vel: boomDir.clone().multiplyScalar(18), damage: dmg,
         radius: 0.45 * player.projectileMult,
-        pierce: 999,    // pierces everything — comes back via boomerang behavior
-        lifetime: 1.8 * (player.durationMult || 1),
+        pierce: 999,    // pierces everything — position driven by Bezier, not consume-on-hit
+        lifetime: 2.2 * (player.durationMult || 1),
         mesh: makeBoomerangMesh(player.projectileMult),
         spinAxis: new THREE.Vector3(0, 1, 0),
         knockback: 3, crit: isCrit,
         boomerang: true, owner: 'player',
-        boomerangPhase: 'out',
         boomerangAge: 0,
+        boomStart, boomDir,   // Bezier oval arc data
         hitCooldown: new Map(), // re-hit enemies on the return trip
       });
     }
@@ -5211,7 +5213,8 @@ defWeapon('crossbow', {
         const clone = _cloneWeaponMesh('arrow_crossbow');
         if (clone) {
           clone.scale.setScalar(1.2);
-          // Orient to face travel direction
+          // Lay arrow flat (model is +Y-up) then rotate to face travel direction
+          clone.rotation.x = Math.PI / 2;
           clone.rotation.y = Math.atan2(dir.x, dir.z);
           clone.traverse(c => { if (c.isMesh) c.castShadow = false; });
           return clone;
@@ -5307,6 +5310,7 @@ defWeapon('smoke', {
       spawnProjectile({
         pos: start, vel: new THREE.Vector3(vx, vy, vz),
         damage: 0, radius: 0.3,
+        pierce: 999,  // passes through enemies so it lands and triggers the cloud
         lifetime: arcTime + 0.05, mesh: bombMesh, gravity,
         smokeOnExpire: true,
         smokeDmg: w.dmg, smokeRadius: w.radius * (player.aoeMult || 1),
@@ -8240,31 +8244,55 @@ function updateProjectiles(dt) {
       }
     }
 
-    // Boomerang behavior — fly out then come back to player; pierces freely
+    // Boomerang behavior — oval Bezier arc: flies out and curves back to player
     if (p.boomerang) {
       p.boomerangAge += dt;
-      // Switch to return phase at 60% of lifetime
-      if (p.boomerangPhase === 'out' && p.boomerangAge > p.lifetime * 0.55) {
-        p.boomerangPhase = 'return';
-        // Clear hits so it can hit on the way back too
+      const t    = Math.min(p.boomerangAge / p.lifetime, 1);
+      const tN   = Math.min((p.boomerangAge + dt) / p.lifetime, 1);
+
+      // Bezier endpoints: P0 = launch point, P2 = player's current position
+      const P0 = p.boomStart;
+      const P2 = new THREE.Vector3(player.pos.x, player.pos.y + 1.0, player.pos.z);
+
+      // Control point: forward in launch direction + lateral offset → oval shape
+      const perp = new THREE.Vector3(-p.boomDir.z, 0, p.boomDir.x); // 90° CCW of launch dir
+      const P1 = P0.clone()
+        .addScaledVector(p.boomDir, 13)
+        .addScaledVector(perp, 6);
+      P1.y = (P0.y + P2.y) * 0.5 + 0.8; // slight height arc at peak
+
+      // Quadratic Bezier helper
+      const bezPos = (u, A, B, C) => {
+        const iv = 1 - u;
+        return new THREE.Vector3(
+          iv*iv*A.x + 2*iv*u*B.x + u*u*C.x,
+          iv*iv*A.y + 2*iv*u*B.y + u*u*C.y,
+          iv*iv*A.z + 2*iv*u*B.z + u*u*C.z
+        );
+      };
+
+      const posNow  = bezPos(t,  P0, P1, P2);
+      const posNext = bezPos(tN, P0, P1, P2);
+
+      // Set position directly from Bezier; set velocity = delta so addScaledVector moves correctly
+      p.pos.copy(posNow);
+      p.vel.copy(posNext).sub(posNow).divideScalar(Math.max(dt, 0.001));
+
+      // Clear hitIds at halfway so it can damage enemies on the return arc too
+      if (t > 0.5 && !p._returnHitsCleared) {
+        p._returnHitsCleared = true;
         p.hitIds.clear();
       }
-      if (p.boomerangPhase === 'return') {
-        const desired = new THREE.Vector3(
-          (player.pos.x + 0) - p.pos.x,
-          (player.pos.y + 1.0) - p.pos.y,
-          (player.pos.z + 0) - p.pos.z
-        );
-        const dist = desired.length();
-        if (dist < 1.0) {
-          // Caught! Despawn cleanly
+
+      // Catch: if close to player during the return half, despawn cleanly
+      if (t > 0.7) {
+        const catchDist = Math.hypot(player.pos.x - p.pos.x, player.pos.z - p.pos.z);
+        if (catchDist < 1.8) {
           releasePtLight(p.ptLight);
           killMesh(p.mesh);
           projectiles.splice(i, 1);
           continue;
         }
-        desired.normalize().multiplyScalar(p.vel.length());
-        p.vel.lerp(desired, 5 * dt);
       }
     }
 
