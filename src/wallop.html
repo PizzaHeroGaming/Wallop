@@ -2289,6 +2289,14 @@ function makeGroundTexture() {
   tex.anisotropy = 4;
   return tex;
 }
+// Ground plane grid parameters — declared here (above groundGeo, above the
+// displacement loop, above _GROUND_HEIGHTS, above buildWorld) so every
+// downstream const that reads them is never in the Temporal Dead Zone.
+const _MESH_SUBDIVS  = 100;                        // must match PlaneGeometry segments arg
+const _MESH_SIZE     = CFG.ARENA * 8;              // 880
+const _MESH_HALF     = _MESH_SIZE / 2;             // 440
+const _MESH_SPACING  = _MESH_SIZE / _MESH_SUBDIVS; // 8.8 units per cell
+
 // More subdivisions for smooth inner-arena hills (100×100 vs old 60×60).
 const groundGeo = new THREE.PlaneGeometry(CFG.ARENA * 8, CFG.ARENA * 8, 100, 100);
 
@@ -2685,15 +2693,6 @@ function addDistantHill(x, z, radius, height, color) {
 // We sample terrainHeight() at the 4 vertex corners bracketing (x,z) and blend —
 // exactly what the renderer does between vertices.
 //
-// IMPORTANT: these consts MUST be declared before the buildWorld IIFE below,
-// because buildWorld calls groundHeight → _meshTerrainHeight which reads them.
-// const declarations are NOT hoisted, so placing them after the IIFE causes a
-// ReferenceError (Temporal Dead Zone) that halts the entire script.
-const _MESH_SUBDIVS  = 100;                        // must match PlaneGeometry arg
-const _MESH_SIZE     = CFG.ARENA * 8;              // 880
-const _MESH_HALF     = _MESH_SIZE / 2;             // 440
-const _MESH_SPACING  = _MESH_SIZE / _MESH_SUBDIVS; // 8.8 units per cell
-
 // ── Phase 1: immediate world build ──────────────────────────────────────────
 // Runs synchronously at startup. Places only micro-detail (grass, ferns,
 // flowers, logs) and atmospheric scenery (distant hills, clouds) — everything
