@@ -8158,11 +8158,11 @@ function updateEnemies(dt) {
       if (isNear || e.isBoss || e.isElite) {
         const moving = Math.hypot(e.vel.x, e.vel.z) > 0.25;
         if (moving && e._animState !== 'walk' && e.walkAction) {
-          e.walkAction.reset().fadeIn(0.18);
+          e.walkAction.reset().fadeIn(0.18).play();
           if (e.idleAction) e.idleAction.fadeOut(0.18);
           e._animState = 'walk';
         } else if (!moving && e._animState !== 'idle' && e.idleAction) {
-          e.idleAction.reset().fadeIn(0.18);
+          e.idleAction.reset().fadeIn(0.18).play();
           if (e.walkAction) e.walkAction.fadeOut(0.18);
           e._animState = 'idle';
         }
