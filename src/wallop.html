@@ -3027,15 +3027,25 @@ function _cloneEnemyMesh(slug) {
   clone._isSkeletonGLB = true;
   return clone;
 }
-// Preload all KayKit Skeleton GLBs (characters + weapons) in the background
+// Preload all KayKit Skeleton GLBs in the background
 const _SKEL_BASE = 'assets/KayKit_Skeletons_1.1_FREE/KayKit_Skeletons_1.1_FREE/';
+const _SKEL_CHAR = _SKEL_BASE + 'characters/gltf/'; // character meshes live here
 [
   ['skeleton_minion',  'Skeleton_Minion.glb'],
   ['skeleton_warrior', 'Skeleton_Warrior.glb'],
   ['skeleton_mage',    'Skeleton_Mage.glb'],
   ['skeleton_rogue',   'Skeleton_Rogue.glb'],
-  ['skeleton_staff',   'Skeleton_Staff.glb'],
-].forEach(([slug, file]) => _loadEnemyGLB(slug, _SKEL_BASE + file).catch(() => {}));
+].forEach(([slug, file]) => _loadEnemyGLB(slug, _SKEL_CHAR + file).catch(() => {}));
+
+// Skeleton pack has its own animation GLBs — different rig from the Adventurers
+let _skelAnimClips = null;
+Promise.all([
+  _loadGLB(_SKEL_BASE + 'Animations/gltf/Rig_Medium/Rig_Medium_MovementBasic.glb'),
+  _loadGLB(_SKEL_BASE + 'Animations/gltf/Rig_Medium/Rig_Medium_General.glb'),
+]).then(([moveGltf, genGltf]) => {
+  _skelAnimClips = [...moveGltf.animations, ...genGltf.animations];
+  console.log('[WALLOP] Skeleton anim clips loaded:', _skelAnimClips.map(c => c.name));
+}).catch(err => console.error('[WALLOP] Skeleton animation load failed:', err));
 
 function _bindAnimActions(mixer) {
   const get = name => _animClips && _animClips.find(c => c.name === name);
@@ -4108,10 +4118,10 @@ function spawnEnemy(typeKey, opts = {}) {
     enemy.mesh.add(halo);
     enemy.eliteHalo = halo;
   }
-  // Set up skeletal AnimationMixer for GLB-based enemies
-  if (enemy.mesh._isSkeletonGLB && _animClips) {
+  // Set up skeletal AnimationMixer for GLB-based enemies (uses skeleton-specific clips)
+  if (enemy.mesh._isSkeletonGLB && _skelAnimClips) {
     enemy.mixer = new THREE.AnimationMixer(enemy.mesh);
-    const _getClip = name => _animClips.find(c => c.name === name);
+    const _getClip = name => _skelAnimClips.find(c => c.name === name);
     enemy.idleAction = _getClip('Idle_A') ? enemy.mixer.clipAction(_getClip('Idle_A')) : null;
     enemy.walkAction = _getClip('Walking_A') ? enemy.mixer.clipAction(_getClip('Walking_A')) : null;
     if (enemy.idleAction) enemy.idleAction.play();
@@ -5343,11 +5353,11 @@ defWeapon('staff', {
     return map[n] || 'maxed';
   },
   tick: (w, dt) => {
-    // Floating staff cosmetic — spawn when model is ready
-    if (!_staffMesh && _enemyAssets.skeleton_staff) {
-      _staffMesh = _cloneEnemyMesh('skeleton_staff');
+    // Floating staff cosmetic — use the wand weapon model
+    if (!_staffMesh && _weaponAssets.wand) {
+      _staffMesh = _cloneWeaponMesh('wand');
       if (_staffMesh) {
-        _staffMesh.scale.setScalar(0.75);
+        _staffMesh.scale.setScalar(0.9);
         _staffMesh.traverse(c => { if (c.isMesh) c.castShadow = false; });
         scene.add(_staffMesh);
       }
@@ -7797,9 +7807,9 @@ function spawnBoss(tier = 'final') {
     }
   }
   // Set up AnimationMixer for any skeleton-based boss mesh
-  if (enemy.mesh._isSkeletonGLB && _animClips) {
+  if (enemy.mesh._isSkeletonGLB && _skelAnimClips) {
     enemy.mixer = new THREE.AnimationMixer(enemy.mesh);
-    const _bgc = name => _animClips.find(c => c.name === name);
+    const _bgc = name => _skelAnimClips.find(c => c.name === name);
     enemy.idleAction = _bgc('Idle_A') ? enemy.mixer.clipAction(_bgc('Idle_A')) : null;
     enemy.walkAction = _bgc('Walking_A') ? enemy.mixer.clipAction(_bgc('Walking_A')) : null;
     if (enemy.idleAction) enemy.idleAction.play();
