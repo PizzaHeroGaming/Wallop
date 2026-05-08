@@ -1759,14 +1759,14 @@ window.addEventListener('load', () => {
 // CONFIG
 // ============================================================
 const CFG = {
-  ARENA: 80,
+  ARENA: 110,
   GAME_TIME: 600, // 10 min
   PLAYER_SPEED: 9,
   JUMP_VEL: 12,
   GRAVITY: 32,
   PICKUP_RANGE: 2.6,
-  CAM_DIST: 11,
-  CAM_HEIGHT: 7,
+  CAM_DIST: 14,   // pulled back to see over rolling terrain
+  CAM_HEIGHT: 9,  // slightly higher for same reason
 };
 
 const RARITY = {
@@ -2228,14 +2228,17 @@ sun.position.set(40, 60, 25);
 sun.castShadow = !IS_MOBILE_EARLY;
 sun.shadow.mapSize.set(IS_MOBILE_EARLY ? 512 : 2048, IS_MOBILE_EARLY ? 512 : 2048);
 sun.shadow.radius = IS_MOBILE_EARLY ? 1 : 2;
-sun.shadow.camera.left = -35;
-sun.shadow.camera.right = 35;
-sun.shadow.camera.top = 35;
-sun.shadow.camera.bottom = -35;
+// Shadow frustum sized around the player's visible area, not the full arena.
+// updatePlayer() moves the sun + target each frame to follow the player.
+sun.shadow.camera.left = -44;
+sun.shadow.camera.right = 44;
+sun.shadow.camera.top = 44;
+sun.shadow.camera.bottom = -44;
 sun.shadow.camera.near = 0.5;
-sun.shadow.camera.far = 120;
+sun.shadow.camera.far = 180;
 sun.shadow.bias = -0.0005;
 scene.add(sun);
+scene.add(sun.target); // needed for target.updateMatrixWorld() to take effect
 
 // Rim/fill light from behind for nicer silhouettes
 const rim = new THREE.DirectionalLight(0xffd6a8, 0.45);
@@ -2281,29 +2284,53 @@ function makeGroundTexture() {
   }
   const tex = new THREE.CanvasTexture(c);
   tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-  tex.repeat.set(28, 28);
+  tex.repeat.set(38, 38); // scaled up with arena (110/80 × 28 ≈ 38)
   tex.encoding = THREE.sRGBEncoding;
   tex.anisotropy = 4;
   return tex;
 }
-const groundGeo = new THREE.PlaneGeometry(CFG.ARENA * 8, CFG.ARENA * 8, 60, 60);
-// Shared terrain height function. Returns the smooth rolling-hill height at a
-// given world (x, z). Inside the arena it's flat (returns 0) so gameplay isn't
-// affected; past the arena boundary it ramps up using stacked sine "noise".
-// Both the ground geometry displacement AND collision (groundHeight) sample
-// this so the player and enemies actually walk on the visible terrain.
-const TERRAIN_INNER = CFG.ARENA - 4;     // fully flat inside this radius
-const TERRAIN_BLEND = CFG.ARENA + 6;     // fully terrained past this radius
+// More subdivisions for smooth inner-arena hills (100×100 vs old 60×60).
+const groundGeo = new THREE.PlaneGeometry(CFG.ARENA * 8, CFG.ARENA * 8, 100, 100);
+
+// ── Terrain height ───────────────────────────────────────────────────────────
+// terrainHeight(x, z) drives both the visible ground mesh AND collision
+// (groundHeight calls it), so players and enemies actually walk on what they see.
+//
+// Three zones:
+//   1. Spawn flat  — radius < 14, always 0 so the player starts on flat ground
+//   2. Inner hills — gentle rolling terrain throughout the play area; eases in
+//      from the spawn flat zone. Max amplitude ~3 units — enough to break
+//      line-of-sight and hide approaching enemies without feeling like a maze.
+//   3. Edge rise   — ground climbs steadily past the arena boundary, making the
+//      forest ring sit on a natural berm that reinforces the arena boundary.
+const TERRAIN_INNER = CFG.ARENA - 8;   // inner hills taper off here (102)
+const TERRAIN_BLEND = CFG.ARENA + 10;  // full edge rise by this radius (120)
+
 function terrainHeight(x, z) {
   const dist = Math.hypot(x, z);
-  if (dist <= TERRAIN_INNER) return 0;
-  let blend = Math.min(1, (dist - TERRAIN_INNER) / (TERRAIN_BLEND - TERRAIN_INNER));
-  blend *= blend; // ease in
-  const n =
-    Math.sin(x * 0.07) * Math.cos(z * 0.06) * 1.2 +
-    Math.sin(x * 0.18 + 1.3) * Math.cos(z * 0.13 - 0.6) * 0.6 +
-    Math.sin(x * 0.32 - 0.4) * Math.cos(z * 0.28 + 1.1) * 0.3;
-  return blend * (n + 1.6);
+
+  // 1. Rolling hills inside the play area
+  const SPAWN_FLAT = 14;
+  let hills = 0;
+  if (dist > SPAWN_FLAT) {
+    const t  = Math.min(1, (dist - SPAWN_FLAT) / 18);
+    const ib = t * t; // ease in — hills are gentle near spawn, fuller mid-arena
+    hills = ib * (
+      Math.sin(x * 0.090 + 0.70) * Math.cos(z * 0.080 - 0.50) * 2.2 +
+      Math.sin(x * 0.150 - 1.40) * Math.cos(z * 0.130 + 0.80) * 1.0 +
+      Math.sin(x * 0.270 + 0.20) * Math.cos(z * 0.240 - 1.20) * 0.4
+    );
+  }
+
+  // 2. Edge rise — ground swells past the arena boundary
+  let edge = 0;
+  if (dist > TERRAIN_INNER) {
+    let blend = Math.min(1, (dist - TERRAIN_INNER) / (TERRAIN_BLEND - TERRAIN_INNER));
+    blend *= blend;
+    edge = blend * (2.2 + Math.sin(x * 0.06 + z * 0.05) * 0.9);
+  }
+
+  return hills + edge;
 }
 // Push the visible ground vertices using the same function.
 {
@@ -2643,25 +2670,25 @@ function addDistantHill(x, z, radius, height, color) {
 // GLTF assets are ready (called from the Promise.all callback above).
 (function buildWorld() {
   // ---------- Ground micro-detail: grass tufts, ferns, wildflowers, logs ----------
-  for (let i = 0; i < 110; i++) {
+  for (let i = 0; i < 160; i++) {
     const x = (Math.random() - 0.5) * CFG.ARENA * 1.9;
     const z = (Math.random() - 0.5) * CFG.ARENA * 1.9;
     if (Math.hypot(x, z) < 4) continue;
     addGrassTuft(x, z);
   }
-  for (let i = 0; i < 35; i++) {
+  for (let i = 0; i < 55; i++) {
     const x = (Math.random() - 0.5) * CFG.ARENA * 1.7;
     const z = (Math.random() - 0.5) * CFG.ARENA * 1.7;
     if (Math.hypot(x, z) < 5) continue;
     addFern(x, z);
   }
-  for (let i = 0; i < 50; i++) {
+  for (let i = 0; i < 75; i++) {
     const x = (Math.random() - 0.5) * CFG.ARENA * 1.7;
     const z = (Math.random() - 0.5) * CFG.ARENA * 1.7;
     if (Math.hypot(x, z) < 5) continue;
     addFlower(x, z);
   }
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < 9; i++) {
     const x = (Math.random() - 0.5) * (CFG.ARENA - 8) * 1.6;
     const z = (Math.random() - 0.5) * (CFG.ARENA - 8) * 1.6;
     if (Math.hypot(x, z) < 8) continue;
@@ -2701,7 +2728,7 @@ function addDistantHill(x, z, radius, height, color) {
 // Seeds the same grove/ring structure but with proper 3D models.
 function _placeWorldProps() {
   // ---------- A few small scattered stones in the inner arena ----------
-  for (let i = 0; i < 14; i++) {
+  for (let i = 0; i < 22; i++) {
     let x, z, ok = false, tries = 0;
     while (!ok && tries < 30) {
       tries++;
@@ -2714,7 +2741,7 @@ function _placeWorldProps() {
 
   // ---------- Grove-clustered inner trees ----------
   const groveCenters = [];
-  for (let i = 0; i < 6; i++) {
+  for (let i = 0; i < 10; i++) {
     let cx, cz, ok = false, tries = 0;
     while (!ok && tries < 40) {
       tries++;
@@ -2727,7 +2754,7 @@ function _placeWorldProps() {
   }
   const innerTreePositions = [];
   for (const g of groveCenters) {
-    const treesInGrove = 4 + Math.floor(Math.random() * 5);
+    const treesInGrove = 5 + Math.floor(Math.random() * 6);
     for (let i = 0; i < treesInGrove; i++) {
       const a = Math.random() * Math.PI * 2;
       const r = 1.5 + Math.random() * 5;
@@ -2757,7 +2784,7 @@ function _placeWorldProps() {
     }
   }
   // Solitary trees between groves
-  for (let i = 0; i < 8; i++) {
+  for (let i = 0; i < 14; i++) {
     const tx = (Math.random() - 0.5) * (CFG.ARENA - 6) * 1.6;
     const tz = (Math.random() - 0.5) * (CFG.ARENA - 6) * 1.6;
     if (Math.hypot(tx, tz) < 7) continue;
@@ -2779,7 +2806,7 @@ function _placeWorldProps() {
   }
 
   // Loose mid-arena rocks
-  for (let i = 0; i < 18; i++) {
+  for (let i = 0; i < 28; i++) {
     const x = (Math.random() - 0.5) * CFG.ARENA * 1.7;
     const z = (Math.random() - 0.5) * CFG.ARENA * 1.7;
     if (Math.hypot(x, z) < 6) continue;
@@ -2789,7 +2816,7 @@ function _placeWorldProps() {
   // ---------- Outer forest ring ----------
   const ringInner = CFG.ARENA + 3;
   const ringOuter = CFG.ARENA + 22;
-  for (let i = 0; i < 220; i++) {
+  for (let i = 0; i < 300; i++) {
     const a = Math.random() * Math.PI * 2;
     const r = ringInner + Math.random() * (ringOuter - ringInner);
     const x = Math.cos(a) * r, z = Math.sin(a) * r;
@@ -2801,7 +2828,7 @@ function _placeWorldProps() {
     else addRock(x, z, 1.0 + Math.random() * 1.5);
   }
   // Smaller rocks and bushes scattered through the ring
-  for (let i = 0; i < 30; i++) {
+  for (let i = 0; i < 45; i++) {
     const a = Math.random() * Math.PI * 2;
     const r = ringInner + Math.random() * (ringOuter - ringInner);
     if (Math.random() < 0.6) addRock(Math.cos(a) * r, Math.sin(a) * r, 0.4 + Math.random() * 0.7);
@@ -2809,8 +2836,8 @@ function _placeWorldProps() {
   }
 
   // Shadow pass: strip castShadow from anything outside the shadow camera's
-  // frustum (±36). Outer ring trees never need to cast shadows.
-  const shadowRange = 36;
+  // frustum (±44). Outer ring trees never need to cast shadows.
+  const shadowRange = 44;
   scene.traverse(child => {
     if (!child.isMesh) return;
     const wx = child.getWorldPosition(_wpTmp).x;
@@ -8064,6 +8091,11 @@ function updatePlayer(dt) {
     cameraShake = 0;
   }
   camera.lookAt(player.pos.x, player.pos.y + 1.2, player.pos.z);
+
+  // Sun follows player so shadows are consistent anywhere in the expanded arena
+  sun.position.set(player.pos.x + 40, player.pos.y + 65, player.pos.z + 25);
+  sun.target.position.set(player.pos.x, player.pos.y, player.pos.z);
+  sun.target.updateMatrixWorld();
 }
 
 function updateEnemies(dt) {
