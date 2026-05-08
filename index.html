@@ -8045,7 +8045,18 @@ function updateEnemies(dt) {
           if (e.idleAction) e.idleAction.play();
           e._animState = 'idle';
         }
+        // else: anim clips not ready yet — the block below will set up mixer once they load
       }
+    }
+
+    // Bind AnimationMixer once _skelAnimClips arrives for any GLB enemy that missed it
+    if (e.mesh._isSkeletonGLB && !e.mixer && _skelAnimClips) {
+      e.mixer = new THREE.AnimationMixer(e.mesh);
+      const gc = n => _skelAnimClips.find(c => c.name === n);
+      e.idleAction = gc('Idle_A') ? e.mixer.clipAction(gc('Idle_A')) : null;
+      e.walkAction = gc('Walking_A') ? e.mixer.clipAction(gc('Walking_A')) : null;
+      if (e.idleAction) e.idleAction.play();
+      e._animState = 'idle';
     }
 
     // movement toward player
