@@ -1845,6 +1845,8 @@ const CATALOG = {
     { slug: 'boomerang', gameRef: 'boomerang', defaultUnlocked: true },
     { slug: 'calzone',   gameRef: 'calzone',   defaultUnlocked: true },
     { slug: 'ice',       gameRef: 'ice',       defaultUnlocked: true },
+    { slug: 'crossbow',  gameRef: 'crossbow',  defaultUnlocked: true },
+    { slug: 'smoke',     gameRef: 'smoke',     defaultUnlocked: true },
     {
       slug: 'meatball_minigun',
       name: 'Meatball Minigun', icon: '🍝',
@@ -2995,6 +2997,22 @@ function _loadGLB(url) {
   return new Promise((res, rej) => _gltfLoader.load(url, res, null, rej));
 }
 
+// Weapon / item asset cache — slug → gltf object, loaded lazily then cloned per use
+const _weaponAssets = {};
+function _loadWeaponGLTF(slug, url) {
+  if (_weaponAssets[slug]) return Promise.resolve(_weaponAssets[slug]);
+  return _loadGLB(url).then(gltf => { _weaponAssets[slug] = gltf; return gltf; });
+}
+function _cloneWeaponMesh(slug) {
+  const gltf = _weaponAssets[slug];
+  if (!gltf) return null;
+  return THREE.SkeletonUtils.clone(gltf.scene);
+}
+// Preload all weapon models in the background so they're ready on first use
+['axe_1handed','axe_2handed','wand','arrow_crossbow','smokebomb','shield_round'].forEach(slug =>
+  _loadWeaponGLTF(slug, `assets/weapons/${slug}.gltf`).catch(() => {})
+);
+
 function _bindAnimActions(mixer) {
   const get = name => _animClips && _animClips.find(c => c.name === name);
   playerIdleAction = get('Idle_A')    ? mixer.clipAction(get('Idle_A'))    : null;
@@ -3041,6 +3059,13 @@ const goldCoins = [];
 const particles = [];
 const auraInstances = [];
 const chests = [];
+const smokeClouds = []; // persistent damage-cloud instances from Smoke Bomb weapon
+
+// Module-level cosmetic mesh refs (cleaned up in resetGame)
+let _thunderWandMesh = null;       // floating wand shown when Thunder Strike is equipped
+let _thunderWandAngle = 0;
+let _shieldOrbitMesh = null;       // orbiting shield shown when Kinetic Shield armor is active
+let _shieldOrbitAngle = 0;
 
 // ============================================================
 // ENEMIES
@@ -4144,19 +4169,25 @@ function makeFireballMesh(scale = 1) {
   return g;
 }
 
-// Pepperoni boomerang — flat curved shape that returns to the player
+// Pepperoni boomerang — KayKit 1-handed axe that spins as it flies and returns
 function makeBoomerangMesh(scale = 1) {
+  const clone = _cloneWeaponMesh('axe_1handed');
+  if (clone) {
+    clone.scale.setScalar(0.9 * scale);
+    clone.rotation.z = Math.PI / 2; // tilt so blade faces outward
+    clone.traverse(c => { if (c.isMesh) c.castShadow = false; });
+    return clone;
+  }
+  // Fallback: original procedural mesh if model not yet loaded
   const g = new THREE.Group();
   const mat = new THREE.MeshPhongMaterial({ color: 0xa01818, shininess: 18 });
   const trim = new THREE.MeshPhongMaterial({ color: 0x441010, shininess: 14 });
-  // Two angled rectangles forming an L/V boomerang
   const arm1 = new THREE.Mesh(new THREE.BoxGeometry(0.5 * scale, 0.04 * scale, 0.16 * scale), mat);
   arm1.rotation.y = -Math.PI / 6;
   g.add(arm1);
   const arm2 = new THREE.Mesh(new THREE.BoxGeometry(0.5 * scale, 0.04 * scale, 0.16 * scale), mat);
   arm2.rotation.y = Math.PI / 6;
   g.add(arm2);
-  // Edge trim
   const trim1 = new THREE.Mesh(new THREE.BoxGeometry(0.51 * scale, 0.05 * scale, 0.04 * scale), trim);
   trim1.rotation.y = -Math.PI / 6;
   trim1.position.z = 0.06 * scale;
@@ -4838,6 +4869,27 @@ defWeapon('thunder', {
     return map[n] || 'maxed';
   },
   tick: (w, dt) => {
+    // Wand cosmetic: spawn once when model is ready, animate every tick
+    if (!_thunderWandMesh && _weaponAssets.wand) {
+      _thunderWandMesh = _cloneWeaponMesh('wand');
+      if (_thunderWandMesh) {
+        _thunderWandMesh.scale.setScalar(0.75);
+        _thunderWandMesh.traverse(c => { if (c.isMesh) c.castShadow = false; });
+        scene.add(_thunderWandMesh);
+      }
+    }
+    if (_thunderWandMesh) {
+      _thunderWandAngle += dt * 2.2;
+      const bobY = Math.sin(_thunderWandAngle * 1.4) * 0.08;
+      _thunderWandMesh.position.set(
+        player.pos.x + Math.sin(_thunderWandAngle) * 0.4,
+        player.pos.y + 1.5 + bobY,
+        player.pos.z + Math.cos(_thunderWandAngle) * 0.4
+      );
+      _thunderWandMesh.rotation.y = _thunderWandAngle;
+      _thunderWandMesh.rotation.z = 0.3;
+    }
+
     w.cd -= dt;
     if (w.cd > 0) return;
     w.cd = 1.6 * (w.cdMod || 1) * player.cooldownMult;
@@ -5041,6 +5093,160 @@ defWeapon('boomerang', {
         boomerangPhase: 'out',
         boomerangAge: 0,
         hitCooldown: new Map(), // re-hit enemies on the return trip
+      });
+    }
+  },
+});
+
+// 8b. CROSSBOW BOLT — fast straight-line piercing arrow
+defWeapon('crossbow', {
+  name: 'Crossbow Bolt', icon: '🏹',
+  desc: 'Fires a fast arrow at the nearest enemy. No homing — pure skill shot.',
+  maxLevel: 6,
+  init: () => ({ cd: 0, dmg: 28, pierce: 1, count: 1 }),
+  upgrade: w => {
+    w.level++;
+    if (w.level === 2) w.pierce++;
+    if (w.level === 3) w.dmg += 15;
+    if (w.level === 4) w.count = 2;
+    if (w.level === 5) w.cdMod = 0.75;
+    if (w.level === 6) { w.count = 3; w.dmg += 20; }
+  },
+  describeNext: w => {
+    const n = (w?.level || 0) + 1;
+    const map = { 1:'unlock', 2:'+1 pierce', 3:'+15 dmg', 4:'2 arrows', 5:'faster reload', 6:'3-arrow fan +20 dmg' };
+    return map[n] || 'maxed';
+  },
+  tick: (w, dt) => {
+    w.cd -= dt;
+    if (w.cd > 0) return;
+    w.cd = 1.4 * (w.cdMod || 1) * player.cooldownMult;
+    const target = pickTarget(player.pos, 24, 5);
+    const count = (w.count || 1) + player.extraProjectiles;
+    const start = player.pos.clone().add(new THREE.Vector3(0, 1.2, 0));
+    for (let i = 0; i < count; i++) {
+      let dir;
+      if (target) {
+        dir = new THREE.Vector3(target.pos.x - start.x, 0, target.pos.z - start.z).normalize();
+      } else {
+        const a = (i / Math.max(count, 1)) * Math.PI * 2;
+        dir = new THREE.Vector3(Math.sin(a), 0, Math.cos(a));
+      }
+      // Fan spread for multi-arrow volley
+      if (count > 1) {
+        const spread = (i - (count - 1) / 2) * 0.3;
+        const cs = Math.cos(spread), sn = Math.sin(spread);
+        const nx = dir.x * cs - dir.z * sn;
+        const nz = dir.x * sn + dir.z * cs;
+        dir.set(nx, dir.y, nz).normalize();
+      }
+      const arrowMesh = (() => {
+        const clone = _cloneWeaponMesh('arrow_crossbow');
+        if (clone) {
+          clone.scale.setScalar(1.2);
+          // Orient to face travel direction
+          clone.rotation.y = Math.atan2(dir.x, dir.z);
+          clone.traverse(c => { if (c.isMesh) c.castShadow = false; });
+          return clone;
+        }
+        // Fallback: cylinder shaft
+        const g = new THREE.Group();
+        const shaft = new THREE.Mesh(
+          new THREE.CylinderGeometry(0.04, 0.04, 0.8, 6),
+          new THREE.MeshPhongMaterial({ color: 0x8b5c2a, shininess: 10 })
+        );
+        shaft.rotation.z = Math.PI / 2;
+        g.add(shaft);
+        return g;
+      })();
+      const isCrit = Math.random() < player.critChance;
+      const dmg = (isCrit ? w.dmg * player.critMult : w.dmg) * player.damageMult;
+      spawnProjectile({
+        pos: start.clone(), vel: dir.clone().multiplyScalar(22),
+        damage: dmg, radius: 0.22 * player.projectileMult,
+        pierce: w.pierce + player.projectilePierce,
+        lifetime: 1.4 * (player.durationMult || 1),
+        mesh: arrowMesh, crit: isCrit, knockback: 4, owner: 'player',
+      });
+    }
+  },
+});
+
+// 8c. SMOKE BOMB — arc-lobbed canister that leaves a lingering damage cloud
+defWeapon('smoke', {
+  name: 'Smoke Bomb', icon: '💨',
+  desc: 'Lobs a bomb that bursts into a toxic cloud on landing.',
+  maxLevel: 6,
+  init: () => ({ cd: 0, dmg: 8, radius: 3.5, life: 3.0, count: 1 }),
+  upgrade: w => {
+    w.level++;
+    if (w.level === 2) w.radius += 1.5;
+    if (w.level === 3) w.dmg += 6;
+    if (w.level === 4) w.count = 2;
+    if (w.level === 5) w.life += 2.0;
+    if (w.level === 6) { w.slow = true; w.dmg += 8; }
+  },
+  describeNext: w => {
+    const n = (w?.level || 0) + 1;
+    const map = { 1:'unlock', 2:'bigger cloud', 3:'+6 dmg/tick', 4:'2 bombs', 5:'longer cloud', 6:'cloud slows enemies +8 dmg' };
+    return map[n] || 'maxed';
+  },
+  tick: (w, dt) => {
+    w.cd -= dt;
+    if (w.cd > 0) return;
+    w.cd = 3.2 * (w.cdMod || 1) * player.cooldownMult;
+    const count = (w.count || 1) + player.extraProjectiles;
+    const nearby = nearestEnemies(player.pos, Math.max(count + 2, 4), 22);
+    for (let i = 0; i < count; i++) {
+      let targetPos;
+      const tgt = nearby[i % Math.max(nearby.length, 1)];
+      if (tgt) {
+        targetPos = tgt.pos.clone();
+        if (i > 0) {
+          const ang = (i / count) * Math.PI * 2;
+          targetPos.x += Math.cos(ang) * 2.0;
+          targetPos.z += Math.sin(ang) * 2.0;
+        }
+      } else {
+        const fx = -Math.sin(cameraYaw), fz = -Math.cos(cameraYaw);
+        targetPos = new THREE.Vector3(player.pos.x + fx * (8 + i * 2), 0, player.pos.z + fz * (8 + i * 2));
+      }
+      const start = player.pos.clone().add(new THREE.Vector3(0, 1.4, 0));
+      const dx = targetPos.x - start.x, dz = targetPos.z - start.z;
+      let horizDist = Math.hypot(dx, dz);
+      if (horizDist < 0.5) {
+        const ang = Math.random() * Math.PI * 2;
+        targetPos.x = start.x + Math.cos(ang) * 4;
+        targetPos.z = start.z + Math.sin(ang) * 4;
+        horizDist = 4;
+      }
+      const arcTime = 1.0, gravity = 22;
+      const horizSpeed = horizDist / arcTime;
+      const vy = (targetPos.y - start.y + 0.5 * gravity * arcTime * arcTime) / arcTime;
+      const vx = ((targetPos.x - start.x) / horizDist) * horizSpeed;
+      const vz = ((targetPos.z - start.z) / horizDist) * horizSpeed;
+      const bombMesh = (() => {
+        const clone = _cloneWeaponMesh('smokebomb');
+        if (clone) {
+          clone.scale.setScalar(0.8);
+          clone.traverse(c => { if (c.isMesh) c.castShadow = false; });
+          return clone;
+        }
+        const g = new THREE.Group();
+        g.add(new THREE.Mesh(new THREE.SphereGeometry(0.22, 8, 6),
+          new THREE.MeshPhongMaterial({ color: 0x333344, shininess: 20 })));
+        return g;
+      })();
+      spawnProjectile({
+        pos: start, vel: new THREE.Vector3(vx, vy, vz),
+        damage: 0, radius: 0.3,
+        lifetime: arcTime + 0.05, mesh: bombMesh, gravity,
+        smokeOnExpire: true,
+        smokeDmg: w.dmg, smokeRadius: w.radius * (player.aoeMult || 1),
+        smokeLife: w.life * (player.durationMult || 1),
+        smokeSlow: w.slow || false,
+        spinAxis: new THREE.Vector3(1, 0.5, 0),
+        owner: 'player', knockback: 0,
       });
     }
   },
@@ -5993,6 +6199,12 @@ function resetGame() {
   particles.length = 0;
   for (const c of chests) killMesh(c.mesh);
   chests.length = 0;
+  for (const c of smokeClouds) killMesh(c.mesh);
+  smokeClouds.length = 0;
+  // Dispose cosmetic meshes that live in scene (not attached to entities)
+  if (_thunderWandMesh) { killMesh(_thunderWandMesh); _thunderWandMesh = null; }
+  if (_shieldOrbitMesh) { killMesh(_shieldOrbitMesh); _shieldOrbitMesh = null; }
+  _thunderWandAngle = 0; _shieldOrbitAngle = 0;
 
   // reset player
   player.pos.set(0, 0, 0);
@@ -7443,6 +7655,8 @@ function update(dt) {
   updateGems(dt);
   updateGold(dt);
   updateAuras(dt);
+  updateSmokeClouds(dt);
+  updateShieldOrbital(dt);
   updateParticles(dt);
   updateWeapons(dt);
   updateChests(dt);
@@ -7769,6 +7983,10 @@ function updateProjectiles(dt) {
         scene.add(ring);
         auraInstances.push({ mesh: ring, life: 0.35, maxLife: 0.35 });
       }
+      // Smoke Bomb: spawn lingering damage cloud on expiry
+      if (p.smokeOnExpire) {
+        spawnSmokeCloud(p.pos.clone(), p.smokeDmg, p.smokeRadius, p.smokeLife, p.smokeSlow);
+      }
       releasePtLight(p.ptLight);
       killMesh(p.mesh);
       projectiles.splice(i, 1);
@@ -7928,8 +8146,15 @@ function makeSauceMesh() {
   return g;
 }
 
-// Make a thrown cleaver mesh — flat metallic disc with a wood handle
+// Make a thrown cleaver mesh — KayKit 2-handed axe (with procedural fallback)
 function makeCleaverMesh() {
+  const clone = _cloneWeaponMesh('axe_2handed');
+  if (clone) {
+    clone.scale.setScalar(1.2);
+    clone.traverse(c => { if (c.isMesh) c.castShadow = false; });
+    return clone;
+  }
+  // Fallback: original procedural mesh if model not yet loaded
   const g = new THREE.Group();
   const blade = new THREE.Mesh(
     new THREE.BoxGeometry(0.45, 0.04, 0.32),
@@ -8211,6 +8436,89 @@ function updateGold(dt) {
       killMesh(c.mesh);
       goldCoins.splice(i, 1);
     }
+  }
+}
+
+// ── Smoke Bomb clouds ──────────────────────────────────────────────────────
+function spawnSmokeCloud(pos, dmgPerTick, radius, life, slow) {
+  const mat = new THREE.MeshBasicMaterial({
+    color: 0x889aaa, transparent: true, opacity: 0.4,
+    blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide,
+  });
+  const mesh = new THREE.Mesh(new THREE.SphereGeometry(1, 10, 7), mat);
+  mesh.position.copy(pos);
+  mesh.position.y = 1.0;
+  scene.add(mesh);
+  spawnParticle(pos.clone().setY(pos.y + 0.5), 0x889aaa, 14, 6);
+  smokeClouds.push({ mesh, pos: pos.clone(), radius, life, maxLife: life, dmgPerTick, tickCd: 0.1, slow });
+}
+
+function updateSmokeClouds(dt) {
+  for (let i = smokeClouds.length - 1; i >= 0; i--) {
+    const c = smokeClouds[i];
+    c.life -= dt;
+    if (c.life <= 0) {
+      killMesh(c.mesh);
+      smokeClouds.splice(i, 1);
+      continue;
+    }
+    const t = c.life / c.maxLife;
+    // Cloud grows in the first 20% of life then stays constant
+    const growT = Math.min(1, (1 - t) / 0.2);
+    const r = c.radius * (0.3 + 0.7 * growT);
+    c.mesh.scale.setScalar(r);
+    c.mesh.material.opacity = 0.38 * t;
+    // Tick damage every 0.5s
+    c.tickCd -= dt;
+    if (c.tickCd <= 0) {
+      c.tickCd = 0.5;
+      for (const e of enemies) {
+        if (e.pos.distanceTo(c.pos) < r + 0.5) {
+          damageEnemy(e, c.dmgPerTick, false);
+          if (c.slow && e.speedMult === undefined) {
+            // Temporarily halve speed — reuses same field ice weapon would use
+            e.speedMult = 0.45;
+            e.slowTimer = (e.slowTimer || 0) + 1.8;
+          }
+        }
+      }
+    }
+  }
+}
+
+// ── Kinetic Shield orbital ─────────────────────────────────────────────────
+function updateShieldOrbital(dt) {
+  const hasShield = player.armor_items && player.armor_items.some(a => a.id === 'shield');
+  if (hasShield && player.shieldMax > 0) {
+    // Spawn shield mesh once the asset is ready
+    if (!_shieldOrbitMesh && _weaponAssets.shield_round) {
+      _shieldOrbitMesh = _cloneWeaponMesh('shield_round');
+      if (_shieldOrbitMesh) {
+        _shieldOrbitMesh.traverse(c => {
+          if (c.isMesh) {
+            c.material = c.material.clone();
+            c.material.transparent = true;
+            c.castShadow = false;
+          }
+        });
+        scene.add(_shieldOrbitMesh);
+      }
+    }
+    if (_shieldOrbitMesh) {
+      _shieldOrbitAngle += dt * 1.1;
+      const r = 1.3;
+      _shieldOrbitMesh.position.set(
+        player.pos.x + Math.cos(_shieldOrbitAngle) * r,
+        player.pos.y + 0.9,
+        player.pos.z + Math.sin(_shieldOrbitAngle) * r
+      );
+      _shieldOrbitMesh.rotation.y = -_shieldOrbitAngle;
+      const opacity = player.shieldMax > 0 ? Math.max(0.12, player.shield / player.shieldMax) : 0.12;
+      _shieldOrbitMesh.traverse(c => { if (c.isMesh && c.material) c.material.opacity = opacity; });
+    }
+  } else if (_shieldOrbitMesh) {
+    killMesh(_shieldOrbitMesh);
+    _shieldOrbitMesh = null;
   }
 }
 
