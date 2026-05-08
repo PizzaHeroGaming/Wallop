@@ -1847,6 +1847,7 @@ const CATALOG = {
     { slug: 'ice',       gameRef: 'ice',       defaultUnlocked: true },
     { slug: 'crossbow',  gameRef: 'crossbow',  defaultUnlocked: true },
     { slug: 'smoke',     gameRef: 'smoke',     defaultUnlocked: true },
+    { slug: 'staff',     gameRef: 'staff',     defaultUnlocked: true },
     {
       slug: 'meatball_minigun',
       name: 'Meatball Minigun', icon: '🍝',
@@ -3013,6 +3014,29 @@ function _cloneWeaponMesh(slug) {
   _loadWeaponGLTF(slug, `assets/weapons/${slug}.gltf`).catch(() => {})
 );
 
+// Enemy / boss skeleton model cache (same pattern as weapon assets)
+const _enemyAssets = {};
+function _loadEnemyGLB(slug, url) {
+  if (_enemyAssets[slug]) return Promise.resolve(_enemyAssets[slug]);
+  return _loadGLB(url).then(gltf => { _enemyAssets[slug] = gltf; return gltf; });
+}
+function _cloneEnemyMesh(slug) {
+  const gltf = _enemyAssets[slug];
+  if (!gltf) return null;
+  const clone = THREE.SkeletonUtils.clone(gltf.scene);
+  clone._isSkeletonGLB = true;
+  return clone;
+}
+// Preload all KayKit Skeleton GLBs (characters + weapons) in the background
+const _SKEL_BASE = 'assets/KayKit_Skeletons_1.1_FREE/KayKit_Skeletons_1.1_FREE/';
+[
+  ['skeleton_minion',  'Skeleton_Minion.glb'],
+  ['skeleton_warrior', 'Skeleton_Warrior.glb'],
+  ['skeleton_mage',    'Skeleton_Mage.glb'],
+  ['skeleton_rogue',   'Skeleton_Rogue.glb'],
+  ['skeleton_staff',   'Skeleton_Staff.glb'],
+].forEach(([slug, file]) => _loadEnemyGLB(slug, _SKEL_BASE + file).catch(() => {}));
+
 function _bindAnimActions(mixer) {
   const get = name => _animClips && _animClips.find(c => c.name === name);
   playerIdleAction = get('Idle_A')    ? mixer.clipAction(get('Idle_A'))    : null;
@@ -3066,6 +3090,8 @@ let _thunderWandMesh = null;       // floating wand shown when Thunder Strike is
 let _thunderWandAngle = 0;
 let _shieldOrbitMesh = null;       // orbiting shield shown when Kinetic Shield armor is active
 let _shieldOrbitAngle = 0;
+let _staffMesh = null;             // floating staff shown when Bone Staff is equipped
+let _staffAngle = 0;
 
 // ============================================================
 // ENEMIES
@@ -3100,6 +3126,11 @@ const ENEMY_DEFS = {
     color: 0x6a1438, name: 'warlord',
     hp: 220, dmg: 28, speed: 2.6, xp: 12, scale: 2.0,
     body: 'warlord', spawnTime: 360,
+  },
+  archer: {
+    color: 0x884422, name: 'archer',
+    hp: 28, dmg: 16, speed: 2.2, xp: 3, scale: 0.95,
+    body: 'archer', spawnTime: 270, // 4:30 — appears after both minibosses are possible
   },
 };
 
@@ -3975,12 +4006,38 @@ function makeBossMesh(def) {
 
 function makeEnemyMesh(def) {
   switch (def.body) {
-    case 'goblin': return makeGoblinMesh(def);
+    case 'goblin': {
+      const c = _cloneEnemyMesh('skeleton_minion');
+      if (c) { c.scale.setScalar(0.62); return c; }
+      return makeGoblinMesh(def);
+    }
+    case 'skelly': {
+      const c = _cloneEnemyMesh('skeleton_minion');
+      if (c) { c.scale.setScalar(0.9); return c; }
+      return makeSkellyMesh(def);
+    }
+    case 'brute': {
+      const c = _cloneEnemyMesh('skeleton_warrior');
+      if (c) { c.scale.setScalar(1.25); return c; }
+      return makeBruteMesh(def);
+    }
+    case 'warlord': {
+      const c = _cloneEnemyMesh('skeleton_warrior');
+      if (c) { c.scale.setScalar(1.6); return c; }
+      return makeWarlordMesh(def);
+    }
+    case 'archer': {
+      const c = _cloneEnemyMesh('skeleton_rogue');
+      if (c) { c.scale.setScalar(0.85); return c; }
+      // Fallback: simple box enemy
+      const g = new THREE.Group();
+      const body = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.9, 0.4), flatPhong(0x884422));
+      body.position.y = 0.9; body.castShadow = true; g.add(body);
+      g.bodyRef = body;
+      return g;
+    }
     case 'bat': return makeBatMesh(def);
-    case 'brute': return makeBruteMesh(def);
-    case 'skelly': return makeSkellyMesh(def);
     case 'imp': return makeImpMesh(def);
-    case 'warlord': return makeWarlordMesh(def);
     case 'boss': return makeBossMesh(def);
   }
   // Fallback (shouldn't hit)
@@ -4051,6 +4108,16 @@ function spawnEnemy(typeKey, opts = {}) {
     enemy.mesh.add(halo);
     enemy.eliteHalo = halo;
   }
+  // Set up skeletal AnimationMixer for GLB-based enemies
+  if (enemy.mesh._isSkeletonGLB && _animClips) {
+    enemy.mixer = new THREE.AnimationMixer(enemy.mesh);
+    const _getClip = name => _animClips.find(c => c.name === name);
+    enemy.idleAction = _getClip('Idle_A') ? enemy.mixer.clipAction(_getClip('Idle_A')) : null;
+    enemy.walkAction = _getClip('Walking_A') ? enemy.mixer.clipAction(_getClip('Walking_A')) : null;
+    if (enemy.idleAction) enemy.idleAction.play();
+    enemy._animState = 'idle';
+  }
+
   // Spawn at edge of view
   const a = Math.random() * Math.PI * 2;
   const dist = 28 + Math.random() * 8;
@@ -5252,6 +5319,91 @@ defWeapon('smoke', {
   },
 });
 
+// 8d. BONE STAFF — fires slow homing magic bolts; cosmetic staff floats at player chest
+defWeapon('staff', {
+  name: 'Bone Staff', icon: '🪄',
+  desc: 'Channels bone magic. Fires slow homing bolts that track nearby enemies.',
+  maxLevel: 6,
+  init: () => ({ cd: 0, dmg: 22, count: 1 }),
+  upgrade: w => {
+    w.level++;
+    if (w.level === 2) w.dmg += 12;
+    if (w.level === 3) w.count = 2;
+    if (w.level === 4) w.cdMod = 0.8;
+    if (w.level === 5) w.dmg += 18;
+    if (w.level === 6) { w.count = 3; w.dmg += 12; }
+  },
+  describeNext: w => {
+    const n = (w?.level || 0) + 1;
+    const map = { 1:'unlock', 2:'+12 dmg', 3:'2 bolts', 4:'faster', 5:'+18 dmg', 6:'3 bolts +12 dmg' };
+    return map[n] || 'maxed';
+  },
+  tick: (w, dt) => {
+    // Floating staff cosmetic — spawn when model is ready
+    if (!_staffMesh && _enemyAssets.skeleton_staff) {
+      _staffMesh = _cloneEnemyMesh('skeleton_staff');
+      if (_staffMesh) {
+        _staffMesh.scale.setScalar(0.75);
+        _staffMesh.traverse(c => { if (c.isMesh) c.castShadow = false; });
+        scene.add(_staffMesh);
+      }
+    }
+    if (_staffMesh) {
+      _staffAngle += dt * 1.6;
+      const bobY = Math.sin(_staffAngle * 1.3) * 0.09;
+      _staffMesh.position.set(
+        player.pos.x + Math.sin(_staffAngle) * 0.5,
+        player.pos.y + 1.65 + bobY,
+        player.pos.z + Math.cos(_staffAngle) * 0.5
+      );
+      _staffMesh.rotation.y = _staffAngle + Math.PI;
+      _staffMesh.rotation.z = 0.4;
+    }
+
+    w.cd -= dt;
+    if (w.cd > 0) return;
+    w.cd = 2.0 * (w.cdMod || 1) * player.cooldownMult;
+    const count = (w.count || 1) + player.extraProjectiles;
+    const start = player.pos.clone().add(new THREE.Vector3(0, 1.6, 0));
+    for (let i = 0; i < count; i++) {
+      const target = pickTarget(player.pos, 26, 5);
+      let dir;
+      if (target) {
+        dir = new THREE.Vector3(target.pos.x - start.x, 0, target.pos.z - start.z).normalize();
+      } else {
+        const a = (i / Math.max(count, 1)) * Math.PI * 2 + (w.cd * 0.4);
+        dir = new THREE.Vector3(Math.sin(a), 0, Math.cos(a));
+      }
+      // Fan spread for multiple bolts
+      if (count > 1) {
+        const spread = (i - (count - 1) / 2) * 0.5;
+        const cs = Math.cos(spread), sn = Math.sin(spread);
+        dir.set(dir.x * cs - dir.z * sn, dir.y, dir.x * sn + dir.z * cs).normalize();
+      }
+      // Build bolt mesh: glowing purple orb
+      const boltMesh = (() => {
+        const g = new THREE.Group();
+        const orb = new THREE.Mesh(new THREE.SphereGeometry(0.24, 10, 8),
+          new THREE.MeshBasicMaterial({ color: 0xaa66ff, blending: THREE.AdditiveBlending, depthWrite: false }));
+        g.add(orb);
+        const core = new THREE.Mesh(new THREE.SphereGeometry(0.11, 8, 6),
+          new THREE.MeshBasicMaterial({ color: 0xffffff, blending: THREE.AdditiveBlending, depthWrite: false }));
+        g.add(core);
+        return g;
+      })();
+      const isCrit = Math.random() < player.critChance;
+      const dmg = (isCrit ? w.dmg * player.critMult : w.dmg) * player.damageMult;
+      spawnProjectile({
+        pos: start.clone(), vel: dir.clone().multiplyScalar(9),
+        damage: dmg, radius: 0.3 * player.projectileMult,
+        pierce: 0, lifetime: 3.0 * (player.durationMult || 1),
+        mesh: boltMesh, crit: isCrit, knockback: 3, owner: 'player',
+        homing: true, spinAxis: new THREE.Vector3(0, 1, 0),
+      });
+    }
+  },
+});
+
 // 8. CALZONE BOMB — slow lobbed arc that explodes on landing
 defWeapon('calzone', {
   name: 'Calzone Bomb', icon: '🥟',
@@ -5817,6 +5969,7 @@ function killEnemy(e) {
     spawnGem(e.pos.clone().setY(0), 1);
   }
   spawnParticle(e.pos.clone().setY(e.pos.y + 0.5), e.def.color, 5, 6);
+  if (e.mixer) { e.mixer.stopAllAction(); e.mixer = null; }
   killMesh(e.mesh);
   const idx = enemies.indexOf(e);
   if (idx >= 0) enemies.splice(idx, 1);
@@ -6204,7 +6357,8 @@ function resetGame() {
   // Dispose cosmetic meshes that live in scene (not attached to entities)
   if (_thunderWandMesh) { killMesh(_thunderWandMesh); _thunderWandMesh = null; }
   if (_shieldOrbitMesh) { killMesh(_shieldOrbitMesh); _shieldOrbitMesh = null; }
-  _thunderWandAngle = 0; _shieldOrbitAngle = 0;
+  if (_staffMesh) { killMesh(_staffMesh); _staffMesh = null; }
+  _thunderWandAngle = 0; _shieldOrbitAngle = 0; _staffAngle = 0;
 
   // reset player
   player.pos.set(0, 0, 0);
@@ -7625,6 +7779,29 @@ function spawnBoss(tier = 'final') {
     sliceDrop: cfg.slices || 0,
     mesh: makeEnemyMesh(def),
   };
+  // Replace procedural mesh with skeleton GLB for mini1 (Mage) and final (Warrior)
+  const _bossSkeletonSlug = tier === 'mini1' ? 'skeleton_mage'
+                          : tier === 'final'  ? 'skeleton_warrior'
+                          : null;
+  if (_bossSkeletonSlug) {
+    const _bsc = _cloneEnemyMesh(_bossSkeletonSlug);
+    if (_bsc) {
+      killMesh(enemy.mesh); // dispose procedural mesh immediately
+      _bsc.scale.setScalar(cfg.scale * (tier === 'final' ? 1.35 : 1.15));
+      _bsc.traverse(c => { if (c.isMesh) c.castShadow = true; });
+      enemy.mesh = _bsc;
+    }
+  }
+  // Set up AnimationMixer for any skeleton-based boss mesh
+  if (enemy.mesh._isSkeletonGLB && _animClips) {
+    enemy.mixer = new THREE.AnimationMixer(enemy.mesh);
+    const _bgc = name => _animClips.find(c => c.name === name);
+    enemy.idleAction = _bgc('Idle_A') ? enemy.mixer.clipAction(_bgc('Idle_A')) : null;
+    enemy.walkAction = _bgc('Walking_A') ? enemy.mixer.clipAction(_bgc('Walking_A')) : null;
+    if (enemy.idleAction) enemy.idleAction.play();
+    enemy._animState = 'idle';
+  }
+
   // Spawn from a far corner of the arena
   const a = Math.random() * Math.PI * 2;
   enemy.pos.set(Math.cos(a) * 25, 0, Math.sin(a) * 25);
@@ -7836,9 +8013,23 @@ function updateEnemies(dt) {
       e.slowTimer -= dt;
       speedMult = 0.45;
     }
-    e.vel.x = tmp.x * e.speed * speedMult;
-    e.vel.z = tmp.z * e.speed * speedMult;
-    if (e.flying) e.vel.y = tmp.y * e.speed * speedMult;
+    if (e.type === 'archer') {
+      // Archers maintain preferred distance: retreat if too close, strafe in range, advance if far
+      if (dist < 7) {
+        e.vel.x = -tmp.x * e.speed * speedMult;
+        e.vel.z = -tmp.z * e.speed * speedMult;
+      } else if (dist > 15) {
+        e.vel.x = tmp.x * e.speed * 0.6 * speedMult;
+        e.vel.z = tmp.z * e.speed * 0.6 * speedMult;
+      } else {
+        e.vel.x = -tmp.z * e.speed * 0.45 * speedMult;
+        e.vel.z =  tmp.x * e.speed * 0.45 * speedMult;
+      }
+    } else {
+      e.vel.x = tmp.x * e.speed * speedMult;
+      e.vel.z = tmp.z * e.speed * speedMult;
+      if (e.flying) e.vel.y = tmp.y * e.speed * speedMult;
+    }
 
     // knockback
     e.pos.x += (e.vel.x + e.knockback.x) * dt;
@@ -7886,8 +8077,8 @@ function updateEnemies(dt) {
       e.mesh.wingR.rotation.z = -f;
     }
 
-    // Leg walk cycle — only if near
-    if (isNear && !e.flying && e.mesh.legL && e.mesh.legR) {
+    // Leg walk cycle — procedural enemies only (GLB enemies use AnimationMixer below)
+    if (isNear && !e.flying && !e.mixer && e.mesh.legL && e.mesh.legR) {
       const moving = Math.hypot(e.vel.x, e.vel.z) > 0.2;
       if (moving) {
         e.walkPhase += dt * (e.speed * 1.4);
@@ -7897,6 +8088,44 @@ function updateEnemies(dt) {
       } else {
         e.mesh.legL.rotation.x *= 0.85;
         e.mesh.legR.rotation.x *= 0.85;
+      }
+    }
+
+    // Skeletal AnimationMixer — update every frame, crossfade near enemies
+    if (e.mixer) {
+      e.mixer.update(dt);
+      if (isNear || e.isBoss || e.isElite) {
+        const moving = Math.hypot(e.vel.x, e.vel.z) > 0.25;
+        if (moving && e._animState !== 'walk' && e.walkAction) {
+          e.walkAction.reset().fadeIn(0.18);
+          if (e.idleAction) e.idleAction.fadeOut(0.18);
+          e._animState = 'walk';
+        } else if (!moving && e._animState !== 'idle' && e.idleAction) {
+          e.idleAction.reset().fadeIn(0.18);
+          if (e.walkAction) e.walkAction.fadeOut(0.18);
+          e._animState = 'idle';
+        }
+      }
+    }
+
+    // Archer ranged attack — fires a crossbow arrow on cooldown
+    if (e.type === 'archer' && dist < 22) {
+      e.archRangeCd = (e.archRangeCd || 0) - dt;
+      if (e.archRangeCd <= 0) {
+        e.archRangeCd = 2.8;
+        const adir = new THREE.Vector3(player.pos.x - e.pos.x, 0, player.pos.z - e.pos.z).normalize();
+        const arrowMesh = (() => {
+          const ac = _cloneWeaponMesh('arrow_crossbow');
+          if (ac) { ac.scale.setScalar(1.0); ac.rotation.y = Math.atan2(adir.x, adir.z); return ac; }
+          const gr = new THREE.Group();
+          gr.add(new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 0.7, 5), flatPhong(0x886644)));
+          return gr;
+        })();
+        const astart = e.pos.clone().add(new THREE.Vector3(0, 1.4, 0));
+        arrowMesh.position.copy(astart);
+        scene.add(arrowMesh);
+        enemyProjectiles.push({ pos: astart.clone(), vel: adir.clone().multiplyScalar(13),
+          damage: e.dmg, radius: 0.22, age: 0, lifetime: 2.5, mesh: arrowMesh });
       }
     }
 
@@ -7996,6 +8225,19 @@ function updateProjectiles(dt) {
     // Apply per-projectile gravity (Calzone arc)
     if (p.gravity) {
       p.vel.y -= p.gravity * dt;
+    }
+
+    // Gentle homing — bend velocity toward nearest live enemy (Bone Staff bolts)
+    if (p.homing && enemies.length > 0) {
+      let nearest = null, nearestD = Infinity;
+      for (const e of enemies) {
+        const d = e.pos.distanceTo(p.pos);
+        if (d < nearestD) { nearestD = d; nearest = e; }
+      }
+      if (nearest && nearestD < 24) {
+        const toTarget = new THREE.Vector3().subVectors(nearest.pos, p.pos).normalize();
+        p.vel.lerp(toTarget.multiplyScalar(p.vel.length()), 0.06);
+      }
     }
 
     // Boomerang behavior — fly out then come back to player; pierces freely
@@ -8475,10 +8717,8 @@ function updateSmokeClouds(dt) {
       for (const e of enemies) {
         if (e.pos.distanceTo(c.pos) < r + 0.5) {
           damageEnemy(e, c.dmgPerTick, false);
-          if (c.slow && e.speedMult === undefined) {
-            // Temporarily halve speed — reuses same field ice weapon would use
-            e.speedMult = 0.45;
-            e.slowTimer = (e.slowTimer || 0) + 1.8;
+          if (c.slow) {
+            e.slowTimer = Math.max(e.slowTimer || 0, 1.8);
           }
         }
       }
