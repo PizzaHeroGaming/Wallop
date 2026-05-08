@@ -4134,25 +4134,25 @@ function spawnEnemy(typeKey, opts = {}) {
 // PROJECTILES
 // ============================================================
 function spawnProjectile(opts) {
-  const proj = {
+  // Spread ALL opts so custom fields (gravity, smokeOnExpire, boomerang, etc.) pass through
+  const proj = Object.assign({
+    radius: 0.3,
+    pierce: 0,
+    lifetime: 2.0,
+    homing: 0,
+    target: null,
+    spinAxis: null,
+    knockback: 1.0,
+    crit: false,
+    aoe: 0,
+    isExplosion: false,
+  }, opts, {
+    // These always need special construction regardless of opts
     pos: opts.pos.clone(),
     vel: opts.vel.clone(),
-    damage: opts.damage,
-    radius: opts.radius || 0.3,
-    pierce: opts.pierce || 0,
     hitIds: new Set(),
-    lifetime: opts.lifetime || 2.0,
     age: 0,
-    onHit: opts.onHit,
-    homing: opts.homing || 0,
-    target: opts.target || null,
-    mesh: opts.mesh,
-    spinAxis: opts.spinAxis || null,
-    knockback: opts.knockback || 1.0,
-    crit: opts.crit || false,
-    aoe: opts.aoe || 0,
-    isExplosion: opts.isExplosion || false,
-  };
+  });
   proj.mesh.position.copy(proj.pos);
   scene.add(proj.mesh);
   projectiles.push(proj);
