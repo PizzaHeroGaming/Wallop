@@ -2412,100 +2412,83 @@ function addRamp(x, z, w, d, h, rotY = 0, color = 0x88673e) {
 }
 
 function addTree(x, z) {
-  const trunkH = 2.0 + Math.random() * 0.6;
-  const trunk = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.22, 0.34, trunkH, 8),
-    new THREE.MeshPhongMaterial({ color: 0x5a3818, flatShading: true, shininess: 0 })
-  );
-  trunk.position.set(x, trunkH / 2 + groundHeight(x, z), z);
-  trunk.castShadow = true;
-  scene.add(trunk);
-  // Two-tone leafy clumps (overlapping spheres) — soft and rounded
-  const lightLeaf = new THREE.MeshPhongMaterial({ color: 0x4faa54, flatShading: true, shininess: 0 });
-  const darkLeaf = new THREE.MeshPhongMaterial({ color: 0x2f7d3e, flatShading: true, shininess: 0 });
-  const baseY = trunkH + 0.3 + groundHeight(x, z);
-  const clumps = [
-    { dx:  0.00, dy: 0.00, dz:  0.00, r: 0.95, mat: darkLeaf },
-    { dx:  0.55, dy: 0.20, dz:  0.30, r: 0.70, mat: lightLeaf },
-    { dx: -0.45, dy: 0.30, dz:  0.20, r: 0.65, mat: lightLeaf },
-    { dx:  0.10, dy: 0.65, dz: -0.25, r: 0.55, mat: lightLeaf },
-    { dx: -0.20, dy: 0.10, dz: -0.45, r: 0.50, mat: darkLeaf },
-  ];
-  for (const cl of clumps) {
-    const f = new THREE.Mesh(new THREE.SphereGeometry(cl.r, 10, 8), cl.mat);
-    f.position.set(x + cl.dx, baseY + cl.dy, z + cl.dz);
-    f.castShadow = true;
-    scene.add(f);
-  }
+  const slug = _TREE_LEAFY[Math.floor(Math.random() * _TREE_LEAFY.length)];
+  const m = _cloneScenery(slug);
+  if (!m) return;
+  const sc = 0.90 + Math.random() * 0.25;
+  m.scale.setScalar(sc);
+  m.position.set(x, groundHeight(x, z), z);
+  m.rotation.y = Math.random() * Math.PI * 2;
+  m.traverse(c => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = false; } });
+  scene.add(m);
   addSolid(x, z, 0.45);
 }
 
-// Tall pine tree — different silhouette for visual variety
+// Tall tree — replaces the old stacked-cone pines with KayKit tall variants
 function addPineTree(x, z) {
-  const trunkH = 1.8 + Math.random() * 0.4;
-  const ground = groundHeight(x, z);
-  const trunkMat = new THREE.MeshPhongMaterial({ color: 0x4a2e16, flatShading: true, shininess: 0 });
-  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.28, trunkH, 8), trunkMat);
-  trunk.position.set(x, trunkH / 2 + ground, z);
-  trunk.castShadow = true;
-  scene.add(trunk);
-  // Three stacked cones, each smaller
-  const greenA = new THREE.MeshPhongMaterial({ color: 0x2d6a3a, flatShading: true, shininess: 0 });
-  const greenB = new THREE.MeshPhongMaterial({ color: 0x1f5a2d, flatShading: true, shininess: 0 });
-  const tiers = 3 + Math.floor(Math.random() * 2);
-  for (let i = 0; i < tiers; i++) {
-    const r = 1.4 - i * 0.30;
-    const h = 1.3 - i * 0.10;
-    const cone = new THREE.Mesh(
-      new THREE.ConeGeometry(r, h, 8),
-      i % 2 === 0 ? greenA : greenB
-    );
-    cone.position.set(x, trunkH + ground + 0.4 + i * 0.85, z);
-    cone.castShadow = true;
-    scene.add(cone);
-  }
+  const slug = _TREE_TALL[Math.floor(Math.random() * _TREE_TALL.length)];
+  const m = _cloneScenery(slug);
+  if (!m) return;
+  const sc = 0.55 + Math.random() * 0.15;
+  m.scale.setScalar(sc);
+  m.position.set(x, groundHeight(x, z), z);
+  m.rotation.y = Math.random() * Math.PI * 2;
+  m.traverse(c => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = false; } });
+  scene.add(m);
   addSolid(x, z, 0.40);
 }
 
-// Dead/bare tree — gnarled silhouette for contrast
+// Bare/dead tree — KayKit Tree_Bare variants replace the old gnarled branches
 function addDeadTree(x, z) {
-  const trunkH = 2.4 + Math.random() * 0.6;
-  const ground = groundHeight(x, z);
-  const mat = new THREE.MeshPhongMaterial({ color: 0x5a4838, flatShading: true, shininess: 0 });
-  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.32, trunkH, 7), mat);
-  trunk.position.set(x, trunkH / 2 + ground, z);
-  trunk.castShadow = true;
-  scene.add(trunk);
-  // A few angled branches
-  const branchCount = 3 + Math.floor(Math.random() * 3);
-  for (let i = 0; i < branchCount; i++) {
-    const len = 0.7 + Math.random() * 0.6;
-    const branch = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.10, len, 6), mat);
-    const ang = (i / branchCount) * Math.PI * 2 + Math.random() * 0.3;
-    const yOff = trunkH * (0.55 + Math.random() * 0.4);
-    branch.position.set(
-      x + Math.cos(ang) * 0.18,
-      ground + yOff,
-      z + Math.sin(ang) * 0.18
-    );
-    branch.rotation.set(0, -ang, Math.PI / 2 - 0.5 - Math.random() * 0.3);
-    branch.castShadow = true;
-    scene.add(branch);
-  }
+  const slug = _TREE_BARE[Math.floor(Math.random() * _TREE_BARE.length)];
+  const m = _cloneScenery(slug);
+  if (!m) return;
+  const sc = 0.90 + Math.random() * 0.30;
+  m.scale.setScalar(sc);
+  m.position.set(x, groundHeight(x, z), z);
+  m.rotation.y = Math.random() * Math.PI * 2;
+  m.traverse(c => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = false; } });
+  scene.add(m);
   addSolid(x, z, 0.38);
 }
 
 function addRock(x, z, scale = 1) {
-  const geo = new THREE.DodecahedronGeometry(scale, 0);
-  const mat = new THREE.MeshPhongMaterial({ color: 0x868a96, flatShading: true, shininess: 0 });
-  const m = new THREE.Mesh(geo, mat);
-  m.position.set(x, scale * 0.55 + groundHeight(x, z), z);
-  m.rotation.set(Math.random(), Math.random(), Math.random());
-  m.castShadow = true;
-  m.receiveShadow = true;
+  // Map the old abstract scale → KayKit model + mesh scale.
+  // Rock_1_A: ~0.54 tall (pebble), Rock_1_G: ~1.87 tall (boulder),
+  // Rock_2_E: ~2.86 tall (large outcrop), Rock_3_J: ~1.97 tall (embedded).
+  let slug, meshScale;
+  if (scale < 0.50) {
+    slug = 'Rock_1_A_Color1';
+    meshScale = scale * 2.0;           // tiny pebble → 0.3–1.0 mesh scale
+  } else if (scale < 1.10) {
+    slug = _ROCK_MED[Math.floor(Math.random() * _ROCK_MED.length)];
+    meshScale = scale * 0.50;          // medium → 0.25–0.55 mesh scale
+  } else {
+    slug = Math.random() < 0.6 ? 'Rock_2_E_Color1' : 'Rock_1_G_Color1';
+    meshScale = scale * 0.32;          // large → 0.32–0.80 mesh scale
+  }
+  const m = _cloneScenery(slug);
+  if (!m) return;
+  m.scale.setScalar(meshScale);
+  m.position.set(x, groundHeight(x, z), z);
+  m.rotation.y = Math.random() * Math.PI * 2;
+  m.traverse(c => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; } });
   scene.add(m);
-  // Only sizable rocks block movement; tiny pebbles let you pass.
   if (scale > 0.5) addSolid(x, z, scale * 0.85);
+}
+
+// Decorative bush — KayKit Bush variants, no collision needed
+function addBush(x, z) {
+  const slug = _BUSH_SET[Math.floor(Math.random() * _BUSH_SET.length)];
+  const m = _cloneScenery(slug);
+  if (!m) return;
+  // Bushes are tiny in the GLTF (~0.2–0.5 units tall); scale up to ~1–1.8 world units
+  const sc = 3.0 + Math.random() * 1.5;
+  m.scale.setScalar(sc);
+  m.position.set(x, groundHeight(x, z), z);
+  m.rotation.y = Math.random() * Math.PI * 2;
+  m.traverse(c => { if (c.isMesh) { c.castShadow = false; c.receiveShadow = false; } });
+  scene.add(m);
 }
 
 // A small log lying on its side
@@ -2652,87 +2635,14 @@ function addDistantHill(x, z, radius, height, color) {
   scene.add(m);
 }
 
-// Build the world layout — biome-style scattering + extended visible scenery
+// ── Phase 1: immediate world build ──────────────────────────────────────────
+// Runs synchronously at startup. Places only micro-detail (grass, ferns,
+// flowers, logs) and atmospheric scenery (distant hills, clouds) — everything
+// that uses procedural Three.js geometry and needs no asset loads.
+// Trees, rocks, and bushes are placed in _placeWorldProps() once the KayKit
+// GLTF assets are ready (called from the Promise.all callback above).
 (function buildWorld() {
-  // ---------- Inner play-area features ----------
-  // The arena is a clean flat field — no big rocks, hills, or platforms inside
-  // the play space. They clashed visually with the natural rolling terrain
-  // around the edges and made movement feel cramped during fights.
-  // (The rolling hills you see at the horizon are part of the ground mesh
-  // outside the play area; those stay.)
-
-  // A few small loose stones scattered around so the field isn't totally bare.
-  // None of these are large enough to block movement.
-  for (let i = 0; i < 14; i++) {
-    let x, z, ok = false, tries = 0;
-    while (!ok && tries < 30) {
-      tries++;
-      x = (Math.random() - 0.5) * (CFG.ARENA - 8) * 1.4;
-      z = (Math.random() - 0.5) * (CFG.ARENA - 8) * 1.4;
-      // Stay clear of the spawn zone
-      if (Math.hypot(x, z) > 6) ok = true;
-    }
-    if (ok) addRock(x, z, 0.30 + Math.random() * 0.18);
-  }
-
-  // ---------- Inner trees: cluster naturally instead of uniform random ----------
-  // Pick a few "grove centers" and drop trees around them with falloff.
-  const groveCenters = [];
-  for (let i = 0; i < 6; i++) {
-    let cx, cz, ok = false, tries = 0;
-    while (!ok && tries < 40) {
-      tries++;
-      cx = (Math.random() - 0.5) * (CFG.ARENA - 12) * 1.3;
-      cz = (Math.random() - 0.5) * (CFG.ARENA - 12) * 1.3;
-      ok = Math.hypot(cx, cz) > 10; // avoid spawn area
-      // also avoid existing groves
-      for (const g of groveCenters) if (Math.hypot(g.x - cx, g.z - cz) < 14) ok = false;
-    }
-    if (ok) groveCenters.push({ x: cx, z: cz });
-  }
-  // Drop trees near each grove
-  const innerTreePositions = [];
-  for (const g of groveCenters) {
-    const treesInGrove = 4 + Math.floor(Math.random() * 5);
-    for (let i = 0; i < treesInGrove; i++) {
-      const a = Math.random() * Math.PI * 2;
-      const r = 1.5 + Math.random() * 5;
-      const tx = g.x + Math.cos(a) * r;
-      const tz = g.z + Math.sin(a) * r;
-      // Skip if too close to player spawn
-      if (Math.hypot(tx, tz) < 6) continue;
-      // Skip if too close to a hill
-      let onObstacle = false;
-      for (const o of obstacles) {
-        if (o.type === 'box' && Math.abs(tx - o.x) < o.w / 2 + 0.5 && Math.abs(tz - o.z) < o.d / 2 + 0.5) onObstacle = true;
-        if (o.type === 'cone' && Math.hypot(tx - o.x, tz - o.z) < o.radius + 0.3) onObstacle = true;
-      }
-      if (onObstacle) continue;
-      // Skip if too close to another tree
-      let tooClose = false;
-      for (const p of innerTreePositions) if (Math.hypot(p.x - tx, p.z - tz) < 1.6) { tooClose = true; break; }
-      if (tooClose) continue;
-      innerTreePositions.push({ x: tx, z: tz });
-      // Pick a tree type — mostly leafy, some pines, occasional dead
-      const r2 = Math.random();
-      if (r2 < 0.65) addTree(tx, tz);
-      else if (r2 < 0.9) addPineTree(tx, tz);
-      else addDeadTree(tx, tz);
-    }
-  }
-  // A handful of solitary trees scattered between groves
-  for (let i = 0; i < 8; i++) {
-    const tx = (Math.random() - 0.5) * (CFG.ARENA - 6) * 1.6;
-    const tz = (Math.random() - 0.5) * (CFG.ARENA - 6) * 1.6;
-    if (Math.hypot(tx, tz) < 7) continue;
-    let tooClose = false;
-    for (const p of innerTreePositions) if (Math.hypot(p.x - tx, p.z - tz) < 3) { tooClose = true; break; }
-    if (tooClose) continue;
-    innerTreePositions.push({ x: tx, z: tz });
-    if (Math.random() < 0.3) addPineTree(tx, tz); else addTree(tx, tz);
-  }
-
-  // ---------- Ground vegetation: grass tufts, ferns, flowers, mushrooms ----------
+  // ---------- Ground micro-detail: grass tufts, ferns, wildflowers, logs ----------
   for (let i = 0; i < 110; i++) {
     const x = (Math.random() - 0.5) * CFG.ARENA * 1.9;
     const z = (Math.random() - 0.5) * CFG.ARENA * 1.9;
@@ -2751,50 +2661,11 @@ function addDistantHill(x, z, radius, height, color) {
     if (Math.hypot(x, z) < 5) continue;
     addFlower(x, z);
   }
-  // Mushrooms cluster near trees
-  for (let i = 0; i < 12; i++) {
-    if (innerTreePositions.length === 0) break;
-    const t = innerTreePositions[Math.floor(Math.random() * innerTreePositions.length)];
-    const a = Math.random() * Math.PI * 2;
-    const r = 1.0 + Math.random() * 1.5;
-    addMushrooms(t.x + Math.cos(a) * r, t.z + Math.sin(a) * r);
-  }
-  // Logs
   for (let i = 0; i < 5; i++) {
     const x = (Math.random() - 0.5) * (CFG.ARENA - 8) * 1.6;
     const z = (Math.random() - 0.5) * (CFG.ARENA - 8) * 1.6;
     if (Math.hypot(x, z) < 8) continue;
     addLog(x, z);
-  }
-  // Loose rocks
-  for (let i = 0; i < 18; i++) {
-    const x = (Math.random() - 0.5) * CFG.ARENA * 1.7;
-    const z = (Math.random() - 0.5) * CFG.ARENA * 1.7;
-    if (Math.hypot(x, z) < 6) continue;
-    addRock(x, z, 0.4 + Math.random() * 0.7);
-  }
-
-  // ---------- Outer forest ring — dense pine forest beyond the play area ----------
-  // This visually replaces the old stone walls. It's purely decorative.
-  // We seed two concentric rings, jittered, of varied tree types and big rocks.
-  const ringInner = CFG.ARENA + 3;
-  const ringOuter = CFG.ARENA + 22;
-  for (let i = 0; i < 220; i++) {
-    const a = Math.random() * Math.PI * 2;
-    const r = ringInner + Math.random() * (ringOuter - ringInner);
-    const x = Math.cos(a) * r;
-    const z = Math.sin(a) * r;
-    const which = Math.random();
-    if (which < 0.55) addPineTree(x, z);
-    else if (which < 0.80) addTree(x, z);
-    else if (which < 0.92) addDeadTree(x, z);
-    else addRock(x, z, 1.0 + Math.random() * 1.5);
-  }
-  // Some smaller rocks lying inside the forest ring
-  for (let i = 0; i < 30; i++) {
-    const a = Math.random() * Math.PI * 2;
-    const r = ringInner + Math.random() * (ringOuter - ringInner);
-    addRock(Math.cos(a) * r, Math.sin(a) * r, 0.4 + Math.random() * 0.7);
   }
 
   // ---------- Distant scenery — large hills well past the playable area ----------
@@ -2805,48 +2676,150 @@ function addDistantHill(x, z, radius, height, color) {
     const r = farRing + (Math.random() - 0.5) * 30;
     const radius = 14 + Math.random() * 12;
     const height = 8 + Math.random() * 14;
-    // Tint distant hills bluer for atmospheric perspective
     const hue = 0.30 + Math.random() * 0.05;
     const sat = 0.25 + Math.random() * 0.12;
     const lig = 0.42 + Math.random() * 0.12;
-    const color = new THREE.Color().setHSL(hue, sat, lig);
-    addDistantHill(Math.cos(a) * r, Math.sin(a) * r, radius, height, color);
+    addDistantHill(Math.cos(a) * r, Math.sin(a) * r, radius, height, new THREE.Color().setHSL(hue, sat, lig));
   }
-  // A second, even further band — bluer + smaller-looking due to distance
   const farRing2 = CFG.ARENA + 100;
   for (let i = 0; i < 12; i++) {
     const a = (i / 12) * Math.PI * 2 + Math.random() * 0.3;
     const r = farRing2 + (Math.random() - 0.5) * 50;
     const radius = 22 + Math.random() * 18;
     const height = 14 + Math.random() * 18;
-    const hue = 0.55 + Math.random() * 0.06;
-    const color = new THREE.Color().setHSL(hue, 0.20, 0.55);
-    addDistantHill(Math.cos(a) * r, Math.sin(a) * r, radius, height, color);
+    addDistantHill(Math.cos(a) * r, Math.sin(a) * r, radius, height, new THREE.Color().setHSL(0.55 + Math.random() * 0.06, 0.20, 0.55));
   }
 
-  // ---------- Clouds — broader spread so they're visible from any camera angle ----------
+  // ---------- Clouds ----------
   for (let i = 0; i < 16; i++) {
-    addCloud(
-      (Math.random() - 0.5) * 380,
-      28 + Math.random() * 18,
-      (Math.random() - 0.5) * 380,
-      1.5 + Math.random() * 1.4
-    );
+    addCloud((Math.random() - 0.5) * 380, 28 + Math.random() * 18, (Math.random() - 0.5) * 380, 1.5 + Math.random() * 1.4);
   }
 })();
 
-// Performance pass: anything outside the shadow camera frustum (±35) doesn't
-// need to cast shadows. Stripping that flag avoids per-frame work in the
-// shadow render pass for the entire forest ring.
-{
+// ── Phase 2: KayKit prop placement ──────────────────────────────────────────
+// Called once all scenery GLTFs finish loading (see Promise.all above).
+// Seeds the same grove/ring structure but with proper 3D models.
+function _placeWorldProps() {
+  // ---------- A few small scattered stones in the inner arena ----------
+  for (let i = 0; i < 14; i++) {
+    let x, z, ok = false, tries = 0;
+    while (!ok && tries < 30) {
+      tries++;
+      x = (Math.random() - 0.5) * (CFG.ARENA - 8) * 1.4;
+      z = (Math.random() - 0.5) * (CFG.ARENA - 8) * 1.4;
+      if (Math.hypot(x, z) > 6) ok = true;
+    }
+    if (ok) addRock(x, z, 0.30 + Math.random() * 0.18);
+  }
+
+  // ---------- Grove-clustered inner trees ----------
+  const groveCenters = [];
+  for (let i = 0; i < 6; i++) {
+    let cx, cz, ok = false, tries = 0;
+    while (!ok && tries < 40) {
+      tries++;
+      cx = (Math.random() - 0.5) * (CFG.ARENA - 12) * 1.3;
+      cz = (Math.random() - 0.5) * (CFG.ARENA - 12) * 1.3;
+      ok = Math.hypot(cx, cz) > 10;
+      for (const g of groveCenters) if (Math.hypot(g.x - cx, g.z - cz) < 14) ok = false;
+    }
+    if (ok) groveCenters.push({ x: cx, z: cz });
+  }
+  const innerTreePositions = [];
+  for (const g of groveCenters) {
+    const treesInGrove = 4 + Math.floor(Math.random() * 5);
+    for (let i = 0; i < treesInGrove; i++) {
+      const a = Math.random() * Math.PI * 2;
+      const r = 1.5 + Math.random() * 5;
+      const tx = g.x + Math.cos(a) * r, tz = g.z + Math.sin(a) * r;
+      if (Math.hypot(tx, tz) < 6) continue;
+      let skip = false;
+      for (const o of obstacles) {
+        if (o.type === 'box' && Math.abs(tx - o.x) < o.w / 2 + 0.5 && Math.abs(tz - o.z) < o.d / 2 + 0.5) skip = true;
+        if (o.type === 'cone' && Math.hypot(tx - o.x, tz - o.z) < o.radius + 0.3) skip = true;
+      }
+      if (skip) continue;
+      let tooClose = false;
+      for (const p of innerTreePositions) if (Math.hypot(p.x - tx, p.z - tz) < 1.6) { tooClose = true; break; }
+      if (tooClose) continue;
+      innerTreePositions.push({ x: tx, z: tz });
+      const r2 = Math.random();
+      if (r2 < 0.65) addTree(tx, tz);
+      else if (r2 < 0.90) addPineTree(tx, tz);
+      else addDeadTree(tx, tz);
+    }
+    // 2–4 bushes scattered around each grove center (new layer)
+    const bushCount = 2 + Math.floor(Math.random() * 3);
+    for (let b = 0; b < bushCount; b++) {
+      const ba = Math.random() * Math.PI * 2;
+      const br = 2.5 + Math.random() * 6;
+      addBush(g.x + Math.cos(ba) * br, g.z + Math.sin(ba) * br);
+    }
+  }
+  // Solitary trees between groves
+  for (let i = 0; i < 8; i++) {
+    const tx = (Math.random() - 0.5) * (CFG.ARENA - 6) * 1.6;
+    const tz = (Math.random() - 0.5) * (CFG.ARENA - 6) * 1.6;
+    if (Math.hypot(tx, tz) < 7) continue;
+    let tooClose = false;
+    for (const p of innerTreePositions) if (Math.hypot(p.x - tx, p.z - tz) < 3) { tooClose = true; break; }
+    if (tooClose) continue;
+    innerTreePositions.push({ x: tx, z: tz });
+    if (Math.random() < 0.3) addPineTree(tx, tz); else addTree(tx, tz);
+  }
+
+  // Mushrooms cluster near trees (procedural tiny detail, placed after trees so
+  // we have the innerTreePositions list)
+  for (let i = 0; i < 12; i++) {
+    if (innerTreePositions.length === 0) break;
+    const t = innerTreePositions[Math.floor(Math.random() * innerTreePositions.length)];
+    const a = Math.random() * Math.PI * 2;
+    const r = 1.0 + Math.random() * 1.5;
+    addMushrooms(t.x + Math.cos(a) * r, t.z + Math.sin(a) * r);
+  }
+
+  // Loose mid-arena rocks
+  for (let i = 0; i < 18; i++) {
+    const x = (Math.random() - 0.5) * CFG.ARENA * 1.7;
+    const z = (Math.random() - 0.5) * CFG.ARENA * 1.7;
+    if (Math.hypot(x, z) < 6) continue;
+    addRock(x, z, 0.4 + Math.random() * 0.7);
+  }
+
+  // ---------- Outer forest ring ----------
+  const ringInner = CFG.ARENA + 3;
+  const ringOuter = CFG.ARENA + 22;
+  for (let i = 0; i < 220; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const r = ringInner + Math.random() * (ringOuter - ringInner);
+    const x = Math.cos(a) * r, z = Math.sin(a) * r;
+    const which = Math.random();
+    if (which < 0.50) addPineTree(x, z);
+    else if (which < 0.75) addTree(x, z);
+    else if (which < 0.88) addDeadTree(x, z);
+    else if (which < 0.96) addBush(x, z);
+    else addRock(x, z, 1.0 + Math.random() * 1.5);
+  }
+  // Smaller rocks and bushes scattered through the ring
+  for (let i = 0; i < 30; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const r = ringInner + Math.random() * (ringOuter - ringInner);
+    if (Math.random() < 0.6) addRock(Math.cos(a) * r, Math.sin(a) * r, 0.4 + Math.random() * 0.7);
+    else addBush(Math.cos(a) * r, Math.sin(a) * r);
+  }
+
+  // Shadow pass: strip castShadow from anything outside the shadow camera's
+  // frustum (±36). Outer ring trees never need to cast shadows.
   const shadowRange = 36;
   scene.traverse(child => {
     if (!child.isMesh) return;
-    if (Math.abs(child.position.x) > shadowRange || Math.abs(child.position.z) > shadowRange) {
+    const wx = child.getWorldPosition(_wpTmp).x;
+    if (Math.abs(wx) > shadowRange || Math.abs(_wpTmp.z) > shadowRange) {
       child.castShadow = false;
     }
   });
 }
+const _wpTmp = new THREE.Vector3();
 
 // ============================================================
 // HELPERS
@@ -3013,6 +2986,49 @@ function _cloneWeaponMesh(slug) {
 ['axe_1handed','axe_2handed','wand','arrow_crossbow','smokebomb','shield_round'].forEach(slug =>
   _loadWeaponGLTF(slug, `assets/weapons/${slug}.gltf`).catch(() => {})
 );
+
+// ── Scenery / world-prop asset cache ────────────────────────────────────────
+// KayKit Forest Nature Pack — all 19 models share ONE forest_texture.png, so
+// there's only a single GPU texture upload for the entire world's props.
+const _SCENERY_BASE = 'assets/scenery/';
+const _sceneryAssets = {};
+
+function _loadSceneryGLTF(slug) {
+  if (_sceneryAssets[slug]) return Promise.resolve(_sceneryAssets[slug]);
+  return _loadGLB(_SCENERY_BASE + slug + '.gltf').then(gltf => {
+    _sceneryAssets[slug] = gltf;
+    return gltf;
+  });
+}
+function _cloneScenery(slug) {
+  const a = _sceneryAssets[slug];
+  if (!a) return null;
+  return THREE.SkeletonUtils.clone(a.scene);
+}
+
+// Curated model sets (slug arrays — pick randomly within each set for variety)
+const _TREE_LEAFY = ['Tree_1_A_Color1','Tree_1_B_Color1','Tree_2_A_Color1','Tree_3_A_Color1','Tree_4_A_Color1'];
+const _TREE_TALL  = ['Tree_1_C_Color1','Tree_2_C_Color1','Tree_2_D_Color1'];
+const _TREE_BARE  = ['Tree_Bare_1_A_Color1','Tree_Bare_1_B_Color1','Tree_Bare_2_A_Color1'];
+const _ROCK_SMALL = ['Rock_1_A_Color1'];
+const _ROCK_MED   = ['Rock_1_G_Color1','Rock_3_J_Color1'];
+const _ROCK_LARGE = ['Rock_2_E_Color1'];
+const _BUSH_SET   = ['Bush_1_A_Color1','Bush_2_A_Color1','Bush_3_A_Color1','Bush_4_A_Color1'];
+const _ALL_SCENERY_SLUGS = [
+  ..._TREE_LEAFY, ..._TREE_TALL, ..._TREE_BARE,
+  ..._ROCK_SMALL, ..._ROCK_MED, ..._ROCK_LARGE,
+  ..._BUSH_SET,
+];
+
+// Load everything in the background at page-load time. By the time the player
+// dismisses the splash and starts moving, the browser cache has them all.
+// _placeWorldProps() (defined later) is called once they're ready.
+Promise.all(_ALL_SCENERY_SLUGS.map(slug => _loadSceneryGLTF(slug)))
+  .then(() => {
+    console.log('[WALLOP] Scenery assets loaded — placing world props.');
+    _placeWorldProps();
+  })
+  .catch(err => console.error('[WALLOP] Scenery load failed:', err));
 
 // Enemy / boss skeleton model cache (same pattern as weapon assets)
 const _enemyAssets = {};
