@@ -1079,8 +1079,10 @@ function updateEnemyProjectiles(dt) {
     p.mesh.rotation.x += dt * 6;
     const dx = player.pos.x - p.pos.x, dz = player.pos.z - p.pos.z;
     const dy = (player.pos.y + 1.0) - p.pos.y;
-    const d  = Math.sqrt(dx*dx + dy*dy + dz*dz);
-    if (d < p.radius + 0.55) {
+    // Use 2D horizontal distance + Y-range tolerance so projectiles fired from
+    // boss mid-height (1.8–2.5u above ground) still register hits at player level.
+    const horizDist2d = Math.sqrt(dx*dx + dz*dz);
+    if (horizDist2d < p.radius + 0.55 && Math.abs(dy) < 2.5) {
       damagePlayer(p.damage);
       spawnParticle(p.pos.clone(), 0xff5e1a, 8, 5);
       killMesh(p.mesh);
