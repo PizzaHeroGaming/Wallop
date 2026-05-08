@@ -6516,9 +6516,19 @@ function generateOffers() {
     }
   }
 
+  // If every item slot is occupied and every owned item is at max level, skip the
+  // choice screen entirely — showLevelUp gives an automatic HP bonus instead.
+  const _weaponsDone = player.weapons.length >= player.maxWeaponSlots &&
+    player.weapons.every(w => w.level >= (WEAPONS[w.id]?.maxLevel ?? 1));
+  const _armorDone   = player.armor_items.length >= player.maxArmorSlots &&
+    player.armor_items.every(a => a.level >= (ARMOR[a.id]?.maxLevel ?? 1));
+  const _tomesDone   = player.tomes.length >= player.maxTomeSlots &&
+    player.tomes.every(t => t.level >= (TOMES[t.id]?.maxLevel ?? 1));
+  if (_weaponsDone && _armorDone && _tomesDone) return [];
+
   // ---------- Generic stat upgrades ----------
-  // These are always offered as filler so the player isn't stuck if all 9 slots
-  // are maxed. Defensive options weighted up when HP is low.
+  // Filler when item slots have room or unlevelled items remain.
+  // Defensive options weighted up when HP is low.
   for (const su of STAT_UPGRADES) {
     const cur = player.statLevels?.[su.id] || 0;
     if (cur < su.max) {
