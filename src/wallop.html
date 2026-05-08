@@ -2915,19 +2915,52 @@ function pickRarity() {
   return 'common';
 }
 
-// Get height of ground at (x, z) — for jumping onto platforms
+// ── Mesh-accurate terrain height ─────────────────────────────────────────────
+// The ground plane is rendered with LINEAR interpolation between vertex heights.
+// terrainHeight() is a smooth function, but between vertices the mesh can sit
+// ABOVE the exact function value in concave (valley) regions. If collision uses
+// the raw function the player falls to the math height and clips through the mesh.
+//
+// Fix: reproduce the GPU's bilinear interpolation so collision == visual surface.
+// We sample terrainHeight() at the 4 vertex corners bracketing (x,z) and blend —
+// exactly what the renderer does between vertices.
+const _MESH_SUBDIVS  = 100;                        // must match PlaneGeometry arg
+const _MESH_SIZE     = CFG.ARENA * 8;              // 880
+const _MESH_HALF     = _MESH_SIZE / 2;             // 440
+const _MESH_SPACING  = _MESH_SIZE / _MESH_SUBDIVS; // 8.8 units per cell
+
+function _meshTerrainHeight(wx, wz) {
+  const gx = (wx + _MESH_HALF) / _MESH_SPACING;
+  const gz = (wz + _MESH_HALF) / _MESH_SPACING;
+  const ix = Math.floor(gx), tx = gx - ix;
+  const iz = Math.floor(gz), tz = gz - iz;
+  const i0 = Math.max(0, Math.min(_MESH_SUBDIVS - 1, ix));
+  const i1 = Math.min(_MESH_SUBDIVS, i0 + 1);
+  const j0 = Math.max(0, Math.min(_MESH_SUBDIVS - 1, iz));
+  const j1 = Math.min(_MESH_SUBDIVS, j0 + 1);
+  const vx0 = i0 * _MESH_SPACING - _MESH_HALF;
+  const vx1 = i1 * _MESH_SPACING - _MESH_HALF;
+  const vz0 = j0 * _MESH_SPACING - _MESH_HALF;
+  const vz1 = j1 * _MESH_SPACING - _MESH_HALF;
+  const h00 = terrainHeight(vx0, vz0);
+  const h10 = terrainHeight(vx1, vz0);
+  const h01 = terrainHeight(vx0, vz1);
+  const h11 = terrainHeight(vx1, vz1);
+  return h00 * (1 - tx) * (1 - tz)
+       + h10 *      tx  * (1 - tz)
+       + h01 * (1 - tx) *      tz
+       + h11 *      tx  *      tz;
+}
+
+// Get height of ground at (x, z) — collision-safe, matches the rendered mesh.
 function groundHeight(x, z) {
-  // Start with the smooth terrain height (rolling hills past the arena edge).
-  let h = terrainHeight(x, z);
-  // Platforms (flat-topped boxes) override if you're standing on top of one.
+  let h = _meshTerrainHeight(x, z);
   for (const o of obstacles) {
     if (o.type === 'box') {
       if (Math.abs(x - o.x) < o.w / 2 && Math.abs(z - o.z) < o.d / 2) {
         if (o.h > h) h = o.h;
       }
     }
-    // Note: cones (hills) are no longer treated as walkable terrain — they act
-    // as solid obstacles via resolveSolids() below.
   }
   return h;
 }
