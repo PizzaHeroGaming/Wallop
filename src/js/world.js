@@ -412,9 +412,14 @@ function _placeWorldProps() {
 }
 
 // Load everything in the background at page-load time.
-Promise.all(_ALL_SCENERY_SLUGS.map(slug => _loadSceneryGLTF(slug)))
-  .then(() => {
-    console.log('[WALLOP] Scenery assets loaded — placing world props.');
-    _placeWorldProps();
+// Use allSettled so a single 404 doesn't block all prop placement.
+Promise.allSettled(_ALL_SCENERY_SLUGS.map(slug =>
+  _loadSceneryGLTF(slug).catch(err => {
+    console.warn('[WALLOP] Scenery asset failed:', slug, err && err.message || err);
   })
-  .catch(err => console.error('[WALLOP] Scenery load failed:', err));
+)).then(results => {
+  const ok  = results.filter(r => r.status === 'fulfilled').length;
+  const bad = results.filter(r => r.status === 'rejected').length;
+  console.log(`[WALLOP] Scenery loaded: ${ok}/${_ALL_SCENERY_SLUGS.length} OK${bad ? ', '+bad+' failed' : ''} — placing world props.`);
+  _placeWorldProps();
+});
