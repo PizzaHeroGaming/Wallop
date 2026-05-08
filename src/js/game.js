@@ -4,7 +4,6 @@ import { scene, camera, renderer, composer, sun, clock, isMobile, tryEnterFullsc
 import {
   player,
   playerMixer, playerIdleAction, playerWalkAction, playerRunAction,
-  _playerMoving,
   _applyCharacterModel,
   _cloneWeaponMesh, _cloneEnemyMesh,
   hasEnemyAsset, getSkelAnimClips,
@@ -40,6 +39,9 @@ import {
   initUI,
   addCameraShake,
 } from './ui.js';
+
+// Player animation state (module-level so it persists across frames)
+let _animState = 'idle';
 
 // ============================================================
 // DAMAGE / KILL
@@ -502,24 +504,22 @@ function updatePlayer(dt) {
   while (dy < -Math.PI) dy += Math.PI * 2;
   player.group.rotation.y += dy * Math.min(1, dt * 12);
 
-  // Animation crossfade
+  // Animation crossfade — use local state so we only trigger on actual changes
   const moving  = mag > 0.05;
   const dashing = player.dashTimer > 0;
   if (playerMixer) {
-    const wantRun  = moving && dashing  && playerRunAction;
-    const wantWalk = moving && !dashing && playerWalkAction;
-    const wantIdle = !moving            && playerIdleAction;
-    const nowMoving = moving !== _playerMoving || dashing;
-    if (nowMoving) {
-      if (wantRun) {
+    const want = moving ? (dashing && playerRunAction ? 'run' : 'walk') : 'idle';
+    if (want !== _animState) {
+      _animState = want;
+      if (want === 'run' && playerRunAction) {
         if (playerIdleAction) playerIdleAction.fadeOut(0.15);
         if (playerWalkAction) playerWalkAction.fadeOut(0.15);
         playerRunAction.reset().fadeIn(0.15).play();
-      } else if (wantWalk) {
+      } else if (want === 'walk' && playerWalkAction) {
         if (playerIdleAction) playerIdleAction.fadeOut(0.2);
         if (playerRunAction)  playerRunAction.fadeOut(0.15);
         playerWalkAction.reset().fadeIn(0.2).play();
-      } else if (wantIdle) {
+      } else if (playerIdleAction) {
         if (playerWalkAction) playerWalkAction.fadeOut(0.2);
         if (playerRunAction)  playerRunAction.fadeOut(0.2);
         playerIdleAction.reset().fadeIn(0.2).play();
