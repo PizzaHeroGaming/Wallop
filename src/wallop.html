@@ -2337,7 +2337,10 @@ function terrainHeight(x, z) {
   const pos = groundGeo.attributes.position;
   for (let i = 0; i < pos.count; i++) {
     const x = pos.getX(i);
-    const z = pos.getY(i); // plane Y becomes world Z after the -PI/2 X rotation
+    // After rotation.x = -PI/2, local +Y maps to world -Z (Rx(-PI/2) sends (0,1,0)→(0,0,-1)).
+    // So world Z = -local Y. We negate here so terrainHeight is always called with world
+    // coordinates, making the mesh surface match the collision/placement queries exactly.
+    const z = -pos.getY(i);
     pos.setZ(i, terrainHeight(x, z));
   }
   groundGeo.computeVertexNormals();
@@ -4433,7 +4436,7 @@ function spawnGem(pos, value) {
     new THREE.MeshBasicMaterial({ color: colorByValue })
   );
   m.position.copy(pos);
-  m.position.y = 0.5;
+  m.position.y = groundHeight(pos.x, pos.z) + 0.5;
   scene.add(m);
   const gem = { pos: m.position, mesh: m, value, attracted: false, life: 60, bobOffset: Math.random() * Math.PI * 2 };
   xpGems.push(gem);
@@ -4447,7 +4450,7 @@ function spawnGoldCoin(pos) {
     new THREE.MeshBasicMaterial({ color: 0xffd23f })
   );
   m.position.copy(pos);
-  m.position.y = 0.5;
+  m.position.y = groundHeight(pos.x, pos.z) + 0.5;
   m.rotation.x = Math.PI / 2;
   scene.add(m);
   const coin = { pos: m.position, mesh: m, life: 30, bobOffset: Math.random() * Math.PI * 2 };
@@ -4524,12 +4527,14 @@ function makeChestMesh(tier) {
 
 function spawnChest(x, z, tier = 'common') {
   const built = makeChestMesh(tier);
-  built.mesh.position.set(x, 0, z);
+  const baseY = groundHeight(x, z);
+  built.mesh.position.set(x, baseY, z);
   // Random facing
   built.mesh.rotation.y = Math.random() * Math.PI * 2;
   scene.add(built.mesh);
   chests.push({
     pos: built.mesh.position,
+    baseY,           // terrain height at spawn — bob is relative to this
     rotY: built.mesh.rotation.y,
     mesh: built.mesh,
     lidPivot: built.lidPivot,
@@ -4557,8 +4562,6 @@ function pickChestPosition() {
       if (Math.hypot(c.pos.x - x, c.pos.z - z) < 8) { ok = false; break; }
     }
     if (!ok) continue;
-    // Reject if standing on a hill (we want flat ground)
-    if (groundHeight(x, z) > 0.3) continue;
     return { x, z };
   }
   // Fallback
@@ -4753,7 +4756,7 @@ function updateChests(dt) {
     // Idle bob + ring pulse for unopened chests
     if (!c.opened) {
       const bob = Math.sin(now * 1.4 + c.bobPhase) * 0.06;
-      c.mesh.position.y = bob;
+      c.mesh.position.y = c.baseY + bob;
       const pulse = 0.35 + Math.sin(now * 2.2 + c.bobPhase) * 0.15;
       c.beam.material.opacity = pulse;
       c.ring.material.opacity = pulse + 0.1;
@@ -8847,7 +8850,7 @@ function updateGems(dt) {
       tmp2.set(dx, (player.pos.y + 0.8) - g.pos.y, dz).normalize();
       g.pos.addScaledVector(tmp2, pullSpeed * dt);
     } else {
-      g.pos.y = 0.5 + Math.sin(performance.now() * 0.004 + g.bobOffset) * 0.15;
+      g.pos.y = groundHeight(g.pos.x, g.pos.z) + 0.5 + Math.sin(performance.now() * 0.004 + g.bobOffset) * 0.15;
     }
     g.mesh.rotation.y += dt * 3;
     if (dist < 0.8) {
@@ -8878,7 +8881,7 @@ function updateGold(dt) {
       tmp2.set(dx, (player.pos.y + 0.5) - c.pos.y, dz).normalize();
       c.pos.addScaledVector(tmp2, 12 * dt);
     } else {
-      c.pos.y = 0.5 + Math.sin(performance.now() * 0.005 + c.bobOffset) * 0.1;
+      c.pos.y = groundHeight(c.pos.x, c.pos.z) + 0.5 + Math.sin(performance.now() * 0.005 + c.bobOffset) * 0.1;
     }
     c.mesh.rotation.z += dt * 4;
     if (dist < 0.8) {
