@@ -2662,6 +2662,25 @@ function addDistantHill(x, z, radius, height, color) {
   scene.add(m);
 }
 
+// ── Mesh-accurate terrain height ─────────────────────────────────────────────
+// The ground plane is rendered with LINEAR interpolation between vertex heights.
+// terrainHeight() is a smooth function, but between vertices the mesh can sit
+// ABOVE the exact function value in concave (valley) regions. If collision uses
+// the raw function the player falls to the math height and clips through the mesh.
+//
+// Fix: reproduce the GPU's bilinear interpolation so collision == visual surface.
+// We sample terrainHeight() at the 4 vertex corners bracketing (x,z) and blend —
+// exactly what the renderer does between vertices.
+//
+// IMPORTANT: these consts MUST be declared before the buildWorld IIFE below,
+// because buildWorld calls groundHeight → _meshTerrainHeight which reads them.
+// const declarations are NOT hoisted, so placing them after the IIFE causes a
+// ReferenceError (Temporal Dead Zone) that halts the entire script.
+const _MESH_SUBDIVS  = 100;                        // must match PlaneGeometry arg
+const _MESH_SIZE     = CFG.ARENA * 8;              // 880
+const _MESH_HALF     = _MESH_SIZE / 2;             // 440
+const _MESH_SPACING  = _MESH_SIZE / _MESH_SUBDIVS; // 8.8 units per cell
+
 // ── Phase 1: immediate world build ──────────────────────────────────────────
 // Runs synchronously at startup. Places only micro-detail (grass, ferns,
 // flowers, logs) and atmospheric scenery (distant hills, clouds) — everything
@@ -2914,20 +2933,6 @@ function pickRarity() {
   }
   return 'common';
 }
-
-// ── Mesh-accurate terrain height ─────────────────────────────────────────────
-// The ground plane is rendered with LINEAR interpolation between vertex heights.
-// terrainHeight() is a smooth function, but between vertices the mesh can sit
-// ABOVE the exact function value in concave (valley) regions. If collision uses
-// the raw function the player falls to the math height and clips through the mesh.
-//
-// Fix: reproduce the GPU's bilinear interpolation so collision == visual surface.
-// We sample terrainHeight() at the 4 vertex corners bracketing (x,z) and blend —
-// exactly what the renderer does between vertices.
-const _MESH_SUBDIVS  = 100;                        // must match PlaneGeometry arg
-const _MESH_SIZE     = CFG.ARENA * 8;              // 880
-const _MESH_HALF     = _MESH_SIZE / 2;             // 440
-const _MESH_SPACING  = _MESH_SIZE / _MESH_SUBDIVS; // 8.8 units per cell
 
 function _meshTerrainHeight(wx, wz) {
   const gx = (wx + _MESH_HALF) / _MESH_SPACING;
