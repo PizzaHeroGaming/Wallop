@@ -4135,6 +4135,7 @@ function spawnEnemy(typeKey, opts = {}) {
     if (_glbSlugMap[def.body]) {
       enemy._pendingGLBSlug  = _glbSlugMap[def.body];
       enemy._pendingGLBScale = _glbScaleMap[def.body];
+      enemy.mesh.visible = false; // hide until GLB swap — no old-model flash
     }
   }
 
