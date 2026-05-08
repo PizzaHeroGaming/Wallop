@@ -1,6 +1,6 @@
 // game.js — core game logic: damageEnemy, update loop, player movement, spawning
 // Imports (acyclic — game.js is the top of the dep graph among game modules):
-import { scene, camera, renderer, composer, sun, clock, isMobile, tryEnterFullscreen } from './renderer.js';
+import { scene, camera, renderer, composer, sun, clock, isMobile, tryEnterFullscreen, releasePtLight } from './renderer.js';
 import {
   player,
   playerMixer, playerIdleAction, playerWalkAction, playerRunAction,
@@ -18,6 +18,7 @@ import {
   updateGems, updateGold, updateChests, updateAuras, updateSmokeClouds,
   updateShieldOrbital, updateParticles,
   setDamageEnemyCb, setOnLevelUpReady,
+  spawnGold, spawnSmokeCloud, makeEnemyMesh, ENEMY_DEFS,
 } from './entities.js';
 import { WEAPONS, setDamageEnemyForWeapons } from './weapons.js';
 import {
@@ -118,8 +119,7 @@ export function killEnemy(e) {
   }
 }
 
-// spawnGold is also referenced in killEnemy — import from entities
-import { spawnGold } from './entities.js';
+// spawnGold is imported at top of file from entities.js
 
 function triggerBossPhase(boss, label) {
   spawnParticle(boss.pos.clone().setY(2.5), 0xff3864, 30, 14);
@@ -195,8 +195,6 @@ export const BOSS_TIERS = {
   },
 };
 
-import { makeEnemyMesh } from './entities.js';
-
 function spawnBoss(tier = 'final') {
   const cfg = BOSS_TIERS[tier];
   const lvl = player.level;
@@ -270,8 +268,6 @@ const KILL_MILESTONES = new Set([25, 50, 100, 200, 500]);
 
 let _eligibleCache = null;
 let _eligibleCount = 0;
-
-import { ENEMY_DEFS } from './entities.js';
 
 function getEligibleEnemies(t) {
   const keys = Object.keys(ENEMY_DEFS);
@@ -788,8 +784,6 @@ function updateEnemies(dt) {
 // ============================================================
 // PROJECTILE UPDATE
 // ============================================================
-import { releasePtLight } from './renderer.js';
-
 function updateProjectiles(dt) {
   for (let i = projectiles.length - 1; i >= 0; i--) {
     const p = projectiles[i];
@@ -1151,11 +1145,6 @@ function updateWeapons(dt) {
     WEAPONS[w.id].tick(w, dt);
   }
 }
-
-// ============================================================
-// SMOKE CLOUD HELPER (import from entities)
-// ============================================================
-import { spawnSmokeCloud } from './entities.js';
 
 // ============================================================
 // MAIN UPDATE LOOP

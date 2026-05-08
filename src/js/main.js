@@ -12,6 +12,7 @@
 import { scene, camera, renderer, clock, composer, isMobile, tryEnterFullscreen, rearmFullscreenOnNextTap } from './renderer.js';
 import { gameState } from './state.js';
 import { initGame, update } from './game.js';
+import './world.js'; // side-effect only: builds terrain scenery at load time
 
 // ============================================================
 // WEBGL CONTEXT LOSS HANDLING
@@ -73,26 +74,8 @@ document.addEventListener('webkitfullscreenchange', () => {
   }
 });
 
-// ============================================================
-// SPLASH + START SCREEN
-// ============================================================
-window.addEventListener('load', () => {
-  // PizzaHeroSplash is a global defined in the inline <script> that runs before
-  // this module. When the splash dismisses, show the start screen.
-  if (typeof PizzaHeroSplash !== 'undefined') {
-    PizzaHeroSplash.show({
-      duration:    0,
-      skipOnInput: true,
-      tagline:     'GAMING',
-      onComplete:  () => {
-        document.getElementById('start-screen').classList.remove('hidden');
-      },
-    });
-  } else {
-    // Fallback if splash script not present
-    document.getElementById('start-screen').classList.remove('hidden');
-  }
-});
+// NOTE: Splash screen is handled by the inline <script> in the HTML
+// (PizzaHeroSplash.show → onComplete removes 'hidden' from #start-screen)
 
 // ============================================================
 // INIT GAME (wires all injection callbacks, DOM listeners)
