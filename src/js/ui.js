@@ -1230,7 +1230,7 @@ function initStageSelect() {
 // BUTTON EVENT LISTENERS (start, gameover, armory, pause, exit)
 // ============================================================
 export function initButtons() {
-  initStageSelect();
+  try { initStageSelect(); } catch(e) { console.error('[wallop] initStageSelect failed:', e); }
 
   document.getElementById('start-btn').addEventListener('click', () => {
     document.getElementById('start-screen').classList.add('hidden');
@@ -1375,4 +1375,8 @@ export function initUI() {
   initInput();
   initMobile();
   initButtons();
+
+  // Expose renderStageSelect globally so wallop.html's splash onComplete
+  // can call it after the start screen becomes visible (belt-and-suspenders).
+  window._wallopRenderStageSelect = renderStageSelect;
 }

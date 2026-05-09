@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
@@ -1599,6 +1599,10 @@ window.addEventListener('load', () => {
     tagline: 'GAMING',
     onComplete: () => {
       document.getElementById('start-screen').classList.remove('hidden');
+      // Re-render stage/diff buttons in case initUI ran before modules settled
+      if (typeof window._wallopRenderStageSelect === 'function') {
+        window._wallopRenderStageSelect();
+      }
     }
   });
 });

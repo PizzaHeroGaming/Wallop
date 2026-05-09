@@ -80,7 +80,16 @@ document.addEventListener('webkitfullscreenchange', () => {
 // ============================================================
 // INIT GAME (wires all injection callbacks, DOM listeners)
 // ============================================================
-initGame();
+try {
+  initGame();
+} catch (e) {
+  console.error('[wallop] initGame() failed:', e);
+  // Show a visible error overlay so the issue surfaces in production
+  const errDiv = document.createElement('div');
+  errDiv.style.cssText = 'position:fixed;inset:0;background:#0d1126;color:#ff3864;font-family:monospace;font-size:14px;padding:40px;z-index:9999;white-space:pre-wrap;overflow:auto;';
+  errDiv.textContent = 'WALLOP init error — please hard-refresh (Ctrl+Shift+R)\n\n' + (e && e.stack || e);
+  document.body.appendChild(errDiv);
+}
 
 // ============================================================
 // ANIMATE LOOP
