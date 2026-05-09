@@ -25,7 +25,7 @@ import {
 import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js';
 import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js';
 import { gameState, cam } from './state.js';
-import { CFG, RARITY } from './config.js';
+import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js';
 import { Profile, CATALOG } from './profile.js';
 import { tmp, tmp2 } from './utils.js';
 
@@ -44,6 +44,10 @@ let _jumpFn = null;
 let _dashFn = null;
 /** Called by game.js: setJumpDashCbs(tryJump, tryDash) */
 export function setJumpDashCbs(jFn, dFn) { _jumpFn = jFn; _dashFn = dFn; }
+
+let _callBossFn = null;
+/** Called by game.js: setCallBossCb(callBossNow) */
+export function setCallBossCb(fn) { _callBossFn = fn; }
 
 // ============================================================
 // INPUT STATE (exported so game.js can read them)
@@ -148,6 +152,13 @@ export function damagePlayer(dmg, attacker) {
   document.getElementById('flash').classList.add('hit');
   setTimeout(() => document.getElementById('flash').classList.remove('hit'), 120);
   if (player.hp <= 0) {
+    if (player.hasRevive) {
+      player.hasRevive = false;
+      player.hp = Math.ceil(player.maxHp * 0.3);
+      player.invuln = 3.0;
+      showAlert('LAST SLICE! 💝', '#ff3864');
+      return;
+    }
     player.hp = 0;
     triggerGameOver(false);
   }
@@ -653,13 +664,24 @@ export function triggerGameOver(victory) {
   gameState.state = victory ? 'victory' : 'gameover';
   const ov    = document.getElementById('gameover-screen');
   const title = document.getElementById('gameover-title');
+  const diffLabel = (DIFFICULTIES[gameState.difficulty] || DIFFICULTIES.normal).label;
+  const stageLine = `STAGE ${gameState.stage} — ${diffLabel}`;
   if (victory) {
-    title.textContent = 'YOU WALLOPED IT!';
+    title.textContent = `YOU WALLOPED IT!`;
     title.classList.add('victory');
   } else {
     title.textContent = 'YOU DIED';
     title.classList.remove('victory');
   }
+  // Subtitle showing stage/difficulty
+  let sub = document.getElementById('gameover-subtitle');
+  if (!sub) {
+    sub = document.createElement('div');
+    sub.id = 'gameover-subtitle';
+    sub.style.cssText = 'font-family:"VT323",monospace;font-size:20px;color:var(--ink-dim);margin:4px 0 8px;';
+    title.after(sub);
+  }
+  sub.textContent = stageLine;
   const stats  = document.getElementById('gameover-stats');
   const btns   = document.getElementById('gameover-btns');
   const m      = Math.floor(gameState.gameTime / 60).toString().padStart(2, '0');
@@ -959,13 +981,24 @@ function refreshPauseMenu() {
   const remaining = Math.max(0, CFG.GAME_TIME - gameState.gameTime);
   const rm = Math.floor(remaining / 60).toString().padStart(2, '0');
   const rs = Math.floor(remaining % 60).toString().padStart(2, '0');
+  const diffLabel = (DIFFICULTIES[gameState.difficulty] || DIFFICULTIES.normal).label;
   document.getElementById('pause-stats').innerHTML = `
+    <div class="pause-row"><span>Stage</span><span class="v">${gameState.stage} — ${diffLabel}</span></div>
     <div class="pause-row"><span>Time</span><span class="v">${m}:${s}</span></div>
     <div class="pause-row"><span>Remaining</span><span class="v">${rm}:${rs}</span></div>
     <div class="pause-row"><span>Kills</span><span class="v">${gameState.kills}</span></div>
     <div class="pause-row"><span>Gold</span><span class="v">${player.gold}</span></div>
     <div class="pause-row"><span>Level</span><span class="v">${player.level}</span></div>
   `;
+  // Call the Boss button
+  const callBtn = document.getElementById('call-boss-btn');
+  if (callBtn) {
+    const canCall = !gameState.bossSpawned && gameState.gameTime > 30;
+    callBtn.style.display = canCall ? '' : 'none';
+    callBtn.disabled = player.gold < 50;
+    callBtn.style.opacity = player.gold < 50 ? '0.45' : '1';
+    callBtn.onclick = () => { if (_callBossFn) _callBossFn(); closePauseMenu(); };
+  }
   const dmgPct = Math.round((player.damageMult - 1) * 100);
   const cdPct  = Math.round((1 - player.cooldownMult) * 100);
   const spdPct = Math.round((player.baseSpeed / CFG.PLAYER_SPEED - 1) * 100);
@@ -1150,12 +1183,72 @@ export function initMobile() {
 }
 
 // ============================================================
+// STAGE + DIFFICULTY SELECT SCREEN
+// ============================================================
+let _selectedStage = 1;
+let _selectedDiff  = 'normal';
+
+function showStageSelect() {
+  // Auto-select highest cleared stage
+  _selectedStage = Profile.isStageCleared(2) ? 3
+                 : Profile.isStageCleared(1) ? 2 : 1;
+  _selectedDiff = 'normal';
+
+  const stageSel = document.getElementById('stage-select');
+  document.getElementById('start-screen').classList.add('hidden');
+  stageSel.classList.remove('hidden');
+
+  // Render stage buttons
+  const stageNames = { 1: 'STAGE 1', 2: 'STAGE 2', 3: 'STAGE 3' };
+  const stageSubs  = { 1: 'Normal', 2: 'ELITE', 3: 'SUPREME' };
+  document.getElementById('stage-btns').innerHTML = [1, 2, 3].map(n => {
+    const locked = n === 2 ? !Profile.isStageCleared(1)
+                 : n === 3 ? !Profile.isStageCleared(2) : false;
+    const cls = (locked ? 'locked ' : '') + (n === _selectedStage ? 'active ' : '') + 'stage-btn';
+    const lockIcon = locked ? ' 🔒' : '';
+    return `<button class="${cls}" data-stage="${n}">${stageNames[n]}${lockIcon}<br><small>${stageSubs[n]}</small></button>`;
+  }).join('');
+
+  // Render difficulty buttons
+  document.getElementById('diff-btns').innerHTML = Object.entries(DIFFICULTIES).map(([key, d]) =>
+    `<button class="diff-btn${key === _selectedDiff ? ' active' : ''}" data-diff="${key}">${d.label}</button>`
+  ).join('');
+
+  // Stage button clicks
+  document.getElementById('stage-btns').addEventListener('click', e => {
+    const btn = e.target.closest('[data-stage]');
+    if (!btn || btn.classList.contains('locked')) return;
+    _selectedStage = Number(btn.dataset.stage);
+    document.querySelectorAll('.stage-btn').forEach(b => b.classList.toggle('active', b === btn));
+  });
+
+  // Difficulty button clicks
+  document.getElementById('diff-btns').addEventListener('click', e => {
+    const btn = e.target.closest('[data-diff]');
+    if (!btn) return;
+    _selectedDiff = btn.dataset.diff;
+    document.querySelectorAll('.diff-btn').forEach(b => b.classList.toggle('active', b === btn));
+  });
+}
+
+// ============================================================
 // BUTTON EVENT LISTENERS (start, gameover, armory, pause, exit)
 // ============================================================
 export function initButtons() {
   document.getElementById('start-btn').addEventListener('click', () => {
-    document.getElementById('start-screen').classList.add('hidden');
+    showStageSelect();
+  });
+
+  document.getElementById('stage-back-btn').addEventListener('click', () => {
+    document.getElementById('stage-select').classList.add('hidden');
+    document.getElementById('start-screen').classList.remove('hidden');
+  });
+
+  document.getElementById('stage-play-btn').addEventListener('click', () => {
+    document.getElementById('stage-select').classList.add('hidden');
     document.getElementById('hud').style.display = 'block';
+    gameState.stage = _selectedStage;
+    gameState.difficulty = _selectedDiff;
     tryEnterFullscreen();
     if (_resetGameFn) _resetGameFn();
     if (!isMobile()) renderer.domElement.requestPointerLock();
@@ -1165,9 +1258,7 @@ export function initButtons() {
     const id = e.target.id;
     if (id === 'restart-btn') {
       document.getElementById('gameover-screen').classList.add('hidden');
-      tryEnterFullscreen();
-      if (_resetGameFn) _resetGameFn();
-      if (!isMobile()) renderer.domElement.requestPointerLock();
+      showStageSelect();
     } else if (id === 'stats-btn') {
       const stats  = document.getElementById('gameover-stats');
       const hidden = stats.style.display === 'none';

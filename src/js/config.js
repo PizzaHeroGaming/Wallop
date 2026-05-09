@@ -12,6 +12,21 @@ export const CFG = {
   CAM_HEIGHT: 9,  // slightly higher for same reason
 };
 
+// Stage scaling: enemy stats, boss stats, slice reward multipliers per stage
+export const STAGE_MULTS = {
+  1: { enemy: 1.0,  bossHp: 1.0, bossDmg: 1.0, sliceBonus: 1.0 },
+  2: { enemy: 1.35, bossHp: 1.5, bossDmg: 1.3, sliceBonus: 1.5 },
+  3: { enemy: 1.75, bossHp: 2.2, bossDmg: 1.7, sliceBonus: 2.5 },
+};
+
+// Difficulty: scales enemies and adjusts slice rewards
+export const DIFFICULTIES = {
+  easy:    { enemy: 0.7,  sliceBonus: 0.6,  label: 'EASY' },
+  normal:  { enemy: 1.0,  sliceBonus: 1.0,  label: 'NORMAL' },
+  hard:    { enemy: 1.45, sliceBonus: 1.6,  label: 'HARD' },
+  extreme: { enemy: 2.0,  sliceBonus: 2.5,  label: 'EXTREME' },
+};
+
 export const RARITY = {
   common:    { weight: 100, color: '#c7cad8', mult: 1.0 },
   uncommon:  { weight: 55,  color: '#42f5a1', mult: 1.4 },

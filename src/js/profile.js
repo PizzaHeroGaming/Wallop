@@ -123,43 +123,43 @@ export const CATALOG = {
       slug: 'boost_damage',
       name: 'Sharper Crust', icon: '⚔️',
       desc: '+5% damage at the start of every run, per level.',
-      placeholder: true, sliceCost: 100, maxLevel: 5,
+      sliceCost: 100, maxLevel: 5,
     },
     {
       slug: 'boost_health',
       name: 'Hearty Dough', icon: '❤️',
       desc: '+10 max HP at the start of every run, per level.',
-      placeholder: true, sliceCost: 100, maxLevel: 5,
+      sliceCost: 100, maxLevel: 5,
     },
     {
       slug: 'boost_armor',
       name: 'Toasted Hide', icon: '🛡️',
-      desc: '-3% damage taken at the start of every run, per level.',
-      placeholder: true, sliceCost: 150, maxLevel: 5,
+      desc: '+1 armor at the start of every run, per level.',
+      sliceCost: 150, maxLevel: 5,
     },
     {
       slug: 'boost_speed',
       name: 'Quick Hands', icon: '⚡',
-      desc: '+4% attack speed at the start of every run, per level.',
-      placeholder: true, sliceCost: 150, maxLevel: 5,
+      desc: '+5% move speed at the start of every run, per level.',
+      sliceCost: 150, maxLevel: 5,
     },
     {
       slug: 'boost_xp',
       name: 'Fast Learner', icon: '📈',
-      desc: '+8% XP gain at the start of every run, per level.',
-      placeholder: true, sliceCost: 100, maxLevel: 5,
+      desc: '+10% XP gain at the start of every run, per level.',
+      sliceCost: 100, maxLevel: 5,
     },
     {
       slug: 'boost_gold',
       name: 'Coin Magnet', icon: '💰',
       desc: '+10% gold gain at the start of every run, per level.',
-      placeholder: true, sliceCost: 100, maxLevel: 5,
+      sliceCost: 100, maxLevel: 5,
     },
     {
       slug: 'boost_revive',
       name: 'Spare Slice', icon: '💝',
-      desc: 'Start each run with one auto-revive at 30% HP.',
-      placeholder: true, sliceCost: 500, maxLevel: 1,
+      desc: 'Start each run with one auto-revive. Survive a lethal hit at 1 HP!',
+      sliceCost: 500, maxLevel: 1,
     },
   ],
 };
@@ -179,6 +179,7 @@ export const Profile = (function () {
         totalKills: 0,
         bestTime: 0,
       },
+      clearedStages: { 1: false, 2: false, 3: false },
     };
   }
   function migrate(saved) {
@@ -234,13 +235,26 @@ export const Profile = (function () {
       save();
     }
   }
+  function clearStage(n) {
+    if (!_state.clearedStages) _state.clearedStages = {};
+    if (!_state.clearedStages[n]) {
+      _state.stats.runsWon = (_state.stats.runsWon || 0) + 1;
+    }
+    _state.clearedStages[n] = true;
+    save();
+  }
+  function isStageCleared(n) {
+    return !!(_state.clearedStages && _state.clearedStages[n]);
+  }
   function reset() {
     _state = defaultProfile();
     save();
   }
   return {
     get, save, isUnlocked, unlock, spendSlices, addSlices,
-    getBoostLevel, setBoostLevel, setEquippedCharacter, reset,
+    getBoostLevel, setBoostLevel, setEquippedCharacter,
+    clearStage, isStageCleared,
+    reset,
   };
 })();
 

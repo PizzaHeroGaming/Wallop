@@ -1489,6 +1489,26 @@
     color: #c8102e;
   }
   /* ===== end splash ===== */
+
+  /* ===== STAGE SELECT ===== */
+  #stage-select { background: rgba(13,17,38,0.96); display: flex; align-items: center; justify-content: center; flex-direction: column; }
+  .stage-select-panel { background: var(--panel); border: 3px solid #000; box-shadow: 6px 6px 0 #000; padding: 28px 32px; min-width: 300px; max-width: 480px; width: 90%; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  .sel-title { font-family: 'Press Start 2P', monospace; font-size: 10px; color: var(--accent); letter-spacing: 1px; margin-bottom: 6px; }
+  .sel-row { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; width: 100%; }
+  .stage-btn, .diff-btn { font-family: 'Press Start 2P', monospace; font-size: 9px; padding: 10px 14px; border: 3px solid #000; box-shadow: 3px 3px 0 #000; background: var(--panel-2); color: var(--ink); cursor: pointer; min-width: 80px; line-height: 1.5; transition: transform 0.08s, box-shadow 0.08s; }
+  .stage-btn:hover, .diff-btn:hover { transform: translateY(-2px); box-shadow: 3px 5px 0 #000; }
+  .stage-btn.active, .diff-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(255,210,63,0.08); }
+  .stage-btn.locked { opacity: 0.4; filter: grayscale(1); pointer-events: none; }
+  .stage-btn small { font-family: 'VT323', monospace; font-size: 14px; display: block; color: var(--ink-dim); }
+  .diff-btn[data-diff="hard"]    { color: #ff8c00; }
+  .diff-btn[data-diff="extreme"] { color: var(--hot); }
+  .diff-btn[data-diff="hard"].active    { border-color: #ff8c00; background: rgba(255,140,0,0.08); }
+  .diff-btn[data-diff="extreme"].active { border-color: var(--hot); background: rgba(255,56,100,0.08); }
+  @media (max-width: 480px) {
+    .stage-select-panel { padding: 20px 16px; }
+    .stage-btn, .diff-btn { font-size: 8px; padding: 10px 10px; min-width: 70px; }
+  }
+  /* ===== end stage select ===== */
 </style>
 </head>
 <body>
@@ -1686,6 +1706,18 @@ window.addEventListener('load', () => {
   <div style="font-family:'VT323',monospace;font-size:18px;color:var(--ink-dim);">desktop recommended · works on mobile</div>
 </div>
 
+<!-- Stage + Difficulty select (shown after START RUN click) -->
+<div id="stage-select" class="overlay hidden">
+  <div class="stage-select-panel">
+    <div class="sel-title">SELECT STAGE</div>
+    <div id="stage-btns" class="sel-row"></div>
+    <div class="sel-title" style="margin-top:18px">DIFFICULTY</div>
+    <div id="diff-btns" class="sel-row"></div>
+    <button id="stage-play-btn" class="btn hot" style="margin-top:20px;min-width:160px">▶ PLAY</button>
+    <button id="stage-back-btn" class="btn dim" style="margin-top:8px;min-width:160px">← BACK</button>
+  </div>
+</div>
+
 <!-- Armory: catalog of unlocked & locked items -->
 <div id="armory-screen" class="overlay hidden">
   <div id="armory-header">
@@ -1749,6 +1781,7 @@ window.addEventListener('load', () => {
   </div>
   <div id="pause-buttons">
     <button class="btn" id="resume-btn">RESUME</button>
+    <button class="btn" id="call-boss-btn" style="display:none">⚔️ CALL THE BOSS — 50💰</button>
     <button class="btn" id="restart-pause-btn">RESTART</button>
     <button class="btn hot" id="menu-pause-btn">MAIN MENU</button>
   </div>

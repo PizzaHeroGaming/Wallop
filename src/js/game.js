@@ -23,7 +23,7 @@ import { WEAPONS, setDamageEnemyForWeapons } from './weapons.js';
 import {
   gameState, cam,
 } from './state.js';
-import { CFG } from './config.js';
+import { CFG, STAGE_MULTS, DIFFICULTIES } from './config.js';
 import { Profile } from './profile.js';
 import { groundHeight, resolveSolids } from './terrain.js';
 import { killMesh, clamp, rand, tmp, tmp2, flatPhong } from './utils.js';
@@ -35,7 +35,7 @@ import {
   openPauseMenu, closePauseMenu,
   keys, joystickInput, camJoystickInput,
   applyCameraJoystick, tickHUD,
-  setDamageEnemyForUI, setResetGameCb, setJumpDashCbs,
+  setDamageEnemyForUI, setResetGameCb, setJumpDashCbs, setCallBossCb,
   initUI,
   addCameraShake,
 } from './ui.js';
@@ -86,10 +86,24 @@ export function killEnemy(e) {
     spawnParticle(e.pos.clone().setY(2), 0xffd23f, 30, 12);
     spawnParticle(e.pos.clone().setY(0.5), 0xff3864, 20, 10);
     if (e.sliceDrop && e.sliceDrop > 0) {
-      Profile.addSlices(e.sliceDrop);
-      gameState.slicesEarned = (gameState.slicesEarned || 0) + e.sliceDrop;
-      showAlert(`+${e.sliceDrop} 🍕 SLICES`, '#ffd23f');
+      // Apply stage + difficulty bonus to slice reward
+      const sm = STAGE_MULTS[gameState.stage]  || STAGE_MULTS[1];
+      const dm = DIFFICULTIES[gameState.difficulty] || DIFFICULTIES.normal;
+      const totalSlices = Math.round(e.sliceDrop * sm.sliceBonus * dm.sliceBonus);
+      Profile.addSlices(totalSlices);
+      gameState.slicesEarned = (gameState.slicesEarned || 0) + totalSlices;
+      const bonusNote = totalSlices !== e.sliceDrop ? ` (×${(sm.sliceBonus * dm.sliceBonus).toFixed(1)})` : '';
+      showAlert(`+${totalSlices} 🍕 SLICES${bonusNote}`, '#ffd23f');
       syncSliceDisplays();
+    }
+    if (e.bossTier === 'final') {
+      if (!Profile.isStageCleared(gameState.stage)) {
+        Profile.clearStage(gameState.stage);
+        const nextStage = gameState.stage + 1;
+        if (nextStage <= 3) {
+          setTimeout(() => showAlert(`🔓 STAGE ${nextStage} UNLOCKED!`, '#42f5a1'), 1600);
+        }
+      }
     }
     const bannerText = e.bossTier === 'final' ? 'BOSS DOWN' : `${e.def.name} DEFEATED`;
     setTimeout(() => showAlert(bannerText, '#42f5a1'), e.sliceDrop ? 800 : 0);
@@ -134,6 +148,20 @@ function triggerBossPhase(boss, label) {
 // ============================================================
 // JUMP / DASH (exported for ui.js injection)
 // ============================================================
+export function callBossNow() {
+  if (player.gold < 50) return;
+  player.gold -= 50;
+  // Remove any living mini-bosses without rewarding them
+  for (let i = enemies.length - 1; i >= 0; i--) {
+    if (enemies[i].isBoss) { killMesh(enemies[i].mesh); enemies.splice(i, 1); }
+  }
+  gameState.miniboss1Spawned = true;
+  gameState.miniboss2Spawned = true;
+  gameState.bossSpawned = true;
+  spawnBoss('final');
+  showAlert('THE BOSS APPROACHES!', '#ff3864');
+}
+
 export function tryJump() {
   if (player.jumpsLeft > 0) {
     player.vel.y = CFG.JUMP_VEL;
@@ -200,10 +228,14 @@ export const BOSS_TIERS = {
 function spawnBoss(tier = 'final') {
   const cfg = BOSS_TIERS[tier];
   const lvl = player.level;
-  const hp  = cfg.baseHp + lvl * cfg.hpPerLvl;
-  const dmg = cfg.baseDmg + lvl * cfg.dmgPerLvl;
+  const sm  = STAGE_MULTS[gameState.stage]  || STAGE_MULTS[1];
+  const dm  = DIFFICULTIES[gameState.difficulty] || DIFFICULTIES.normal;
+  const hp  = Math.round((cfg.baseHp  + lvl * cfg.hpPerLvl)  * sm.bossHp  * dm.enemy);
+  const dmg = Math.round((cfg.baseDmg + lvl * cfg.dmgPerLvl) * sm.bossDmg * dm.enemy);
+  const stageSuffix = { 1: '', 2: ' ELITE', 3: ' SUPREME' };
+  const bossName = cfg.name + (stageSuffix[gameState.stage] || '');
   const def = {
-    color: cfg.color, name: cfg.name,
+    color: cfg.color, name: bossName,
     hp, dmg, speed: cfg.speed, xp: cfg.xp, scale: cfg.scale,
     body: cfg.bodyMesh, spawnTime: 0,
   };
@@ -422,6 +454,17 @@ export function resetGame() {
   player.thorns = 0;
   player.dashCdMult = 1.0;
   player.synergies = {};
+  player.hasRevive = false;
+
+  // Apply persistent boosts from Armory
+  const _bl = slug => Profile.getBoostLevel(slug);
+  if (_bl('boost_damage') > 0)  player.damageMult  += 0.05 * _bl('boost_damage');
+  if (_bl('boost_health') > 0)  { player.maxHp += 10 * _bl('boost_health'); player.hp = player.maxHp; }
+  if (_bl('boost_armor')  > 0)  player.armor   += 1  * _bl('boost_armor');
+  if (_bl('boost_speed')  > 0)  player.baseSpeed *= 1 + 0.05 * _bl('boost_speed');
+  if (_bl('boost_xp')     > 0)  player.xpGain  += 0.10 * _bl('boost_xp');
+  if (_bl('boost_gold')   > 0)  player.goldMult += 0.10 * _bl('boost_gold');
+  if (_bl('boost_revive') > 0)  player.hasRevive = true;
 
   const starter = { ...WEAPONS.pizza.init(), id: 'pizza', level: 1 };
   player.weapons.push(starter);
@@ -1202,6 +1245,9 @@ export function initGame() {
 
   // Inject tryJump / tryDash so keyboard/mobile can call them
   setJumpDashCbs(tryJump, tryDash);
+
+  // Inject callBossNow so pause menu can trigger it
+  setCallBossCb(callBossNow);
 
   // processPendingLevelUp is called by updateGems in entities.js
   setOnLevelUpReady(processPendingLevelUp);

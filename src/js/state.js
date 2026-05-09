@@ -4,6 +4,8 @@
 
 export const gameState = {
   state: 'start', // start, playing, levelup, paused, gameover, victory
+  stage: 1,        // current run stage (1, 2, 3)
+  difficulty: 'normal', // 'easy' | 'normal' | 'hard' | 'extreme'
   gameTime: 0,
   spawnTimer: 0,
   spawnInterval: 1.4,
