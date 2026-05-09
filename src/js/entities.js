@@ -1569,9 +1569,13 @@ function onChestPickDone() {
   document.getElementById('levelup-screen').classList.add('hidden');
   gameState.state = 'playing';
   if (isMobile()) tryEnterFullscreen();
-  // Don't re-lock pointer here — mouse should be free after dismissing a choice
-  // screen so the player can interact normally. The canvas click handler
-  // re-engages pointer lock when they click back into the game.
+  // Re-engage pointer lock after a short delay so the card-click event fully
+  // unwinds before we capture the mouse. Without the delay the lock can be
+  // acquired while the overlay is still in the event stack, causing the cursor
+  // to appear trapped on some browsers.
+  if (!isMobile()) setTimeout(() => {
+    if (gameState.state === 'playing') renderer.domElement.requestPointerLock();
+  }, 80);
 }
 
 export function updateChests(dt) {
