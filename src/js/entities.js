@@ -1569,7 +1569,9 @@ function onChestPickDone() {
   document.getElementById('levelup-screen').classList.add('hidden');
   gameState.state = 'playing';
   if (isMobile()) tryEnterFullscreen();
-  if (!isMobile()) renderer.domElement.requestPointerLock();
+  // Don't re-lock pointer here — mouse should be free after dismissing a choice
+  // screen so the player can interact normally. The canvas click handler
+  // re-engages pointer lock when they click back into the game.
 }
 
 export function updateChests(dt) {
