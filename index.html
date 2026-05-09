@@ -1490,10 +1490,9 @@
   }
   /* ===== end splash ===== */
 
-  /* ===== STAGE SELECT ===== */
-  #stage-select { background: rgba(13,17,38,0.96); display: flex; align-items: center; justify-content: center; flex-direction: column; }
-  .stage-select-panel { background: var(--panel); border: 3px solid #000; box-shadow: 6px 6px 0 #000; padding: 28px 32px; min-width: 300px; max-width: 480px; width: 90%; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 6px; }
-  .sel-title { font-family: 'Press Start 2P', monospace; font-size: 10px; color: var(--accent); letter-spacing: 1px; margin-bottom: 6px; }
+  /* ===== STAGE / DIFFICULTY INLINE ON START SCREEN ===== */
+  .start-run-config { background: var(--panel); border: 3px solid #000; box-shadow: 4px 4px 0 #000; padding: 14px 20px 16px; margin-bottom: 12px; width: 100%; max-width: 420px; text-align: center; }
+  .sel-title { font-family: 'Press Start 2P', monospace; font-size: 9px; color: var(--accent); letter-spacing: 1px; margin-bottom: 8px; }
   .sel-row { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; width: 100%; }
   .stage-btn, .diff-btn { font-family: 'Press Start 2P', monospace; font-size: 9px; padding: 10px 14px; border: 3px solid #000; box-shadow: 3px 3px 0 #000; background: var(--panel-2); color: var(--ink); cursor: pointer; min-width: 80px; line-height: 1.5; transition: transform 0.08s, box-shadow 0.08s; }
   .stage-btn:hover, .diff-btn:hover { transform: translateY(-2px); box-shadow: 3px 5px 0 #000; }
@@ -1693,8 +1692,14 @@ window.addEventListener('load', () => {
       <li>Survive 10 minutes. The Boss arrives at the end.</li>
     </ul>
   </div>
+  <div class="start-run-config">
+    <div class="sel-title">STAGE</div>
+    <div id="stage-btns" class="sel-row"></div>
+    <div class="sel-title" style="margin-top:10px">DIFFICULTY</div>
+    <div id="diff-btns" class="sel-row"></div>
+  </div>
   <div class="start-actions">
-    <button class="btn hot" id="start-btn">START RUN</button>
+    <button class="btn hot" id="start-btn">▶ START RUN</button>
     <button class="btn" id="armory-btn">🍕 ARMORY</button>
     <button class="btn" id="exit-btn">EXIT GAME</button>
   </div>
@@ -1704,18 +1709,6 @@ window.addEventListener('load', () => {
     <span class="slice-label">SLICES</span>
   </div>
   <div style="font-family:'VT323',monospace;font-size:18px;color:var(--ink-dim);">desktop recommended · works on mobile</div>
-</div>
-
-<!-- Stage + Difficulty select (shown after START RUN click) -->
-<div id="stage-select" class="overlay hidden">
-  <div class="stage-select-panel">
-    <div class="sel-title">SELECT STAGE</div>
-    <div id="stage-btns" class="sel-row"></div>
-    <div class="sel-title" style="margin-top:18px">DIFFICULTY</div>
-    <div id="diff-btns" class="sel-row"></div>
-    <button id="stage-play-btn" class="btn hot" style="margin-top:20px;min-width:160px">▶ PLAY</button>
-    <button id="stage-back-btn" class="btn dim" style="margin-top:8px;min-width:160px">← BACK</button>
-  </div>
 </div>
 
 <!-- Armory: catalog of unlocked & locked items -->

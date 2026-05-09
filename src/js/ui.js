@@ -1183,38 +1183,34 @@ export function initMobile() {
 }
 
 // ============================================================
-// STAGE + DIFFICULTY SELECT SCREEN
+// STAGE + DIFFICULTY SELECTOR (inline on start screen)
 // ============================================================
 let _selectedStage = 1;
 let _selectedDiff  = 'normal';
 
-function showStageSelect() {
+function renderStageSelect() {
   // Auto-select highest cleared stage
   _selectedStage = Profile.isStageCleared(2) ? 3
                  : Profile.isStageCleared(1) ? 2 : 1;
-  _selectedDiff = 'normal';
 
-  const stageSel = document.getElementById('stage-select');
-  document.getElementById('start-screen').classList.add('hidden');
-  stageSel.classList.remove('hidden');
-
-  // Render stage buttons
   const stageNames = { 1: 'STAGE 1', 2: 'STAGE 2', 3: 'STAGE 3' };
-  const stageSubs  = { 1: 'Normal', 2: 'ELITE', 3: 'SUPREME' };
+  const stageSubs  = { 1: 'Normal', 2: 'Elite', 3: 'Supreme' };
   document.getElementById('stage-btns').innerHTML = [1, 2, 3].map(n => {
     const locked = n === 2 ? !Profile.isStageCleared(1)
                  : n === 3 ? !Profile.isStageCleared(2) : false;
-    const cls = (locked ? 'locked ' : '') + (n === _selectedStage ? 'active ' : '') + 'stage-btn';
+    const cls = ['stage-btn', locked ? 'locked' : '', n === _selectedStage ? 'active' : ''].filter(Boolean).join(' ');
     const lockIcon = locked ? ' 🔒' : '';
     return `<button class="${cls}" data-stage="${n}">${stageNames[n]}${lockIcon}<br><small>${stageSubs[n]}</small></button>`;
   }).join('');
 
-  // Render difficulty buttons
   document.getElementById('diff-btns').innerHTML = Object.entries(DIFFICULTIES).map(([key, d]) =>
     `<button class="diff-btn${key === _selectedDiff ? ' active' : ''}" data-diff="${key}">${d.label}</button>`
   ).join('');
+}
 
-  // Stage button clicks
+function initStageSelect() {
+  renderStageSelect();
+
   document.getElementById('stage-btns').addEventListener('click', e => {
     const btn = e.target.closest('[data-stage]');
     if (!btn || btn.classList.contains('locked')) return;
@@ -1222,7 +1218,6 @@ function showStageSelect() {
     document.querySelectorAll('.stage-btn').forEach(b => b.classList.toggle('active', b === btn));
   });
 
-  // Difficulty button clicks
   document.getElementById('diff-btns').addEventListener('click', e => {
     const btn = e.target.closest('[data-diff]');
     if (!btn) return;
@@ -1235,17 +1230,10 @@ function showStageSelect() {
 // BUTTON EVENT LISTENERS (start, gameover, armory, pause, exit)
 // ============================================================
 export function initButtons() {
+  initStageSelect();
+
   document.getElementById('start-btn').addEventListener('click', () => {
-    showStageSelect();
-  });
-
-  document.getElementById('stage-back-btn').addEventListener('click', () => {
-    document.getElementById('stage-select').classList.add('hidden');
-    document.getElementById('start-screen').classList.remove('hidden');
-  });
-
-  document.getElementById('stage-play-btn').addEventListener('click', () => {
-    document.getElementById('stage-select').classList.add('hidden');
+    document.getElementById('start-screen').classList.add('hidden');
     document.getElementById('hud').style.display = 'block';
     gameState.stage = _selectedStage;
     gameState.difficulty = _selectedDiff;
@@ -1258,7 +1246,8 @@ export function initButtons() {
     const id = e.target.id;
     if (id === 'restart-btn') {
       document.getElementById('gameover-screen').classList.add('hidden');
-      showStageSelect();
+      renderStageSelect(); // refresh unlock state (a stage may have just unlocked)
+      document.getElementById('start-screen').classList.remove('hidden');
     } else if (id === 'stats-btn') {
       const stats  = document.getElementById('gameover-stats');
       const hidden = stats.style.display === 'none';
