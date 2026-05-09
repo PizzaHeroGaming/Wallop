@@ -1185,39 +1185,18 @@ export function initMobile() {
 // ============================================================
 // STAGE + DIFFICULTY SELECTOR (inline on start screen)
 // ============================================================
-let _selectedStage = 1;
-let _selectedDiff  = 'normal';
+let _selectedDiff = 'normal';
 
-function renderStageSelect() {
-  // Auto-select highest cleared stage
-  _selectedStage = Profile.isStageCleared(2) ? 3
-                 : Profile.isStageCleared(1) ? 2 : 1;
-
-  const stageNames = { 1: 'STAGE 1', 2: 'STAGE 2', 3: 'STAGE 3' };
-  const stageSubs  = { 1: 'Normal', 2: 'Elite', 3: 'Supreme' };
-  document.getElementById('stage-btns').innerHTML = [1, 2, 3].map(n => {
-    const locked = n === 2 ? !Profile.isStageCleared(1)
-                 : n === 3 ? !Profile.isStageCleared(2) : false;
-    const cls = ['stage-btn', locked ? 'locked' : '', n === _selectedStage ? 'active' : ''].filter(Boolean).join(' ');
-    const lockIcon = locked ? ' 🔒' : '';
-    return `<button class="${cls}" data-stage="${n}">${stageNames[n]}${lockIcon}<br><small>${stageSubs[n]}</small></button>`;
-  }).join('');
-
-  document.getElementById('diff-btns').innerHTML = Object.entries(DIFFICULTIES).map(([key, d]) =>
+function renderDiffSelect() {
+  const diffBtns = document.getElementById('diff-btns');
+  if (!diffBtns) return;
+  diffBtns.innerHTML = Object.entries(DIFFICULTIES).map(([key, d]) =>
     `<button class="diff-btn${key === _selectedDiff ? ' active' : ''}" data-diff="${key}">${d.label}</button>`
   ).join('');
 }
 
-function initStageSelect() {
-  renderStageSelect();
-
-  document.getElementById('stage-btns').addEventListener('click', e => {
-    const btn = e.target.closest('[data-stage]');
-    if (!btn || btn.classList.contains('locked')) return;
-    _selectedStage = Number(btn.dataset.stage);
-    document.querySelectorAll('.stage-btn').forEach(b => b.classList.toggle('active', b === btn));
-  });
-
+function initDiffSelect() {
+  renderDiffSelect();
   document.getElementById('diff-btns').addEventListener('click', e => {
     const btn = e.target.closest('[data-diff]');
     if (!btn) return;
@@ -1230,12 +1209,11 @@ function initStageSelect() {
 // BUTTON EVENT LISTENERS (start, gameover, armory, pause, exit)
 // ============================================================
 export function initButtons() {
-  try { initStageSelect(); } catch(e) { console.error('[wallop] initStageSelect failed:', e); }
+  try { initDiffSelect(); } catch(e) { console.error('[wallop] initDiffSelect failed:', e); }
 
   document.getElementById('start-btn').addEventListener('click', () => {
     document.getElementById('start-screen').classList.add('hidden');
     document.getElementById('hud').style.display = 'block';
-    gameState.stage = _selectedStage;
     gameState.difficulty = _selectedDiff;
     tryEnterFullscreen();
     if (_resetGameFn) _resetGameFn();
@@ -1246,7 +1224,7 @@ export function initButtons() {
     const id = e.target.id;
     if (id === 'restart-btn') {
       document.getElementById('gameover-screen').classList.add('hidden');
-      renderStageSelect(); // refresh unlock state (a stage may have just unlocked)
+      renderDiffSelect(); // refresh difficulty buttons
       document.getElementById('start-screen').classList.remove('hidden');
     } else if (id === 'stats-btn') {
       const stats  = document.getElementById('gameover-stats');
@@ -1378,5 +1356,5 @@ export function initUI() {
 
   // Expose renderStageSelect globally so wallop.html's splash onComplete
   // can call it after the start screen becomes visible (belt-and-suspenders).
-  window._wallopRenderStageSelect = renderStageSelect;
+  window._wallopRenderStageSelect = renderDiffSelect;
 }

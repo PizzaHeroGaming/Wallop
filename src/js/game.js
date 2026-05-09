@@ -19,7 +19,7 @@ import {
   setDamageEnemyCb, setOnLevelUpReady,
   spawnGold, spawnSmokeCloud, makeEnemyMesh, ENEMY_DEFS,
 } from './entities.js';
-import { WEAPONS, setDamageEnemyForWeapons } from './weapons.js';
+import { WEAPONS, setDamageEnemyForWeapons, rebuildOrbits } from './weapons.js';
 import {
   gameState, cam,
 } from './state.js';
@@ -97,15 +97,21 @@ export function killEnemy(e) {
       syncSliceDisplays();
     }
     if (e.bossTier === 'final') {
-      if (!Profile.isStageCleared(gameState.stage)) {
-        Profile.clearStage(gameState.stage);
+      Profile.clearStage(gameState.stage);
+      if (gameState.stage < 3) {
+        // Not the last stage — advance to next stage instead of showing victory
+        gameState.bossSpawned = false; // prevent win condition from triggering
+        const completedStage = gameState.stage;
         const nextStage = gameState.stage + 1;
-        if (nextStage <= 3) {
-          setTimeout(() => showAlert(`🔓 STAGE ${nextStage} UNLOCKED!`, '#42f5a1'), 1600);
-        }
+        gameState.stage = nextStage;
+        setTimeout(() => showAlert(`STAGE ${completedStage} COMPLETE! 🏆`, '#ffd23f'), 800);
+        setTimeout(() => showAlert(`ADVANCING TO STAGE ${nextStage}…`, '#42f5a1'), 1900);
+        setTimeout(() => advanceStage(), 3200);
+        return; // skip the normal BOSS DOWN banner
       }
+      // Stage 3 final kill — win condition in update() will fire triggerGameOver(true)
     }
-    const bannerText = e.bossTier === 'final' ? 'BOSS DOWN' : `${e.def.name} DEFEATED`;
+    const bannerText = e.bossTier === 'final' ? 'BOSS DOWN — YOU WIN!' : `${e.def.name} DEFEATED`;
     setTimeout(() => showAlert(bannerText, '#42f5a1'), e.sliceDrop ? 800 : 0);
   } else if (e.isElite) {
     spawnGem(e.pos.clone().setY(0), 5);
@@ -379,6 +385,74 @@ function updateSpawning(dt) {
 }
 
 // ============================================================
+// ADVANCE STAGE — carry player over to the next stage
+// Called when a non-final-stage boss is defeated.
+// ============================================================
+function advanceStage() {
+  // Clear world entities but keep player intact
+  for (const e of enemies) killMesh(e.mesh);
+  enemies.length = 0;
+  for (const p of projectiles) killMesh(p.mesh);
+  projectiles.length = 0;
+  for (const p of enemyProjectiles) killMesh(p.mesh);
+  enemyProjectiles.length = 0;
+  for (const g of xpGems) killMesh(g.mesh);
+  xpGems.length = 0;
+  for (const c of goldCoins) killMesh(c.mesh);
+  goldCoins.length = 0;
+  for (const o of orbitals) killMesh(o.mesh);
+  orbitals.length = 0;
+  for (const a of auraInstances) killMesh(a.mesh);
+  auraInstances.length = 0;
+  for (const p of particles) killMesh(p.mesh);
+  particles.length = 0;
+  for (const c of chests) killMesh(c.mesh);
+  chests.length = 0;
+  for (const c of smokeClouds) killMesh(c.mesh);
+  smokeClouds.length = 0;
+
+  // Clear cosmetic weapon meshes — weapon ticks recreate them next frame
+  if (_thunderWandMesh) { killMesh(_thunderWandMesh); set_thunderWandMesh(null); }
+  if (_shieldOrbitMesh) { killMesh(_shieldOrbitMesh); set_shieldOrbitMesh(null); }
+  if (_staffMesh)       { killMesh(_staffMesh);       set_staffMesh(null); }
+  set_thunderWandAngle(0); set_shieldOrbitAngle(0); set_staffAngle(0);
+
+  // Heal player 50% max HP as a stage-clear bonus
+  player.hp = Math.min(player.maxHp, player.hp + Math.round(player.maxHp * 0.5));
+  player.invuln = 0;
+  player.dashCd = 0;
+  player.jumpsLeft = player.maxJumps;
+  player.pos.set(0, 0, 0);
+  player.vel.set(0, 0, 0);
+
+  // Reset world timers / spawn state for the new stage
+  gameState.state             = 'playing';
+  gameState.gameTime          = 0;
+  gameState.spawnTimer        = 0;
+  gameState.spawnInterval     = 1.4;
+  gameState.bossSpawned       = false;
+  gameState.miniboss1Spawned  = false;
+  gameState.miniboss2Spawned  = false;
+  gameState.finalSwarm        = false;
+  gameState._lastWave         = 0;
+  gameState.chestTimer        = 90;
+
+  // Spawn a few starter chests for the new stage
+  for (let i = 0; i < 3; i++) {
+    const p = pickChestPosition();
+    spawnChest(p.x, p.z, Math.random() < 0.35 ? 'rare' : 'common');
+  }
+
+  // Re-seed orbital weapon projectiles (they were cleared above)
+  for (const w of player.weapons) {
+    if (w.id === 'orbit') rebuildOrbits(w);
+  }
+
+  updateLoadoutDisplay();
+  showAlert(`STAGE ${gameState.stage} — BEGIN!`, '#ffd23f');
+}
+
+// ============================================================
 // RESET GAME
 // ============================================================
 export function resetGame() {
@@ -471,6 +545,7 @@ export function resetGame() {
 
   gameState.state         = 'playing';
   gameState.gameTime      = 0;
+  gameState.stage         = 1;
   gameState.spawnTimer    = 0;
   gameState.spawnInterval = 1.4;
   gameState.kills         = 0;
@@ -772,10 +847,13 @@ function updateEnemies(dt) {
       }
     }
 
-    // Boss pulse + minions + ranged
+    // Boss pulse visual (procedural meshes only)
     if (e.isBoss && e.mesh.pulseRef) {
       const pulse = 0.85 + Math.sin(performance.now() * 0.005) * 0.25;
       e.mesh.pulseRef.scale.setScalar(pulse);
+    }
+    // Boss game logic: minion spawns + ranged attacks (always, regardless of mesh type)
+    if (e.isBoss) {
       e.minionCd -= dt;
       if (e.minionCd <= 0) {
         e.minionCd = e.bossTier === 'mini1' ? 9 : e.bossTier === 'mini2' ? 7 : 8;
