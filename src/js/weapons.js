@@ -267,7 +267,7 @@ defWeapon('thunder', {
       if (wAssets && wAssets.wand) {
         const mesh = _cloneWeaponMesh('wand');
         if (mesh) {
-          mesh.scale.setScalar(0.75);
+          mesh.scale.setScalar(1.8);
           mesh.traverse(c => { if (c.isMesh) c.castShadow = false; });
           scene.add(mesh);
           set_thunderWandMesh(mesh);
@@ -275,15 +275,15 @@ defWeapon('thunder', {
       }
     }
     if (_thunderWandMesh) {
-      set_thunderWandAngle(_thunderWandAngle + dt * 2.2);
-      const bobY = Math.sin(_thunderWandAngle * 1.4) * 0.08;
+      set_thunderWandAngle(_thunderWandAngle + dt * 1.6);
+      const bobY = Math.sin(_thunderWandAngle * 1.2) * 0.12;
       _thunderWandMesh.position.set(
-        player.pos.x + Math.sin(_thunderWandAngle) * 0.4,
-        player.pos.y + 1.5 + bobY,
-        player.pos.z + Math.cos(_thunderWandAngle) * 0.4
+        player.pos.x + Math.sin(_thunderWandAngle) * 1.5,
+        player.pos.y + 1.1 + bobY,
+        player.pos.z + Math.cos(_thunderWandAngle) * 1.5
       );
-      _thunderWandMesh.rotation.y = _thunderWandAngle;
-      _thunderWandMesh.rotation.z = 0.3;
+      _thunderWandMesh.rotation.y = _thunderWandAngle + Math.PI * 0.5;
+      _thunderWandMesh.rotation.z = 0.25;
     }
 
     w.cd -= dt;
