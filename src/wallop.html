@@ -1035,12 +1035,33 @@
 
   /* Short landscape (most phones held horizontally) — vertical room is the
      enemy here. Squeeze title, hide non-essential elements. */
+  /* Landscape mobile: viewport is short — collapse the title and shrink everything */
+  @media (max-height: 560px) {
+    /* Hide the big WALLOP title to save vertical space */
+    #title-block { display: none; }
+    #start-screen { gap: 6px; padding-top: 6px; padding-bottom: 6px; }
+    #start-main { gap: 10px; align-items: flex-start; }
+    /* Left column: hide how-to tips, compact spacing */
+    #start-screen .panel { display: none; }
+    #start-left { gap: 8px; justify-content: center; }
+    .start-run-config { margin-bottom: 0; padding: 8px 12px 10px; }
+    .start-actions { gap: 7px; }
+    .start-actions .btn { padding: 10px 16px; font-size: 9px !important; min-height: 40px; }
+    /* Char panel: compact but still visible */
+    #char-select-panel { padding: 8px 10px; gap: 5px; }
+    .sel-title { font-size: 7px; margin-bottom: 2px; }
+    #char-preview-canvas { width: 110px; height: 180px; }
+    #char-select-name { font-size: 7px; }
+    #char-select-subdesc { font-size: 13px; max-width: 140px; }
+    #char-select-btn { padding: 8px 10px !important; font-size: 7px !important; min-height: 36px; }
+    .char-arrow { padding: 8px 7px; min-height: 36px; font-size: 11px; }
+    #char-select-dots { gap: 4px; }
+    .char-dot { width: 8px; height: 8px; }
+  }
+
   @media (max-height: 500px) {
-    #title { font-size: 32px; margin-bottom: 0; }
-    #subtitle { font-size: 13px; margin: 0; }
-    #title-block { gap: 2px; }
     #start-screen { gap: 8px; padding-top: 10px; padding-bottom: 10px; }
-    /* Hide tips panel and char preview on tiny landscape — diff + buttons is priority */
+    /* Hide tips panel and char preview on very tiny landscape — diff + buttons is priority */
     #start-screen .panel { display: none; }
     #char-select-panel { display: none; }
     .start-run-config { margin-bottom: 4px; padding: 8px 14px 10px; }
@@ -1561,14 +1582,6 @@
   }
   .char-dot.active  { background: var(--accent); }
   .char-dot.locked  { opacity: 0.35; }
-  /* Mobile landscape: side-by-side but cap canvas so it never overflows */
-  @media (max-height: 560px) {
-    #char-select-panel { padding: 8px 10px; gap: 6px; }
-    #char-preview-canvas { width: 100px; height: 160px; }
-    #char-select-name { font-size: 7px; }
-    #char-select-subdesc { font-size: 13px; max-width: 150px; }
-    #char-select-btn { padding: 8px 10px !important; font-size: 7px !important; }
-  }
   /* On narrow screens: char panel stacks above start-left */
   @media (max-width: 680px) {
     #start-main { flex-direction: column-reverse; align-items: center; gap: 14px; }
