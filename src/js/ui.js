@@ -1466,11 +1466,13 @@ function initCharSelect() {
   const canvas = document.getElementById('char-preview-canvas');
   if (!canvas) return;
 
-  // Build a lightweight Three.js renderer just for the character preview
+  // Build a lightweight Three.js renderer just for the character preview.
+  // Pass false to setSize so Three.js does NOT inject inline width/height styles —
+  // inline styles would override media-query CSS rules and break mobile layout.
   _previewRenderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
   _previewRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   _previewRenderer.setSize(canvas.width / Math.min(window.devicePixelRatio, 2),
-                            canvas.height / Math.min(window.devicePixelRatio, 2));
+                            canvas.height / Math.min(window.devicePixelRatio, 2), false);
   _previewRenderer.outputEncoding = THREE.sRGBEncoding;
   _previewRenderer.toneMapping    = THREE.ACESFilmicToneMapping;
 
