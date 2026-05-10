@@ -1050,29 +1050,14 @@
     #start-screen .panel { display: none; }
 
     #start-left {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      grid-template-areas:
-        "arena diff"
-        "hero  hero"
-        "actions actions";
-      gap: 8px;
-      width: 100%;
-      max-width: 560px;
-      align-items: stretch;
+      display: flex; flex-direction: column; align-items: center;
+      gap: 8px; width: 100%; max-width: 480px;
     }
-    /* IMPORTANT: must explicitly set display: flex here — the default rule
-       hides these mobile elements with display: none, and on landscape phones
-       wider than 680px the max-width breakpoint never triggers to show them */
-    #mob-arena-select  { display: flex !important; grid-area: arena; margin: 0; max-width: none; }
-    .start-run-config  { grid-area: diff; margin: 0; padding: 6px 8px 8px; min-width: 110px; }
-    #mob-char-select   { display: flex !important; grid-area: hero; max-width: none; }
+    /* Mobile char selector still shows here on landscape */
+    #mob-char-select   { display: flex !important; max-width: none; }
     #char-select-panel { display: none !important; }
-    .start-actions     { grid-area: actions; gap: 6px; flex-wrap: wrap; }
+    .start-actions     { gap: 6px; flex-wrap: wrap; width: 100%; }
 
-    /* Difficulty buttons stack vertically inside the right column */
-    #diff-btns { flex-direction: column; align-items: stretch; gap: 4px; flex-wrap: nowrap; }
-    .diff-btn  { width: 100%; min-width: 90px; padding: 7px 10px; font-size: 8px; }
     .sel-title { font-size: 8px; margin-bottom: 4px; }
 
     /* Compress action buttons to fit in one row */
@@ -1651,6 +1636,47 @@
   }
   /* ===== end character select ===== */
 
+  /* ===== RUN CONFIG SCREEN (shown after START RUN) ===== */
+  #run-config-screen { gap: 18px; }
+  #run-config-title {
+    font-family: 'Press Start 2P', monospace;
+    font-size: clamp(18px, 4vw, 28px);
+    color: var(--accent);
+    text-shadow: 4px 4px 0 #000;
+    text-align: center;
+    margin-bottom: 4px;
+  }
+  #run-config-body {
+    display: flex; flex-direction: column; align-items: center;
+    gap: 14px; width: 100%; max-width: 720px;
+  }
+  #run-config-actions {
+    display: flex; gap: 14px; justify-content: center; flex-wrap: wrap;
+    width: 100%; max-width: 720px;
+  }
+  #run-config-actions .btn { min-width: 160px; padding: 14px 24px; font-size: 12px; }
+  /* Landscape mobile: tighten + put diff/arena side-by-side */
+  @media (max-height: 560px) {
+    #run-config-screen { gap: 8px; padding-top: 10px; padding-bottom: 10px; }
+    #run-config-title { font-size: clamp(14px, 4vw, 20px); margin-bottom: 0; }
+    #run-config-body {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      grid-template-areas: "arena diff";
+      gap: 10px;
+      align-items: stretch;
+      max-width: 640px;
+    }
+    #run-config-body #mob-arena-select { display: flex !important; grid-area: arena; margin: 0; max-width: none; }
+    #run-config-body .start-run-config { grid-area: diff; margin: 0; padding: 6px 10px 8px; min-width: 110px; }
+    #run-config-body .arena-config-desktop { display: none; }
+    #run-config-body #diff-btns { flex-direction: column; align-items: stretch; gap: 4px; flex-wrap: nowrap; }
+    #run-config-body .diff-btn { width: 100%; min-width: 90px; padding: 7px 10px; font-size: 8px; }
+    #run-config-actions { gap: 8px; }
+    #run-config-actions .btn { min-width: 110px; padding: 10px 14px; font-size: 9px; min-height: 38px; }
+  }
+  /* ===== end run config ===== */
+
   /* ===== ABOUT SCREEN ===== */
   #about-screen { align-items: flex-start; justify-content: flex-start; padding: 20px 16px 32px; }
   .about-panel { width: 100%; max-width: 640px; margin: 0 auto; }
@@ -1862,28 +1888,6 @@ window.addEventListener('load', () => {
           <li>Survive 10 minutes. The Boss arrives at the end.</li>
         </ul>
       </div>
-      <div class="start-run-config">
-        <div class="sel-title">DIFFICULTY</div>
-        <div id="diff-btns" class="sel-row"></div>
-      </div>
-      <!-- Arena picker — desktop cards (hidden on mobile in favor of compact strip below) -->
-      <div class="start-run-config arena-config-desktop">
-        <div class="sel-title">ARENA</div>
-        <div id="arena-btns" class="arena-row"></div>
-      </div>
-      <!-- Mobile compact arena selector -->
-      <div id="mob-arena-select">
-        <div class="sel-title">ARENA</div>
-        <div class="mob-char-row">
-          <button class="char-arrow" id="mob-arena-prev">◀</button>
-          <div class="mob-char-info">
-            <span id="mob-arena-badge"></span>
-            <span id="mob-arena-name"></span>
-          </div>
-          <button class="char-arrow" id="mob-arena-next">▶</button>
-        </div>
-        <div id="mob-arena-dots"></div>
-      </div>
       <!-- Mobile-only compact character selector (shown instead of the 3D panel) -->
       <div id="mob-char-select">
         <div class="sel-title">CHOOSE YOUR HERO</div>
@@ -1928,6 +1932,39 @@ window.addEventListener('load', () => {
     <span class="slice-icon">🍕</span>
     <span id="slice-count">0</span>
     <span class="slice-label">SLICES</span>
+  </div>
+</div>
+
+<!-- Run config screen — shown after START RUN, before the actual run begins -->
+<div id="run-config-screen" class="overlay hidden">
+  <div id="run-config-title">CONFIGURE YOUR RUN</div>
+  <div id="run-config-body">
+    <div class="start-run-config">
+      <div class="sel-title">DIFFICULTY</div>
+      <div id="diff-btns" class="sel-row"></div>
+    </div>
+    <!-- Arena picker — desktop cards -->
+    <div class="start-run-config arena-config-desktop">
+      <div class="sel-title">ARENA</div>
+      <div id="arena-btns" class="arena-row"></div>
+    </div>
+    <!-- Mobile compact arena selector -->
+    <div id="mob-arena-select">
+      <div class="sel-title">ARENA</div>
+      <div class="mob-char-row">
+        <button class="char-arrow" id="mob-arena-prev">◀</button>
+        <div class="mob-char-info">
+          <span id="mob-arena-badge"></span>
+          <span id="mob-arena-name"></span>
+        </div>
+        <button class="char-arrow" id="mob-arena-next">▶</button>
+      </div>
+      <div id="mob-arena-dots"></div>
+    </div>
+  </div>
+  <div id="run-config-actions">
+    <button class="btn hot" id="run-config-play-btn">▶ PLAY</button>
+    <button class="btn" id="run-config-back-btn">◀ BACK</button>
   </div>
 </div>
 
@@ -2109,6 +2146,6 @@ window.addEventListener('load', () => {
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
-<script type="module" src="src/js/main.js?v=1b2e098"></script>
+<script type="module" src="src/js/main.js?v=34e38e6"></script>
 </body>
 </html>

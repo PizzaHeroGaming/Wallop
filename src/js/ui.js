@@ -1387,13 +1387,32 @@ export function initButtons() {
   try { initDiffSelect(); }  catch(e) { console.error('[wallop] initDiffSelect failed:', e); }
   try { initArenaSelect(); } catch(e) { console.error('[wallop] initArenaSelect failed:', e); }
 
+  // START RUN now opens the run-config screen instead of starting immediately
   document.getElementById('start-btn').addEventListener('click', () => {
     document.getElementById('start-screen').classList.add('hidden');
+    // Refresh selectors so newly-unlocked arenas / current selections show correctly
+    renderDiffSelect();
+    renderArenaSelect();
+    _refreshMobileArenaUI();
+    document.getElementById('run-config-screen').classList.remove('hidden');
+  });
+
+  // PLAY button on run-config screen actually starts the run
+  const _playBtn = document.getElementById('run-config-play-btn');
+  if (_playBtn) _playBtn.addEventListener('click', () => {
+    document.getElementById('run-config-screen').classList.add('hidden');
     document.getElementById('hud').style.display = 'block';
     gameState.difficulty = _selectedDiff;
     tryEnterFullscreen();
     if (_resetGameFn) _resetGameFn();
     if (!isMobile()) renderer.domElement.requestPointerLock();
+  });
+
+  // BACK button returns to the start screen
+  const _backBtn = document.getElementById('run-config-back-btn');
+  if (_backBtn) _backBtn.addEventListener('click', () => {
+    document.getElementById('run-config-screen').classList.add('hidden');
+    document.getElementById('start-screen').classList.remove('hidden');
   });
 
   document.getElementById('gameover-screen').addEventListener('click', e => {
