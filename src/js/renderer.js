@@ -1,20 +1,22 @@
 import { CFG, IS_MOBILE_EARLY } from './config.js';
+import { ARENAS } from './profile.js';
 
 // ============================================================
 // THREE.JS SETUP
 // ============================================================
 export const scene = new THREE.Scene();
 
-// Sky gradient via canvas texture
-function makeSkyTexture() {
+// Sky gradient via canvas texture — accepts the arena's sky palette so
+// each arena gets its own atmosphere.  Re-callable at runtime.
+function makeSkyTexture(skyCfg) {
   const c = document.createElement('canvas');
   c.width = 256; c.height = 512;
   const ctx = c.getContext('2d');
   const grad = ctx.createLinearGradient(0, 0, 0, 512);
-  grad.addColorStop(0.00, '#3a72b8');
-  grad.addColorStop(0.35, '#7aafd8');
-  grad.addColorStop(0.70, '#cfe2f0');
-  grad.addColorStop(1.00, '#f5e9c8');
+  grad.addColorStop(0.00, skyCfg.top);
+  grad.addColorStop(0.35, skyCfg.mid);
+  grad.addColorStop(0.70, skyCfg.low);
+  grad.addColorStop(1.00, skyCfg.bottom);
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, 256, 512);
   // Cirrus cloud wisps in the upper sky
@@ -26,7 +28,7 @@ function makeSkyTexture() {
     const h = 6 + (i % 3) * 4;
     const alpha = 0.10 + (i % 4) * 0.04;
     ctx.globalAlpha = alpha;
-    ctx.fillStyle = '#ffffff';
+    ctx.fillStyle = skyCfg.wisp || '#ffffff';
     ctx.beginPath();
     ctx.ellipse(x, y, w * 0.5, h * 0.5, 0, 0, Math.PI * 2);
     ctx.fill();
@@ -36,8 +38,11 @@ function makeSkyTexture() {
   tex.encoding = THREE.sRGBEncoding;
   return tex;
 }
-scene.background = makeSkyTexture();
-scene.fog = new THREE.FogExp2(0xcfe2f0, 0.008);
+// Apply the default arena's sky/fog at module init; setRendererArena()
+// swaps everything else in once gameState is ready.
+const _defaultArena = ARENAS.pepperoni_pines;
+scene.background = makeSkyTexture(_defaultArena.sky);
+scene.fog = new THREE.FogExp2(_defaultArena.fog.color, _defaultArena.fog.density);
 
 export const camera = new THREE.PerspectiveCamera(72, window.innerWidth / window.innerHeight, 0.1, 400);
 camera.position.set(0, 12, 15);
@@ -172,6 +177,26 @@ scene.add(rim);
 // Hemi light
 const hemi = new THREE.HemisphereLight(0xc7e3ff, 0x4a7c2a, 0.55);
 scene.add(hemi);
+
+// ============================================================
+// ARENA THEMING — swap sky, fog, and light colors at runtime.
+// Called from game.js resetGame() so each new run picks up the
+// player's chosen arena visuals.  Cheap (no geometry rebuild).
+// ============================================================
+export function setRendererArena(arenaSlug) {
+  const a = ARENAS[arenaSlug] || ARENAS.pepperoni_pines;
+  // Replace sky background texture (dispose old to avoid GPU leak)
+  if (scene.background && scene.background.dispose) scene.background.dispose();
+  scene.background = makeSkyTexture(a.sky);
+  // Update fog
+  scene.fog = new THREE.FogExp2(a.fog.color, a.fog.density);
+  // Mutate existing light colors/intensities (no scene-graph churn)
+  sun.color.setHex(a.lights.sun);
+  sun.intensity = a.lights.sunIntensity;
+  rim.color.setHex(a.lights.rim);
+  hemi.color.setHex(a.lights.hemiSky);
+  hemi.groundColor.setHex(a.lights.hemiGround);
+}
 
 // Clock
 export const clock = new THREE.Clock();

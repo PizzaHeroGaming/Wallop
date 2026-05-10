@@ -1,29 +1,51 @@
 import { CFG } from './config.js';
 import { scene } from './renderer.js';
+import { ARENAS } from './profile.js';
 
 // ============================================================
 // TERRAIN / GROUND
 // ============================================================
-function makeGroundTexture() {
+// Helper: parse '#rrggbb' hex into [r,g,b] 0-255 ints
+function _hex2rgb(hex) {
+  const h = hex.replace('#', '');
+  return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+}
+function _rgbStr(r, g, b, a) {
+  return `rgba(${r|0},${g|0},${b|0},${a})`;
+}
+// Build a ground texture in the arena's color palette.  Same procedural
+// pattern as the original forest texture but tinted to whatever palette
+// the arena defines.  Re-callable at runtime.
+function makeGroundTexture(groundCfg) {
   const c = document.createElement('canvas');
   c.width = 512; c.height = 512;
   const ctx = c.getContext('2d');
-  ctx.fillStyle = '#5a9a4a';
+  ctx.fillStyle = groundCfg.base;
   ctx.fillRect(0, 0, 512, 512);
+  // Darker accent splotches
+  const accent1 = _hex2rgb(groundCfg.accent1);
+  const accent2 = _hex2rgb(groundCfg.accent2);
+  const accent3 = _hex2rgb(groundCfg.accent3);
   for (let i = 0; i < 220; i++) {
     const x = Math.random() * 512;
     const y = Math.random() * 512;
     const r = 6 + Math.random() * 22;
-    const c1 = ['rgba(74,134,60,0.45)', 'rgba(110,170,90,0.45)', 'rgba(86,150,72,0.4)'][Math.floor(Math.random() * 3)];
-    ctx.fillStyle = c1;
+    const pick = Math.floor(Math.random() * 3);
+    const rgb = pick === 0 ? accent1 : pick === 1 ? accent2 : accent3;
+    ctx.fillStyle = _rgbStr(rgb[0], rgb[1], rgb[2], 0.45);
     ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
   }
+  // Tiny grass/needle blade flecks tinted toward accent1
   for (let i = 0; i < 800; i++) {
     const x = Math.random() * 512;
     const y = Math.random() * 512;
-    ctx.fillStyle = `rgba(${30 + Math.random() * 40}, ${100 + Math.random() * 50}, ${40 + Math.random() * 30}, ${0.4 + Math.random() * 0.4})`;
+    const jr = (Math.random() - 0.5) * 30;
+    const jg = (Math.random() - 0.5) * 30;
+    const jb = (Math.random() - 0.5) * 20;
+    ctx.fillStyle = _rgbStr(accent1[0] + jr, accent1[1] + jg, accent1[2] + jb, 0.4 + Math.random() * 0.4);
     ctx.fillRect(x, y, 2, 4);
   }
+  // Dark grit pixels
   for (let i = 0; i < 1200; i++) {
     const x = Math.random() * 512;
     const y = Math.random() * 512;
@@ -93,11 +115,20 @@ export const _GROUND_HEIGHTS = new Float32Array((_MESH_SUBDIVS + 1) * (_MESH_SUB
   for (let i = 0; i < gpos.count; i++) _GROUND_HEIGHTS[i] = gpos.getZ(i);
 }
 
-const groundMat = new THREE.MeshPhongMaterial({ map: makeGroundTexture(), shininess: 0, flatShading: true });
+const groundMat = new THREE.MeshPhongMaterial({ map: makeGroundTexture(ARENAS.pepperoni_pines.ground), shininess: 0, flatShading: true });
 export const ground = new THREE.Mesh(groundGeo, groundMat);
 ground.rotation.x = -Math.PI / 2;
 ground.receiveShadow = true;
 scene.add(ground);
+
+// Swap the ground texture for the given arena.  Disposes the old texture
+// to avoid GPU leaks (this matters because we're called every resetGame).
+export function setTerrainArena(arenaSlug) {
+  const a = ARENAS[arenaSlug] || ARENAS.pepperoni_pines;
+  if (groundMat.map && groundMat.map.dispose) groundMat.map.dispose();
+  groundMat.map = makeGroundTexture(a.ground);
+  groundMat.needsUpdate = true;
+}
 
 // Hills, ramps, platforms — verticality
 export const obstacles = [];

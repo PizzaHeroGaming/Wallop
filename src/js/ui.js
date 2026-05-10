@@ -27,7 +27,7 @@ import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js';
 import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js';
 import { gameState, cam } from './state.js';
 import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js';
-import { Profile, CATALOG } from './profile.js';
+import { Profile, CATALOG, ARENAS } from './profile.js';
 import { tmp, tmp2 } from './utils.js';
 
 // ============================================================
@@ -709,8 +709,9 @@ export function triggerGameOver(victory) {
   gameState.state = victory ? 'victory' : 'gameover';
   const ov    = document.getElementById('gameover-screen');
   const title = document.getElementById('gameover-title');
-  const diffLabel = (DIFFICULTIES[gameState.difficulty] || DIFFICULTIES.normal).label;
-  const stageLine = `STAGE ${gameState.stage} — ${diffLabel}`;
+  const diffLabel  = (DIFFICULTIES[gameState.difficulty] || DIFFICULTIES.normal).label;
+  const arenaName  = (ARENAS[gameState.arena] || ARENAS.pepperoni_pines).name;
+  const stageLine  = `${arenaName.toUpperCase()} · STAGE ${gameState.stage} · ${diffLabel}`;
   if (victory) {
     title.textContent = `YOU WALLOPED IT!`;
     title.classList.add('victory');
@@ -1294,10 +1295,97 @@ function initDiffSelect() {
 }
 
 // ============================================================
+// ARENA SELECTOR (start screen — desktop cards + mobile compact)
+// ============================================================
+let _selectedArena = null; // hydrated from Profile in initArenaSelect()
+const _arenaOrder = Object.keys(ARENAS).sort((a, b) => ARENAS[a].order - ARENAS[b].order);
+
+function _arenaUnlockHint(slug) {
+  const def = ARENAS[slug];
+  if (!def || !def.unlocksFrom) return '';
+  const prev = ARENAS[def.unlocksFrom];
+  return `🔒 Beat ${prev?.name || def.unlocksFrom} on Normal+`;
+}
+
+function renderArenaSelect() {
+  const wrap = document.getElementById('arena-btns');
+  if (!wrap) return;
+  wrap.innerHTML = _arenaOrder.map(slug => {
+    const def      = ARENAS[slug];
+    const unlocked = Profile.isArenaUnlocked(slug);
+    const active   = slug === _selectedArena;
+    const hint     = unlocked ? def.desc : _arenaUnlockHint(slug);
+    return `<button class="arena-btn${active ? ' active' : ''}${unlocked ? '' : ' locked'}" data-arena="${slug}" title="${hint.replace(/"/g,'&quot;')}">
+      <div class="arena-btn-icon">${def.icon}</div>
+      <div class="arena-btn-name">${def.name}</div>
+      <div class="arena-btn-hint">${hint}</div>
+    </button>`;
+  }).join('');
+}
+
+function _refreshMobileArenaUI() {
+  const def      = ARENAS[_selectedArena];
+  const badge    = document.getElementById('mob-arena-badge');
+  const name     = document.getElementById('mob-arena-name');
+  const dotsEl   = document.getElementById('mob-arena-dots');
+  if (badge) badge.textContent = def?.icon || '';
+  if (name)  name.textContent  = def?.name || '';
+  if (dotsEl) {
+    dotsEl.innerHTML = _arenaOrder.map(slug => {
+      const isLocked = !Profile.isArenaUnlocked(slug);
+      const isActive = slug === _selectedArena;
+      return `<span class="char-dot${isActive ? ' active' : ''}${isLocked ? ' locked' : ''}"></span>`;
+    }).join('');
+  }
+}
+
+function _setSelectedArena(slug) {
+  if (!Profile.isArenaUnlocked(slug)) return;
+  _selectedArena = slug;
+  Profile.setEquippedArena(slug);
+  gameState.arena = slug;
+  renderArenaSelect();
+  _refreshMobileArenaUI();
+}
+
+function initArenaSelect() {
+  // Hydrate selection from Profile, fall back to first unlocked arena
+  _selectedArena = Profile.getEquippedArena();
+  if (!Profile.isArenaUnlocked(_selectedArena)) _selectedArena = 'pepperoni_pines';
+  gameState.arena = _selectedArena;
+
+  renderArenaSelect();
+  _refreshMobileArenaUI();
+
+  // Desktop card clicks
+  const wrap = document.getElementById('arena-btns');
+  if (wrap) {
+    wrap.addEventListener('click', e => {
+      const btn = e.target.closest('[data-arena]');
+      if (!btn) return;
+      _setSelectedArena(btn.dataset.arena);
+    });
+  }
+  // Mobile arrow navigation — cycles only through UNLOCKED arenas
+  const _cycle = (dir) => {
+    const unlocked = _arenaOrder.filter(s => Profile.isArenaUnlocked(s));
+    if (unlocked.length === 0) return;
+    const idx = unlocked.indexOf(_selectedArena);
+    const next = unlocked[(idx + dir + unlocked.length) % unlocked.length];
+    _setSelectedArena(next);
+  };
+  const prev = document.getElementById('mob-arena-prev');
+  const next = document.getElementById('mob-arena-next');
+  if (prev) prev.addEventListener('click', () => _cycle(-1));
+  if (next) next.addEventListener('click', () => _cycle(+1));
+}
+
+// ============================================================
 // BUTTON EVENT LISTENERS (start, gameover, armory, pause, exit)
 // ============================================================
 export function initButtons() {
-  try { initDiffSelect(); } catch(e) { console.error('[wallop] initDiffSelect failed:', e); }
+  try { initDiffSelect(); }  catch(e) { console.error('[wallop] initDiffSelect failed:', e); }
+  try { initArenaSelect(); } catch(e) { console.error('[wallop] initArenaSelect failed:', e); }
 
   document.getElementById('start-btn').addEventListener('click', () => {
     document.getElementById('start-screen').classList.add('hidden');
@@ -1313,6 +1401,8 @@ export function initButtons() {
     if (id === 'restart-btn') {
       document.getElementById('gameover-screen').classList.add('hidden');
       renderDiffSelect(); // refresh difficulty buttons
+      renderArenaSelect();    // refresh arena cards in case a new one unlocked
+      _refreshMobileArenaUI();
       document.getElementById('start-screen').classList.remove('hidden');
     } else if (id === 'stats-btn') {
       const stats  = document.getElementById('gameover-stats');

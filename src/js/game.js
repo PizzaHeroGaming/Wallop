@@ -1,6 +1,6 @@
 // game.js — core game logic: damageEnemy, update loop, player movement, spawning
 // Imports (acyclic — game.js is the top of the dep graph among game modules):
-import { scene, camera, renderer, composer, sun, clock, isMobile, tryEnterFullscreen, releasePtLight } from './renderer.js';
+import { scene, camera, renderer, composer, sun, clock, isMobile, tryEnterFullscreen, releasePtLight, setRendererArena } from './renderer.js';
 import {
   player,
   playerMixer, playerIdleAction, playerWalkAction, playerRunAction,
@@ -24,8 +24,9 @@ import {
   gameState, cam,
 } from './state.js';
 import { CFG, STAGE_MULTS, DIFFICULTIES } from './config.js';
-import { Profile } from './profile.js';
-import { groundHeight, resolveSolids } from './terrain.js';
+import { Profile, ARENAS } from './profile.js';
+import { groundHeight, resolveSolids, setTerrainArena } from './terrain.js';
+import { setWorldArena } from './world.js';
 import { killMesh, clamp, rand, tmp, tmp2, flatPhong } from './utils.js';
 import {
   showDamage, showAlert, updateBossArrow, updateLoadoutDisplay,
@@ -98,7 +99,17 @@ export function killEnemy(e, srcWeaponId = null) {
       syncSliceDisplays();
     }
     if (e.bossTier === 'final') {
+      // Track per-arena per-stage progress (legacy clearStage kept in sync inside).
+      Profile.recordStageClear(gameState.arena, gameState.stage);
       Profile.clearStage(gameState.stage);
+      if (gameState.stage === 3) {
+        // Full arena clear — record best difficulty + unlock next arena if Normal+.
+        const newlyUnlocked = Profile.recordArenaClear(gameState.arena, gameState.difficulty);
+        if (newlyUnlocked) {
+          const nextDef = ARENAS[newlyUnlocked];
+          setTimeout(() => showAlert(`🔓 ${(nextDef?.name || newlyUnlocked).toUpperCase()} UNLOCKED!`, '#ffd23f'), 4400);
+        }
+      }
       if (gameState.stage < 3) {
         // Not the last stage — advance to next stage instead of showing victory.
         // IMPORTANT: clean up boss entity here before returning so subsequent
@@ -591,6 +602,14 @@ function advanceStage() {
 // RESET GAME
 // ============================================================
 export function resetGame() {
+  // Apply the player's chosen arena theme (sky, fog, lights, ground texture,
+  // scenery tints).  Must happen before any new scenery is placed.
+  const arenaSlug = gameState.arena || Profile.getEquippedArena() || 'pepperoni_pines';
+  gameState.arena = arenaSlug;
+  setRendererArena(arenaSlug);
+  setTerrainArena(arenaSlug);
+  setWorldArena(arenaSlug);
+
   for (const e of enemies) killMesh(e.mesh);
   enemies.length = 0;
   for (const p of projectiles) killMesh(p.mesh);

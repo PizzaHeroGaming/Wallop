@@ -1514,6 +1514,31 @@
   .diff-btn[data-diff="extreme"] { color: var(--hot); }
   .diff-btn[data-diff="hard"].active    { border-color: #ff8c00; background: rgba(255,140,0,0.08); }
   .diff-btn[data-diff="extreme"].active { border-color: var(--hot); background: rgba(255,56,100,0.08); }
+
+  /* Arena selector — desktop cards */
+  .arena-row { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; width: 100%; }
+  .arena-btn { font-family: 'Press Start 2P', monospace; font-size: 8px; padding: 10px 8px;
+               border: 3px solid #000; box-shadow: 3px 3px 0 #000; background: var(--panel-2);
+               color: var(--ink); cursor: pointer; flex: 1 1 110px; max-width: 130px; min-width: 100px;
+               line-height: 1.5; transition: transform 0.08s, box-shadow 0.08s; text-align: center; }
+  .arena-btn:hover { transform: translateY(-2px); box-shadow: 3px 5px 0 #000; }
+  .arena-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(255,210,63,0.08); }
+  .arena-btn.locked { opacity: 0.45; filter: grayscale(1); cursor: not-allowed; }
+  .arena-btn-icon { font-size: 24px; line-height: 1; margin-bottom: 4px; }
+  .arena-btn-name { font-size: 8px; margin-bottom: 4px; }
+  .arena-btn-hint { font-family: 'VT323', monospace; font-size: 12px; color: var(--ink-dim); line-height: 1.2; }
+
+  /* Mobile compact arena selector — hidden on desktop, shown on mobile */
+  #mob-arena-select { display: none; width: 100%; flex-direction: column; align-items: center; gap: 6px; padding: 10px 12px; background: var(--panel); border: 3px solid #000; box-shadow: 4px 4px 0 #000; max-width: 420px; }
+  #mob-arena-badge { font-size: 24px; line-height: 1; }
+  #mob-arena-name { font-family: 'Press Start 2P', monospace; font-size: 8px; color: var(--accent); }
+  #mob-arena-dots { display: flex; gap: 5px; align-items: center; }
+
+  /* On mobile breakpoints: hide desktop cards, show compact strip */
+  @media (max-width: 680px), (max-height: 560px) {
+    .arena-config-desktop { display: none; }
+    #mob-arena-select { display: flex; }
+  }
   @media (max-width: 480px) {
     .start-run-config { padding: 10px 12px 12px; }
     .stage-btn, .diff-btn { font-size: 8px; padding: 8px 10px; min-width: 70px; }
@@ -1810,6 +1835,24 @@ window.addEventListener('load', () => {
       <div class="start-run-config">
         <div class="sel-title">DIFFICULTY</div>
         <div id="diff-btns" class="sel-row"></div>
+      </div>
+      <!-- Arena picker — desktop cards (hidden on mobile in favor of compact strip below) -->
+      <div class="start-run-config arena-config-desktop">
+        <div class="sel-title">ARENA</div>
+        <div id="arena-btns" class="arena-row"></div>
+      </div>
+      <!-- Mobile compact arena selector -->
+      <div id="mob-arena-select">
+        <div class="sel-title">ARENA</div>
+        <div class="mob-char-row">
+          <button class="char-arrow" id="mob-arena-prev">◀</button>
+          <div class="mob-char-info">
+            <span id="mob-arena-badge"></span>
+            <span id="mob-arena-name"></span>
+          </div>
+          <button class="char-arrow" id="mob-arena-next">▶</button>
+        </div>
+        <div id="mob-arena-dots"></div>
       </div>
       <!-- Mobile-only compact character selector (shown instead of the 3D panel) -->
       <div id="mob-char-select">

@@ -1,6 +1,88 @@
 import { CFG, IS_MOBILE_EARLY } from './config.js';
 import { scene } from './renderer.js';
 import { groundHeight, addSolid, obstacles } from './terrain.js';
+import { ARENAS } from './profile.js';
+
+// ── Arena theming ──
+// Currently-applied arena slug. Used by add* functions to color procedural
+// elements (logs, mushrooms, grass, ferns, flowers) and to bias tree-type
+// selection. setWorldArena() also walks already-placed scenery and retints
+// their materials so a mid-session arena swap looks correct.
+let _currentArena = ARENAS.pepperoni_pines;
+// Tag scene objects we've added so retinting can find them later.
+const _tintedRoots = []; // array of root meshes/groups that should receive sceneryTint
+const _proceduralByKind = { grass: [], fern: [], log: [], logCap: [], mushroomStem: [], mushroomCap: [], flower: [], flowerCenter: [] };
+
+function _weightedTreeKind(weights) {
+  const r = Math.random();
+  if (r < weights.leafy) return 'leafy';
+  if (r < weights.leafy + weights.pine) return 'pine';
+  return 'bare';
+}
+function _applyTintToMesh(mesh, tintHex) {
+  if (!mesh) return;
+  const tint = new THREE.Color(tintHex);
+  mesh.traverse(child => {
+    if (!child.isMesh || !child.material) return;
+    const apply = (mat) => {
+      // Clone material the first time we tint so we don't mutate the shared
+      // GLB material (would tint EVERY clone of that asset, including future ones).
+      if (!mat.userData._wallop_tintable) {
+        const clone = mat.clone();
+        clone.userData._wallop_tintable = true;
+        clone.userData._wallop_baseColor = mat.color ? mat.color.clone() : null;
+        return clone;
+      }
+      return mat;
+    };
+    if (Array.isArray(child.material)) {
+      child.material = child.material.map(apply);
+      for (const m of child.material) {
+        if (m.userData._wallop_baseColor) m.color.copy(m.userData._wallop_baseColor).lerp(tint, 0.55);
+      }
+    } else {
+      child.material = apply(child.material);
+      if (child.material.userData._wallop_baseColor) {
+        child.material.color.copy(child.material.userData._wallop_baseColor).lerp(tint, 0.55);
+      }
+    }
+  });
+}
+function _restoreMeshTint(mesh) {
+  if (!mesh) return;
+  mesh.traverse(child => {
+    if (!child.isMesh || !child.material) return;
+    const restore = (m) => {
+      if (m.userData._wallop_baseColor && m.color) m.color.copy(m.userData._wallop_baseColor);
+    };
+    if (Array.isArray(child.material)) child.material.forEach(restore);
+    else restore(child.material);
+  });
+}
+
+// Public: swap arena visuals.  Retints all already-placed scenery,
+// recolors procedural decoration, and updates internal state so any
+// scenery placed AFTER this call also picks up the new theme.
+export function setWorldArena(arenaSlug) {
+  const a = ARENAS[arenaSlug] || ARENAS.pepperoni_pines;
+  _currentArena = a;
+  // Retint imported GLB scenery
+  for (const root of _tintedRoots) {
+    if (a.sceneryTint == null) _restoreMeshTint(root);
+    else                       _applyTintToMesh(root, a.sceneryTint);
+  }
+  // Recolor procedural decoration
+  const setMatColor = (mat, hex) => { if (mat && mat.color) mat.color.setHex(hex); };
+  for (const m of _proceduralByKind.grass)        setMatColor(m.material, a.grass);
+  for (const m of _proceduralByKind.fern)         setMatColor(m.material, a.fern);
+  for (const m of _proceduralByKind.log)          setMatColor(m.material, a.log);
+  for (const m of _proceduralByKind.logCap)       setMatColor(m.material, a.logCap);
+  for (const m of _proceduralByKind.mushroomStem) setMatColor(m.material, 0xf5e8c8);
+  for (const m of _proceduralByKind.mushroomCap)  setMatColor(m.material, a.mushroomCaps[Math.floor(Math.random() * a.mushroomCaps.length)]);
+  for (const m of _proceduralByKind.flower) {
+    setMatColor(m.material, parseInt(a.ground.flowers[Math.floor(Math.random() * a.ground.flowers.length)].replace('#',''), 16));
+  }
+}
 
 // ============================================================
 // WORLD / SCENERY
@@ -42,7 +124,12 @@ const _ALL_SCENERY_SLUGS = [
   ..._BUSH_SET,
 ];
 
+// Tree placement is biased by the current arena's treeWeights so each
+// arena's biome reads correctly (e.g. winter = mostly pines, autumn = mostly bare).
 export function addTree(x, z) {
+  const kind = _weightedTreeKind(_currentArena.treeWeights);
+  if (kind === 'pine') return addPineTree(x, z);
+  if (kind === 'bare') return addDeadTree(x, z);
   const slug = _TREE_LEAFY[Math.floor(Math.random() * _TREE_LEAFY.length)];
   const m = _cloneScenery(slug);
   if (!m) return;
@@ -52,6 +139,8 @@ export function addTree(x, z) {
   m.rotation.y = Math.random() * Math.PI * 2;
   m.traverse(c => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = false; } });
   scene.add(m);
+  if (_currentArena.sceneryTint != null) _applyTintToMesh(m, _currentArena.sceneryTint);
+  _tintedRoots.push(m);
   addSolid(x, z, 0.45);
 }
 
@@ -65,6 +154,8 @@ export function addPineTree(x, z) {
   m.rotation.y = Math.random() * Math.PI * 2;
   m.traverse(c => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = false; } });
   scene.add(m);
+  if (_currentArena.sceneryTint != null) _applyTintToMesh(m, _currentArena.sceneryTint);
+  _tintedRoots.push(m);
   addSolid(x, z, 0.40);
 }
 
@@ -78,6 +169,8 @@ export function addDeadTree(x, z) {
   m.rotation.y = Math.random() * Math.PI * 2;
   m.traverse(c => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = false; } });
   scene.add(m);
+  if (_currentArena.sceneryTint != null) _applyTintToMesh(m, _currentArena.sceneryTint);
+  _tintedRoots.push(m);
   addSolid(x, z, 0.38);
 }
 
@@ -100,6 +193,8 @@ export function addRock(x, z, scale = 1) {
   m.rotation.y = Math.random() * Math.PI * 2;
   m.traverse(c => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; } });
   scene.add(m);
+  if (_currentArena.sceneryTint != null) _applyTintToMesh(m, _currentArena.sceneryTint);
+  _tintedRoots.push(m);
   if (scale > 0.5) addSolid(x, z, scale * 0.85);
 }
 
@@ -113,6 +208,8 @@ export function addBush(x, z) {
   m.rotation.y = Math.random() * Math.PI * 2;
   m.traverse(c => { if (c.isMesh) { c.castShadow = false; c.receiveShadow = false; } });
   scene.add(m);
+  if (_currentArena.sceneryTint != null) _applyTintToMesh(m, _currentArena.sceneryTint);
+  _tintedRoots.push(m);
 }
 
 export function addLog(x, z) {
@@ -121,7 +218,7 @@ export function addLog(x, z) {
   const gh = groundHeight(x, z);
   const log = new THREE.Mesh(
     new THREE.CylinderGeometry(r, r, len, 10),
-    new THREE.MeshPhongMaterial({ color: 0x6a3818, flatShading: true, shininess: 0 })
+    new THREE.MeshPhongMaterial({ color: _currentArena.log, flatShading: true, shininess: 0 })
   );
   log.position.set(x, gh + r, z);
   log.rotation.z = Math.PI / 2;
@@ -129,7 +226,8 @@ export function addLog(x, z) {
   log.castShadow = true;
   log.receiveShadow = true;
   scene.add(log);
-  const capMat = new THREE.MeshPhongMaterial({ color: 0xa07a48, flatShading: true, shininess: 0 });
+  _proceduralByKind.log.push(log);
+  const capMat = new THREE.MeshPhongMaterial({ color: _currentArena.logCap, flatShading: true, shininess: 0 });
   for (const dx of [-1, 1]) {
     const cap = new THREE.Mesh(new THREE.CircleGeometry(r * 0.95, 12), capMat);
     cap.position.copy(log.position);
@@ -138,6 +236,7 @@ export function addLog(x, z) {
     cap.position.z += dir.z * dx * len / 2;
     cap.rotation.y = Math.atan2(dir.x, dir.z) + (dx === 1 ? 0 : Math.PI);
     scene.add(cap);
+    _proceduralByKind.logCap.push(cap);
   }
   const dir = new THREE.Vector3(Math.cos(log.rotation.y), 0, Math.sin(log.rotation.y));
   for (const t of [-1, 0, 1]) {
@@ -149,7 +248,7 @@ export function addMushrooms(x, z) {
   const count = 2 + Math.floor(Math.random() * 4);
   const gh = groundHeight(x, z);
   const stemMat = new THREE.MeshPhongMaterial({ color: 0xf5e8c8, flatShading: true, shininess: 0 });
-  const capColors = [0xc8302e, 0xd0a32e, 0x9c5a18];
+  const capColors = _currentArena.mushroomCaps;
   const capMat = new THREE.MeshPhongMaterial({ color: capColors[Math.floor(Math.random() * capColors.length)], flatShading: true, shininess: 0 });
   for (let i = 0; i < count; i++) {
     const ox = (Math.random() - 0.5) * 0.6;
@@ -158,16 +257,18 @@ export function addMushrooms(x, z) {
     const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.04, 0.05, h, 6), stemMat);
     stem.position.set(x + ox, gh + h / 2, z + oz);
     scene.add(stem);
+    _proceduralByKind.mushroomStem.push(stem);
     const capR = 0.10 + Math.random() * 0.08;
     const cap = new THREE.Mesh(new THREE.SphereGeometry(capR, 8, 6, 0, Math.PI * 2, 0, Math.PI / 2), capMat);
     cap.position.set(x + ox, gh + h, z + oz);
     scene.add(cap);
+    _proceduralByKind.mushroomCap.push(cap);
   }
 }
 
 export function addGrassTuft(x, z) {
   const gh = groundHeight(x, z);
-  const grassMat = new THREE.MeshPhongMaterial({ color: 0x4ea03f, flatShading: true, shininess: 0, side: THREE.DoubleSide });
+  const grassMat = new THREE.MeshPhongMaterial({ color: _currentArena.grass, flatShading: true, shininess: 0, side: THREE.DoubleSide });
   const blades = 3 + Math.floor(Math.random() * 4);
   for (let i = 0; i < blades; i++) {
     const h = 0.25 + Math.random() * 0.20;
@@ -180,12 +281,13 @@ export function addGrassTuft(x, z) {
     blade.rotation.y = Math.random() * Math.PI;
     blade.rotation.z = (Math.random() - 0.5) * 0.2;
     scene.add(blade);
+    _proceduralByKind.grass.push(blade);
   }
 }
 
 export function addFlower(x, z) {
-  const colors = [0xff5a9c, 0xffd23f, 0x9d6dff, 0xff9230, 0xffffff];
-  const color = colors[Math.floor(Math.random() * colors.length)];
+  const flowers = _currentArena.ground.flowers;
+  const color = parseInt(flowers[Math.floor(Math.random() * flowers.length)].replace('#',''), 16);
   const gh = groundHeight(x, z);
   const stemMat = new THREE.MeshPhongMaterial({ color: 0x3a8a3a, flatShading: true, shininess: 0 });
   const stem = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.025, 0.30, 4), stemMat);
@@ -197,6 +299,7 @@ export function addFlower(x, z) {
     petal.position.set(x, gh + 0.32, z);
     petal.rotation.y = i * Math.PI / 2;
     scene.add(petal);
+    _proceduralByKind.flower.push(petal);
   }
   const center = new THREE.Mesh(
     new THREE.SphereGeometry(0.04, 6, 5),
@@ -209,7 +312,7 @@ export function addFlower(x, z) {
 export function addFern(x, z) {
   const gh = groundHeight(x, z);
   const fronds = 4 + Math.floor(Math.random() * 4);
-  const mat = new THREE.MeshPhongMaterial({ color: 0x2f7d3e, flatShading: true, shininess: 0, side: THREE.DoubleSide });
+  const mat = new THREE.MeshPhongMaterial({ color: _currentArena.fern, flatShading: true, shininess: 0, side: THREE.DoubleSide });
   for (let i = 0; i < fronds; i++) {
     const a = (i / fronds) * Math.PI * 2;
     const h = 0.45 + Math.random() * 0.25;
@@ -221,6 +324,7 @@ export function addFern(x, z) {
     );
     frond.rotation.set(-0.5, a, 0);
     scene.add(frond);
+    _proceduralByKind.fern.push(frond);
   }
 }
 
