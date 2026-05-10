@@ -25,14 +25,14 @@ export const CATALOG = {
     {
       slug: 'oven_knight',
       name: 'Oven Knight',
-      icon: '🛡️',
+      icon: '🧱',
       desc: 'Heavy tank. Starts with Wallop Aura. +4 armor, +25 max HP, slower movement. Unique: Forge Hammer + Iron Hide.',
       sliceCost: 350,
     },
     {
       slug: 'crust_runner',
       name: 'Crust Runner',
-      icon: '👟',
+      icon: '🏃',
       desc: 'Speed demon. Starts with Pepperoni Boomerang. +35% speed, double jump, -15% cooldowns. Unique: Star Shower + Turbo Soles.',
       sliceCost: 500,
     },
@@ -51,11 +51,11 @@ export const CATALOG = {
     { slug: 'crossbow',  gameRef: 'crossbow',  defaultUnlocked: true },
     { slug: 'smoke',     gameRef: 'smoke',     defaultUnlocked: true },
     { slug: 'staff',     gameRef: 'staff',     defaultUnlocked: true },
-    // Character-unique weapons (available only to their character, or after 1500 weapon kills)
-    { slug: 'deep_dish',    gameRef: 'deep_dish',    characterUnique: 'pizza_hero',   killThreshold: 1500 },
-    { slug: 'blizzard',     gameRef: 'blizzard',     characterUnique: 'frost_baker',  killThreshold: 1500 },
-    { slug: 'forge_hammer', gameRef: 'forge_hammer', characterUnique: 'oven_knight',  killThreshold: 1500 },
-    { slug: 'star_shower',  gameRef: 'star_shower',  characterUnique: 'crust_runner', killThreshold: 1500 },
+    // Character-unique weapons — free for their owner; other chars unlock at 1500 kills then purchase
+    { slug: 'deep_dish',    gameRef: 'deep_dish',    characterUnique: 'pizza_hero',   killThreshold: 1500, sliceCost: 250 },
+    { slug: 'blizzard',     gameRef: 'blizzard',     characterUnique: 'frost_baker',  killThreshold: 1500, sliceCost: 250 },
+    { slug: 'forge_hammer', gameRef: 'forge_hammer', characterUnique: 'oven_knight',  killThreshold: 1500, sliceCost: 300 },
+    { slug: 'star_shower',  gameRef: 'star_shower',  characterUnique: 'crust_runner', killThreshold: 1500, sliceCost: 300 },
     {
       slug: 'meatball_minigun',
       name: 'Meatball Minigun', icon: '🍝',
@@ -80,11 +80,11 @@ export const CATALOG = {
     { slug: 'vamp',   gameRef: 'vamp',   defaultUnlocked: true },
     { slug: 'boots',  gameRef: 'boots',  defaultUnlocked: true },
     { slug: 'thorns', gameRef: 'thorns', defaultUnlocked: true },
-    // Character-unique armors
-    { slug: 'delivery_bag', gameRef: 'delivery_bag', characterUnique: 'pizza_hero',   killThreshold: 1500 },
-    { slug: 'frost_shell',  gameRef: 'frost_shell',  characterUnique: 'frost_baker',  killThreshold: 1500 },
-    { slug: 'iron_hide',    gameRef: 'iron_hide',    characterUnique: 'oven_knight',  killThreshold: 1500 },
-    { slug: 'turbo_soles',  gameRef: 'turbo_soles',  characterUnique: 'crust_runner', killThreshold: 1500 },
+    // Character-unique armors — free for their owner; other chars unlock at 1500 kills then purchase
+    { slug: 'delivery_bag', gameRef: 'delivery_bag', characterUnique: 'pizza_hero',   killThreshold: 1500, sliceCost: 200 },
+    { slug: 'frost_shell',  gameRef: 'frost_shell',  characterUnique: 'frost_baker',  killThreshold: 1500, sliceCost: 200 },
+    { slug: 'iron_hide',    gameRef: 'iron_hide',    characterUnique: 'oven_knight',  killThreshold: 1500, sliceCost: 275 },
+    { slug: 'turbo_soles',  gameRef: 'turbo_soles',  characterUnique: 'crust_runner', killThreshold: 1500, sliceCost: 250 },
     {
       slug: 'mirror_vest',
       name: 'Mirror Vest', icon: '🪞',

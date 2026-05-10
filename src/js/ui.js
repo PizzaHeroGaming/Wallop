@@ -358,7 +358,8 @@ export function generateOffers() {
     if (entry.defaultUnlocked) return true;
     if (entry.characterUnique) {
       if (_charSlug === entry.characterUnique) return true;
-      return Profile.getItemKills(gameRefId) >= (entry.killThreshold || 1500);
+      // Non-owning character: must reach kill threshold AND then purchase with slices
+      return Profile.isUnlocked(entry.slug);
     }
     // Slice-unlockable
     return Profile.isUnlocked(entry.slug);
@@ -939,18 +940,28 @@ function openArmoryDetail(entry, cat) {
   } else if (!unlocked) {
     if (entry.characterUnique) {
       const equippedChar = Profile.get().equippedCharacter || 'pizza_hero';
-      const kills = Profile.getItemKills(entry.gameRef || entry.slug);
+      const kills     = Profile.getItemKills(entry.gameRef || entry.slug);
       const threshold = entry.killThreshold || 1500;
-      const pct = Math.min(100, Math.round(kills / threshold * 100));
+      const pct       = Math.min(100, Math.round(kills / threshold * 100));
       if (equippedChar === entry.characterUnique) {
-        actionsHtml = `<div style="font-family:'VT323',monospace;color:var(--accent);font-size:18px;">Your character's exclusive — available in your upgrade pool!</div>`;
-      } else {
+        // Owning character — always in pool, no purchase needed
+        actionsHtml = `<div style="font-family:'VT323',monospace;color:var(--accent);font-size:18px;text-align:center;padding:8px 0;">⭐ Your character's exclusive<br>Available in your upgrade pool!</div>`;
+      } else if (kills >= threshold) {
+        // Kill threshold met — can now purchase with slices to unlock for all characters
+        const cost = entry.sliceCost || 250;
+        const can  = slices >= cost;
         actionsHtml = `
-          <div style="font-family:'VT323',monospace;color:var(--ink-dim);font-size:16px;margin-bottom:6px;">Unlock by getting ${threshold} kills with this item equipped (on any character)</div>
-          <div style="background:#252a4d;height:8px;border-radius:4px;margin:8px 0;border:2px solid #000">
-            <div style="background:#ffd23f;height:100%;width:${pct}%;border-radius:2px"></div>
+          <div style="font-family:'VT323',monospace;color:var(--accent);font-size:16px;text-align:center;margin-bottom:8px;">🏆 ${kills}/${threshold} kills — READY TO UNLOCK!</div>
+          <button class="unlock-btn" data-action="unlock" ${can ? '' : 'disabled'}>UNLOCK — 🍕 ${cost}</button>
+          <div style="font-family:'VT323',monospace;color:var(--ink-dim);font-size:14px;text-align:center;margin-top:6px;">Unlocks for all characters permanently</div>`;
+      } else {
+        // Still grinding toward kill threshold
+        actionsHtml = `
+          <div style="font-family:'VT323',monospace;color:var(--ink-dim);font-size:15px;text-align:center;margin-bottom:8px;">Earn ${threshold} kills while this item is equipped</div>
+          <div style="background:#0d1126;height:14px;border-radius:3px;border:2px solid #000;overflow:hidden;">
+            <div style="background:linear-gradient(90deg,#ffd23f,#ff8c00);height:100%;width:${pct}%;transition:width 0.3s;"></div>
           </div>
-          <div style="font-family:'VT323',monospace;color:var(--ink-dim);font-size:16px;">${kills} / ${threshold} kills (${pct}%)</div>`;
+          <div style="font-family:'VT323',monospace;color:var(--ink-dim);font-size:15px;text-align:center;margin-top:6px;">${kills} / ${threshold} kills &nbsp;·&nbsp; ${pct}%</div>`;
       }
     } else if (entry.placeholder && !entry.sliceCost) {
       actionsHtml = `<button class="unlock-btn" disabled>COMING SOON</button>`;
@@ -1350,6 +1361,16 @@ export function initButtons() {
     gameState.state = 'start';
     if (document.pointerLockElement) document.exitPointerLock();
     syncSliceDisplays();
+  });
+
+  // About
+  document.getElementById('about-btn').addEventListener('click', () => {
+    document.getElementById('start-screen').classList.add('hidden');
+    document.getElementById('about-screen').classList.remove('hidden');
+  });
+  document.getElementById('about-close').addEventListener('click', () => {
+    document.getElementById('about-screen').classList.add('hidden');
+    document.getElementById('start-screen').classList.remove('hidden');
   });
 
   // Exit

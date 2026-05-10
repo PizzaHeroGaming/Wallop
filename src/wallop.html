@@ -1507,6 +1507,26 @@
     .stage-btn, .diff-btn { font-size: 8px; padding: 8px 10px; min-width: 70px; }
   }
   /* ===== end stage select ===== */
+
+  /* ===== ABOUT SCREEN ===== */
+  #about-screen { align-items: flex-start; justify-content: flex-start; padding: 20px 16px 32px; }
+  .about-panel { width: 100%; max-width: 640px; margin: 0 auto; }
+  .about-title { font-family: 'Press Start 2P', monospace; font-size: 20px; color: var(--accent); text-align: center; margin-bottom: 4px; text-shadow: 3px 3px 0 #000; }
+  .about-sub { font-family: 'VT323', monospace; font-size: 22px; color: var(--ink-dim); text-align: center; margin-bottom: 20px; }
+  .about-section { background: var(--panel); border: 3px solid #000; box-shadow: 4px 4px 0 #000; padding: 18px 20px; margin-bottom: 14px; }
+  .about-heading { font-family: 'Press Start 2P', monospace; font-size: 10px; color: var(--accent); letter-spacing: 1px; margin-bottom: 12px; }
+  .about-body { font-family: 'VT323', monospace; font-size: 20px; color: var(--ink); line-height: 1.5; margin: 0 0 10px; }
+  .patch-entry { margin-bottom: 16px; }
+  .patch-ver { font-family: 'Press Start 2P', monospace; font-size: 8px; color: var(--hot); margin-bottom: 8px; }
+  .patch-list { font-family: 'VT323', monospace; font-size: 18px; color: var(--ink-dim); margin: 0; padding-left: 20px; line-height: 1.6; }
+  .patch-list li { margin-bottom: 2px; }
+  @media (max-height: 500px) {
+    #about-screen { padding: 10px 12px 20px; }
+    .about-title { font-size: 14px; }
+    .about-sub { font-size: 16px; margin-bottom: 10px; }
+    .about-section { padding: 12px 14px; margin-bottom: 10px; }
+  }
+  /* ===== end about screen ===== */
 </style>
 </head>
 <body>
@@ -1702,6 +1722,7 @@ window.addEventListener('load', () => {
   <div class="start-actions">
     <button class="btn hot" id="start-btn">▶ START RUN</button>
     <button class="btn" id="armory-btn">🍕 ARMORY</button>
+    <button class="btn" id="about-btn">📋 ABOUT</button>
     <button class="btn" id="exit-btn">EXIT GAME</button>
   </div>
   <div id="slice-counter">
@@ -1710,6 +1731,97 @@ window.addEventListener('load', () => {
     <span class="slice-label">SLICES</span>
   </div>
   <div style="font-family:'VT323',monospace;font-size:18px;color:var(--ink-dim);">desktop recommended · works on mobile</div>
+</div>
+
+<!-- About screen -->
+<div id="about-screen" class="overlay hidden" style="overflow-y:auto;">
+  <div class="about-panel">
+    <div class="about-title">WALLOP</div>
+    <div class="about-sub">Pizza Hero Gaming</div>
+
+    <div class="about-section">
+      <div class="about-heading">THANK YOU</div>
+      <p class="about-body">
+        To everyone playing, testing, and sharing WALLOP — thank you.
+        Every bug report, every "this feels off," every run you've pushed through
+        makes the game better. You're fighting through waves of food-themed chaos
+        so we can find the fun. We see you. This one's for you.
+      </p>
+      <p class="about-body" style="color:var(--accent);">
+        — The Pizza Hero Gaming team
+      </p>
+    </div>
+
+    <div class="about-section">
+      <div class="about-heading">PATCH LOG</div>
+
+      <div class="patch-entry">
+        <div class="patch-ver">v0.5 — Character Update</div>
+        <ul class="patch-list">
+          <li>3 new playable characters: Frost Baker, Oven Knight, Crust Runner</li>
+          <li>Each character has a unique weapon + armor exclusive to them</li>
+          <li>Cross-character unlock: reach 1,500 kills with a unique item equipped, then purchase it with Slices</li>
+          <li>5 new slice-unlockable items: Meatball Minigun, Cheese Whip, Olive Railgun, Mirror Vest, Phoenix Apron</li>
+          <li>Stage progression: defeat the Warlord to advance to Stage 2 → 3, carrying full loadout over</li>
+          <li>Difficulty selector: Easy / Normal / Hard / Extreme with scaled enemy stats and Slice rewards</li>
+          <li>All 7 permanent boosts now active at run start (damage, health, armor, speed, XP, gold, revive)</li>
+          <li>Call the Boss: spend 50 gold from pause menu to summon the final boss immediately</li>
+          <li>Boss ranged attacks fixed — Sauce Slinger, Hammer Chef, and Warlord all fire their specials</li>
+          <li>Stage scaling: Stage 2/3 enemy floors prevent early waves from feeling like a cooldown lap</li>
+          <li>Camera resumes automatically after choosing from chest/level-up screens</li>
+        </ul>
+      </div>
+
+      <div class="patch-entry">
+        <div class="patch-ver">v0.4 — Weapons &amp; Visuals</div>
+        <ul class="patch-list">
+          <li>KayKit 3D character models for the player and skeleton enemies</li>
+          <li>KayKit weapon models: boomerang → 3D axe, wand orbiting for Thunder Strike, round shield orbital</li>
+          <li>New weapons: Crossbow Bolt (precision pierce), Smoke Bomb (cloud DoT), Bone Staff (skeleton conjurer)</li>
+          <li>Thunder wand cosmetic orbits the player while equipped</li>
+          <li>GPU resource leak fix — all meshes now properly disposed on removal (eliminates pink-screen crash)</li>
+        </ul>
+      </div>
+
+      <div class="patch-entry">
+        <div class="patch-ver">v0.3 — Boss System</div>
+        <ul class="patch-list">
+          <li>3-tier boss system: The Sauce Slinger (3:00), The Hammer Chef (6:00), The Warlord (10:00)</li>
+          <li>Boss phase transitions at 50% and 25% HP (Enraged / Desperate)</li>
+          <li>Telegraphed ranged attacks: sauce lobs, cleaver fans, homing shockwaves</li>
+          <li>Boss HP bar, name display, and kill banners</li>
+          <li>Victory screen with run stats</li>
+          <li>Slice meta-currency earned from boss kills, spent in Armory</li>
+        </ul>
+      </div>
+
+      <div class="patch-entry">
+        <div class="patch-ver">v0.2 — Core Loop</div>
+        <ul class="patch-list">
+          <li>Level-up and chest choice screens with reroll (gold + watch-ad)</li>
+          <li>Armor and Tome systems alongside the weapon pool</li>
+          <li>Armory screen with character, weapon, armor, tome, and boost tabs</li>
+          <li>Synergy upgrades that unlock when prerequisite items are owned</li>
+          <li>Mobile dual-stick floating joystick controls</li>
+          <li>Full mobile browser support: viewport, fullscreen, no scroll</li>
+        </ul>
+      </div>
+
+      <div class="patch-entry">
+        <div class="patch-ver">v0.1 — Initial Release</div>
+        <ul class="patch-list">
+          <li>Three.js 3D world with procedural rolling terrain and forest ring</li>
+          <li>Pizza Delivery Hero player with animated walk/run/idle cycle</li>
+          <li>6 enemy types: goblin, bat, brute, skelly, imp, warlord</li>
+          <li>Pizza Toss starter weapon with auto-aim</li>
+          <li>Jump, dash, camera rotate</li>
+          <li>XP gems, gold coins, chest spawns</li>
+        </ul>
+      </div>
+    </div>
+
+    <button class="btn" id="about-close" style="margin-top:16px;">← BACK</button>
+  </div>
 </div>
 
 <!-- Armory: catalog of unlocked & locked items -->

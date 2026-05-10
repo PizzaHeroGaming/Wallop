@@ -199,7 +199,7 @@ defWeapon('aura', {
 
 // 3. ORBIT
 defWeapon('orbit', {
-  name: 'Pizza Wheel', icon: '🍕',
+  name: 'Pizza Wheel', icon: '☸️',
   desc: 'Spinning slices of justice orbit around you.',
   maxLevel: 6,
   init: () => ({ cd: 0, count: 2, radius: 2.4, speed: 2.4, dmg: 10 }),
@@ -641,7 +641,7 @@ defWeapon('smoke', {
 
 // 8d. BONE STAFF
 defWeapon('staff', {
-  name: 'Bone Staff', icon: '🪄',
+  name: 'Bone Staff', icon: '🦴',
   desc: 'Channels bone magic. Fires slow homing bolts that track nearby enemies.',
   maxLevel: 6,
   init: () => ({ cd: 0, dmg: 22, count: 1 }),
@@ -887,7 +887,7 @@ defArmor('helmet', {
 });
 
 defArmor('shield', {
-  name: 'Kinetic Shield', icon: '❖',
+  name: 'Kinetic Shield', icon: '💠',
   desc: 'Energy shield absorbs hits before HP, then regenerates.',
   maxLevel: 5,
   init: () => ({ }),
@@ -1029,7 +1029,7 @@ defTome('hunter', {
 });
 
 defTome('cursed', {
-  name: 'Cursed Tome', icon: '📕',
+  name: 'Cursed Tome', icon: '💀',
   desc: 'Enemies hit harder, but drops improve dramatically.',
   maxLevel: 4,
   init: () => ({ }),
@@ -1360,7 +1360,7 @@ defArmor('delivery_bag', {
 
 // Frost Baker unique: ice shield that absorbs damage and slows attackers on break
 defArmor('frost_shell', {
-  name: 'Frost Shell', icon: '🧊',
+  name: 'Frost Shell', icon: '❄️',
   desc: 'Frost Baker exclusive. Ice shield absorbs damage and slows attackers on break.',
   maxLevel: 4,
   init: () => ({ }),
@@ -1378,7 +1378,7 @@ defArmor('frost_shell', {
 
 // Oven Knight unique: heavy flat armor + berserker trigger
 defArmor('iron_hide', {
-  name: 'Iron Hide', icon: '⚙️',
+  name: 'Iron Hide', icon: '🪨',
   desc: 'Oven Knight exclusive. Massive flat armor. Below 30% HP: +50% damage, knockback immune.',
   maxLevel: 4,
   init: () => ({ }),
@@ -1395,7 +1395,7 @@ defArmor('iron_hide', {
 
 // Crust Runner unique: speed boost + dash deals damage
 defArmor('turbo_soles', {
-  name: 'Turbo Soles', icon: '⚡',
+  name: 'Turbo Soles', icon: '🏃',
   desc: 'Crust Runner exclusive. Dashing deals damage to nearby enemies and restores HP.',
   maxLevel: 4,
   init: () => ({ }),
