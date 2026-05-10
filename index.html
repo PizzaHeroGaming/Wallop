@@ -1035,18 +1035,41 @@
 
   /* Short landscape (most phones held horizontally) — vertical room is the
      enemy here. Squeeze title, hide non-essential elements. */
-  /* Landscape mobile: shrink title, compact layout, mobile char selector takes over */
+  /* Landscape mobile: shrink title, compact layout, mobile char selector takes over.
+     Use CSS grid so ARENA and DIFFICULTY sit side-by-side (difficulty buttons stack
+     vertically), saving a row of vertical space. */
   @media (max-height: 560px) {
     #title-block { gap: 0; }
-    #title { font-size: clamp(24px, 8vw, 44px); text-shadow: 3px 3px 0 #000; }
-    #subtitle { font-size: 11px; margin: 0; }
+    #title { font-size: clamp(20px, 6vw, 36px); text-shadow: 3px 3px 0 #000; }
+    #subtitle { font-size: 10px; margin: 0; }
     #start-screen { gap: 4px; padding-top: 4px; padding-bottom: 4px; }
-    #start-main { gap: 10px; align-items: flex-start; }
+    #start-main { gap: 8px; align-items: flex-start; }
     #start-screen .panel { display: none; }
-    #start-left { gap: 8px; justify-content: center; }
-    .start-run-config { margin-bottom: 0; padding: 8px 12px 10px; }
-    .start-actions { gap: 7px; }
-    .start-actions .btn { padding: 10px 16px; font-size: 9px !important; min-height: 40px; }
+
+    #start-left {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      grid-template-areas:
+        "arena diff"
+        "hero  hero"
+        "actions actions";
+      gap: 8px;
+      width: 100%;
+      max-width: 560px;
+      align-items: stretch;
+    }
+    #mob-arena-select  { grid-area: arena; margin: 0; max-width: none; }
+    .start-run-config  { grid-area: diff; margin: 0; padding: 6px 8px 8px; min-width: 110px; }
+    #mob-char-select   { grid-area: hero; max-width: none; }
+    .start-actions     { grid-area: actions; gap: 6px; flex-wrap: wrap; }
+
+    /* Difficulty buttons stack vertically inside the right column */
+    #diff-btns { flex-direction: column; align-items: stretch; gap: 4px; flex-wrap: nowrap; }
+    .diff-btn  { width: 100%; min-width: 90px; padding: 7px 10px; font-size: 8px; }
+    .sel-title { font-size: 8px; margin-bottom: 4px; }
+
+    /* Compress action buttons to fit in one row */
+    .start-actions .btn { padding: 8px 12px; font-size: 8px !important; min-height: 36px; flex: 1 1 auto; }
   }
 
   @media (max-height: 500px) {
