@@ -1533,7 +1533,7 @@ function initCharSelect() {
   _refreshCharSelectUI();
   _loadPreviewChar(_charOrder[_charSelIdx]);
 
-  // Navigation arrows
+  // Navigation arrows — desktop panel
   document.getElementById('char-prev-btn').addEventListener('click', () => {
     _charSelIdx = (_charSelIdx - 1 + _charOrder.length) % _charOrder.length;
     _loadPreviewChar(_charOrder[_charSelIdx]);
@@ -1545,8 +1545,31 @@ function initCharSelect() {
     _refreshCharSelectUI();
   });
 
-  // Select button
+  // Navigation arrows — mobile compact selector
+  const _mobPrev = document.getElementById('mob-char-prev');
+  const _mobNext = document.getElementById('mob-char-next');
+  if (_mobPrev) _mobPrev.addEventListener('click', () => {
+    _charSelIdx = (_charSelIdx - 1 + _charOrder.length) % _charOrder.length;
+    _loadPreviewChar(_charOrder[_charSelIdx]);
+    _refreshCharSelectUI();
+  });
+  if (_mobNext) _mobNext.addEventListener('click', () => {
+    _charSelIdx = (_charSelIdx + 1) % _charOrder.length;
+    _loadPreviewChar(_charOrder[_charSelIdx]);
+    _refreshCharSelectUI();
+  });
+
+  // Select button — desktop
   document.getElementById('char-select-btn').addEventListener('click', () => {
+    const slug = _charOrder[_charSelIdx];
+    if (!Profile.isUnlocked(slug)) return;
+    Profile.setEquippedCharacter(slug);
+    _refreshCharSelectUI();
+  });
+
+  // Select button — mobile
+  const _mobSelectBtn = document.getElementById('mob-char-btn');
+  if (_mobSelectBtn) _mobSelectBtn.addEventListener('click', () => {
     const slug = _charOrder[_charSelIdx];
     if (!Profile.isUnlocked(slug)) return;
     Profile.setEquippedCharacter(slug);
@@ -1602,21 +1625,9 @@ function _refreshCharSelectUI() {
   const unlocked = Profile.isUnlocked(slug);
   const equipped = Profile.get().equippedCharacter === slug;
 
-  // Icon + name
-  const badge = document.getElementById('char-select-badge');
-  const name  = document.getElementById('char-select-name');
-  const desc  = document.getElementById('char-select-subdesc');
-  if (badge) badge.textContent = entry.icon || '';
-  if (name)  name.textContent  = entry.name || '';
-  if (desc)  {
-    // Show short stat line, not the full desc (too long)
-    const lines = (entry.desc || '').split('.').filter(Boolean);
-    desc.textContent = lines.slice(1).join('. ').trim() || lines[0] || '';
-  }
-
-  // Select button state
-  const btn = document.getElementById('char-select-btn');
-  if (btn) {
+  // Helper: apply select-button state to any button element
+  function _applyBtnState(btn) {
+    if (!btn) return;
     if (equipped) {
       btn.textContent = '✓ SELECTED';
       btn.disabled    = true;
@@ -1635,13 +1646,34 @@ function _refreshCharSelectUI() {
     }
   }
 
-  // Dot indicators
-  const dotsEl = document.getElementById('char-select-dots');
-  if (dotsEl) {
+  // Helper: render dot indicators into a container element
+  function _applyDots(dotsEl) {
+    if (!dotsEl) return;
     dotsEl.innerHTML = _charOrder.map((s, i) => {
-      const isLocked   = !Profile.isUnlocked(s);
-      const isActive   = i === _charSelIdx;
+      const isLocked = !Profile.isUnlocked(s);
+      const isActive = i === _charSelIdx;
       return `<span class="char-dot${isActive ? ' active' : ''}${isLocked ? ' locked' : ''}"></span>`;
     }).join('');
   }
+
+  // ── Desktop 3D panel ──
+  const badge = document.getElementById('char-select-badge');
+  const name  = document.getElementById('char-select-name');
+  const desc  = document.getElementById('char-select-subdesc');
+  if (badge) badge.textContent = entry.icon || '';
+  if (name)  name.textContent  = entry.name || '';
+  if (desc) {
+    const lines = (entry.desc || '').split('.').filter(Boolean);
+    desc.textContent = lines.slice(1).join('. ').trim() || lines[0] || '';
+  }
+  _applyBtnState(document.getElementById('char-select-btn'));
+  _applyDots(document.getElementById('char-select-dots'));
+
+  // ── Mobile compact selector ──
+  const mobBadge = document.getElementById('mob-char-badge');
+  const mobName  = document.getElementById('mob-char-name');
+  if (mobBadge) mobBadge.textContent = entry.icon || '';
+  if (mobName)  mobName.textContent  = entry.name || '';
+  _applyBtnState(document.getElementById('mob-char-btn'));
+  _applyDots(document.getElementById('mob-char-dots'));
 }

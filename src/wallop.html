@@ -1035,28 +1035,16 @@
 
   /* Short landscape (most phones held horizontally) — vertical room is the
      enemy here. Squeeze title, hide non-essential elements. */
-  /* Landscape mobile: viewport is short — collapse the title and shrink everything */
+  /* Landscape mobile: hide title, compact layout, mobile char selector takes over */
   @media (max-height: 560px) {
-    /* Hide the big WALLOP title to save vertical space */
     #title-block { display: none; }
     #start-screen { gap: 6px; padding-top: 6px; padding-bottom: 6px; }
     #start-main { gap: 10px; align-items: flex-start; }
-    /* Left column: hide how-to tips, compact spacing */
     #start-screen .panel { display: none; }
     #start-left { gap: 8px; justify-content: center; }
     .start-run-config { margin-bottom: 0; padding: 8px 12px 10px; }
     .start-actions { gap: 7px; }
     .start-actions .btn { padding: 10px 16px; font-size: 9px !important; min-height: 40px; }
-    /* Char panel: compact but still visible */
-    #char-select-panel { padding: 8px 10px; gap: 5px; }
-    .sel-title { font-size: 7px; margin-bottom: 2px; }
-    #char-preview-canvas { width: 110px; height: 180px; }
-    #char-select-name { font-size: 7px; }
-    #char-select-subdesc { font-size: 13px; max-width: 140px; }
-    #char-select-btn { padding: 8px 10px !important; font-size: 7px !important; min-height: 36px; }
-    .char-arrow { padding: 8px 7px; min-height: 36px; font-size: 11px; }
-    #char-select-dots { gap: 4px; }
-    .char-dot { width: 8px; height: 8px; }
   }
 
   @media (max-height: 500px) {
@@ -1582,21 +1570,27 @@
   }
   .char-dot.active  { background: var(--accent); }
   .char-dot.locked  { opacity: 0.35; }
-  /* On narrow screens: char panel stacks above start-left */
-  @media (max-width: 680px) {
-    #start-main { flex-direction: column-reverse; align-items: center; gap: 14px; }
-    #char-select-panel { width: 100%; max-width: 420px; flex-direction: row; flex-wrap: wrap; justify-content: center; padding: 12px 14px; }
-    #char-preview-wrap { order: -1; }
-    #char-preview-canvas { width: 110px; height: 180px; }
-    #char-select-info { flex: 1 1 160px; align-items: flex-start; }
-    #char-select-subdesc { max-width: 180px; font-size: 15px; }
-    #char-select-btn { width: auto; min-width: 110px; }
-    #char-select-dots { flex: 0 0 100%; justify-content: center; }
+  /* Mobile compact char selector — hidden on desktop, shown on mobile */
+  #mob-char-select { display: none; width: 100%; flex-direction: column; align-items: center; gap: 6px; }
+  .mob-char-row { display: flex; align-items: center; gap: 10px; justify-content: center; width: 100%; }
+  .mob-char-info { display: flex; align-items: center; gap: 8px; justify-content: center; min-width: 160px; }
+  #mob-char-badge { font-size: 26px; line-height: 1; }
+  #mob-char-name { font-family: 'Press Start 2P', monospace; font-size: 8px; color: var(--accent); }
+  #mob-char-btn { font-size: 9px !important; padding: 9px 14px !important; min-height: 38px; width: 100%; max-width: 240px; }
+  #mob-char-dots { display: flex; gap: 6px; align-items: center; }
+
+  /* On landscape mobile (short viewport): swap 3D panel for compact selector */
+  @media (max-height: 560px) {
+    #mob-char-select { display: flex; }
+    #char-select-panel { display: none !important; }
+    #start-main { flex-direction: row; }
   }
-  /* Very narrow phones in portrait */
-  @media (max-width: 400px) {
-    #char-preview-canvas { width: 90px; height: 145px; }
-    #char-select-info { flex-basis: 120px; }
+  /* On narrow portrait screens: same swap */
+  @media (max-width: 680px) {
+    #mob-char-select { display: flex; }
+    #char-select-panel { display: none !important; }
+    #start-main { flex-direction: column; align-items: center; gap: 12px; }
+    #start-left { width: 100%; max-width: 480px; }
   }
   /* ===== end character select ===== */
 
@@ -1814,6 +1808,20 @@ window.addEventListener('load', () => {
       <div class="start-run-config">
         <div class="sel-title">DIFFICULTY</div>
         <div id="diff-btns" class="sel-row"></div>
+      </div>
+      <!-- Mobile-only compact character selector (shown instead of the 3D panel) -->
+      <div id="mob-char-select">
+        <div class="sel-title">CHOOSE YOUR HERO</div>
+        <div class="mob-char-row">
+          <button class="char-arrow" id="mob-char-prev">◀</button>
+          <div class="mob-char-info">
+            <span id="mob-char-badge"></span>
+            <span id="mob-char-name"></span>
+          </div>
+          <button class="char-arrow" id="mob-char-next">▶</button>
+        </div>
+        <button class="btn" id="mob-char-btn"></button>
+        <div id="mob-char-dots"></div>
       </div>
       <div class="start-actions">
         <button class="btn hot" id="start-btn">▶ START RUN</button>
