@@ -1034,6 +1034,13 @@ export function spawnEnemy(typeKey, opts = {}) {
   const t = gameState.gameTime;
   let hpScale = 1 + t / 180 + Math.pow(t / 320, 1.6);
   let dmgScale = 1 + t / 240;
+  // Stages 2 and 3 reset gameTime to 0 but the player arrives powered up.
+  // Enforce a minimum hpScale so early-stage enemies don't feel like a
+  // cooldown lap — Stage 2 floor ≈ the 5-min mark, Stage 3 ≈ the 8-min mark.
+  const stageHpFloor = 1 + (gameState.stage - 1) * 2.5;
+  if (hpScale < stageHpFloor) hpScale = stageHpFloor;
+  const stageDmgFloor = 1 + (gameState.stage - 1) * 1.0;
+  if (dmgScale < stageDmgFloor) dmgScale = stageDmgFloor;
   const curseMult = 1 + (player.curse || 0) * 0.18;
   hpScale *= curseMult;
   dmgScale *= 1 + (player.curse || 0) * 0.12;

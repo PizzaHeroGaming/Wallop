@@ -89,10 +89,11 @@ export function killEnemy(e) {
       // Apply stage + difficulty bonus to slice reward
       const sm = STAGE_MULTS[gameState.stage]  || STAGE_MULTS[1];
       const dm = DIFFICULTIES[gameState.difficulty] || DIFFICULTIES.normal;
-      const totalSlices = Math.round(e.sliceDrop * sm.sliceBonus * dm.sliceBonus);
+      const rawMult = Math.min(sm.sliceBonus * dm.sliceBonus, 4.0); // cap at 4× to keep economy sane
+      const totalSlices = Math.round(e.sliceDrop * rawMult);
       Profile.addSlices(totalSlices);
       gameState.slicesEarned = (gameState.slicesEarned || 0) + totalSlices;
-      const bonusNote = totalSlices !== e.sliceDrop ? ` (×${(sm.sliceBonus * dm.sliceBonus).toFixed(1)})` : '';
+      const bonusNote = totalSlices !== e.sliceDrop ? ` (×${rawMult.toFixed(1)})` : '';
       showAlert(`+${totalSlices} 🍕 SLICES${bonusNote}`, '#ffd23f');
       syncSliceDisplays();
     }
