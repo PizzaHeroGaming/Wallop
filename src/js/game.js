@@ -19,7 +19,7 @@ import {
   setDamageEnemyCb, setOnLevelUpReady,
   spawnGold, spawnSmokeCloud, makeEnemyMesh, ENEMY_DEFS,
 } from './entities.js';
-import { WEAPONS, setDamageEnemyForWeapons, rebuildOrbits } from './weapons.js';
+import { WEAPONS, ARMOR, TOMES, setDamageEnemyForWeapons, rebuildOrbits } from './weapons.js';
 import {
   gameState, cam,
 } from './state.js';
@@ -100,7 +100,9 @@ export function killEnemy(e, srcWeaponId = null) {
     if (e.bossTier === 'final') {
       Profile.clearStage(gameState.stage);
       if (gameState.stage < 3) {
-        // Not the last stage — advance to next stage instead of showing victory
+        // Not the last stage — advance to next stage instead of showing victory.
+        // IMPORTANT: clean up boss entity here before returning so subsequent
+        // weapon-hit frames cannot re-enter killEnemy with this same entity.
         gameState.bossSpawned = false; // prevent win condition from triggering
         const completedStage = gameState.stage;
         const nextStage = gameState.stage + 1;
@@ -108,6 +110,15 @@ export function killEnemy(e, srcWeaponId = null) {
         setTimeout(() => showAlert(`STAGE ${completedStage} COMPLETE! 🏆`, '#ffd23f'), 800);
         setTimeout(() => showAlert(`ADVANCING TO STAGE ${nextStage}…`, '#42f5a1'), 1900);
         setTimeout(() => advanceStage(), 3200);
+        // Clean up boss mesh + array entry NOW (before return)
+        if (e.mixer) { e.mixer.stopAllAction(); e.mixer = null; }
+        killMesh(e.mesh);
+        const bossIdx = enemies.indexOf(e);
+        if (bossIdx >= 0) enemies.splice(bossIdx, 1);
+        gameState.kills++;
+        if (KILL_MILESTONES.has(gameState.kills)) showAlert(`${gameState.kills} KILLS!`, '#42f5a1');
+        if (srcWeaponId) Profile.addItemKill(srcWeaponId);
+        for (const a of player.armor_items) Profile.addItemKill(a.id);
         return; // skip the normal BOSS DOWN banner
       }
       // Stage 3 final kill — win condition in update() will fire triggerGameOver(true)
@@ -391,8 +402,123 @@ function updateSpawning(dt) {
 }
 
 // ============================================================
+// STRIP HALF THE PLAYER'S LOADOUT — called on stage advance.
+// Resets stat contributions from armor/tomes and re-applies only
+// the kept items, so the player genuinely loses power.
+// ============================================================
+function _stripHalfItems() {
+  // Pick ~half of each category to keep (minimum 1 weapon always kept)
+  function keepHalf(arr) {
+    if (arr.length <= 1) return [...arr];
+    const keep = Math.ceil(arr.length / 2);
+    const shuffled = [...arr].sort(() => Math.random() - 0.5);
+    return shuffled.slice(0, keep);
+  }
+
+  const _charStarters = { pizza_hero: 'pizza', frost_baker: 'ice', oven_knight: 'aura', crust_runner: 'boomerang' };
+  const _charSlug = Profile.get().equippedCharacter || 'pizza_hero';
+  const starterWepId = _charStarters[_charSlug] || 'pizza';
+
+  let keptWeapons = keepHalf(player.weapons);
+  // Always keep the character's starter weapon
+  if (!keptWeapons.find(w => w.id === starterWepId)) {
+    const starter = player.weapons.find(w => w.id === starterWepId);
+    if (starter) keptWeapons.push(starter);
+  }
+  const keptArmor = keepHalf(player.armor_items);
+  const keptTomes  = keepHalf(player.tomes);
+
+  // --- Reset all stats that armor/tomes contribute to ---
+  // (keep base player.maxHp and player.hp — warding tome re-adds during replay)
+  const baseMaxHp = 120
+    + 10 * Profile.getBoostLevel('boost_health')
+    + (_charSlug === 'oven_knight' ? 25 : 0);
+  player.maxHp         = baseMaxHp;
+  player.hp            = Math.min(player.hp, player.maxHp);
+  player.hpRegen       = 0;
+  player.armor         = 0;
+  player.dodgeChance   = 0;
+  player.shieldMax     = 0;
+  player.shield        = 0;
+  player.lifesteal     = 0;
+  player.baseSpeed     = CFG.PLAYER_SPEED;
+  player.maxJumps      = 1;
+  player.jumpsLeft     = Math.min(player.jumpsLeft, 1);
+  player.dashCdMult    = 1.0;
+  player.thorns        = 0;
+  player.damageMult    = 1.0;
+  player.cooldownMult  = 1.0;
+  player.luck          = 0;
+  player.xpGain        = 1.0;
+  player.critChance    = 0.05;
+  player.critMult      = 2.0;
+  player.projectileMult  = 1.0;
+  player.projectilePierce = 0;
+  player.aoeMult       = 1.0;
+  player.durationMult  = 1.0;
+  player.knockResist   = 0;
+  player.curse         = 0;
+  player.frostThorns   = 0;
+  player.goldMult      = 1.0;
+  player.phoenixRevive = false;
+  player.hasRevive     = false;
+  player.turboDash     = 0;
+
+  // Re-apply persistent boosts (same as resetGame)
+  const _bl = slug => Profile.getBoostLevel(slug);
+  if (_bl('boost_damage') > 0) player.damageMult += 0.05 * _bl('boost_damage');
+  if (_bl('boost_armor')  > 0) player.armor      += 1    * _bl('boost_armor');
+  if (_bl('boost_speed')  > 0) player.baseSpeed  *= 1 + 0.05 * _bl('boost_speed');
+  if (_bl('boost_xp')     > 0) player.xpGain     += 0.10 * _bl('boost_xp');
+  if (_bl('boost_gold')   > 0) player.goldMult   += 0.10 * _bl('boost_gold');
+  if (_bl('boost_revive') > 0) player.hasRevive   = true;
+
+  // Re-apply character stat bonuses
+  if (_charSlug === 'oven_knight') {
+    player.armor    += 4;
+    player.baseSpeed *= 0.8;
+  } else if (_charSlug === 'frost_baker') {
+    player.durationMult *= 1.5;
+  } else if (_charSlug === 'crust_runner') {
+    player.baseSpeed   *= 1.35;
+    player.maxJumps     = 2;
+    player.cooldownMult *= 0.85;
+  }
+
+  // Replay upgrade() for each kept armor item to re-apply its effects
+  for (const a of keptArmor) {
+    const savedLevel = a.level || 1;
+    a.level = 0;
+    const def = ARMOR[a.id];
+    if (def && def.upgrade) {
+      for (let i = 0; i < savedLevel; i++) def.upgrade(a);
+    } else {
+      a.level = savedLevel;
+    }
+  }
+
+  // Replay upgrade() for each kept tome item to re-apply its effects
+  for (const t of keptTomes) {
+    const savedLevel = t.level || 1;
+    t.level = 0;
+    const def = TOMES[t.id];
+    if (def && def.upgrade) {
+      for (let i = 0; i < savedLevel; i++) def.upgrade(t);
+    } else {
+      t.level = savedLevel;
+    }
+  }
+
+  // Commit stripped arrays
+  player.weapons     = keptWeapons;
+  player.armor_items = keptArmor;
+  player.tomes       = keptTomes;
+
+  showAlert(`HALF YOUR LOADOUT STRIPPED! ⚠️`, '#ff3864');
+}
+
+// ============================================================
 // ADVANCE STAGE — carry player over to the next stage
-// Called when a non-final-stage boss is defeated.
 // ============================================================
 function advanceStage() {
   // Clear world entities but keep player intact
@@ -423,7 +549,10 @@ function advanceStage() {
   if (_staffMesh)       { killMesh(_staffMesh);       set_staffMesh(null); }
   set_thunderWandAngle(0); set_shieldOrbitAngle(0); set_staffAngle(0);
 
-  // Heal player 50% max HP as a stage-clear bonus
+  // Strip ~half the player's loadout and rebuild stats from remaining items
+  _stripHalfItems();
+
+  // Heal player 50% max HP as a stage-clear bonus (after strip, so cap is correct)
   player.hp = Math.min(player.maxHp, player.hp + Math.round(player.maxHp * 0.5));
   player.invuln = 0;
   player.dashCd = 0;

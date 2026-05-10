@@ -13,10 +13,12 @@ export const CFG = {
 };
 
 // Stage scaling: enemy stats, boss stats, slice reward multipliers per stage
+// Stage 2/3 are intentionally much harder — the player also loses half their
+// loadout when advancing, so enemy scaling needs to account for that handicap.
 export const STAGE_MULTS = {
-  1: { enemy: 1.0,  bossHp: 1.0, bossDmg: 1.0, sliceBonus: 1.0 },
-  2: { enemy: 1.35, bossHp: 1.5, bossDmg: 1.3, sliceBonus: 1.5 },
-  3: { enemy: 1.75, bossHp: 2.2, bossDmg: 1.7, sliceBonus: 2.5 },
+  1: { enemy: 1.0,  bossHp: 1.0,  bossDmg: 1.0,  sliceBonus: 1.0 },
+  2: { enemy: 1.8,  bossHp: 2.0,  bossDmg: 1.6,  sliceBonus: 1.5 },
+  3: { enemy: 2.6,  bossHp: 3.2,  bossDmg: 2.4,  sliceBonus: 2.5 },
 };
 
 // Difficulty: scales enemies and adjusts slice rewards
