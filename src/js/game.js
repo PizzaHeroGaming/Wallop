@@ -46,7 +46,7 @@ let _animState = 'idle';
 // ============================================================
 // DAMAGE / KILL
 // ============================================================
-export function damageEnemy(e, dmg, crit = false) {
+export function damageEnemy(e, dmg, crit = false, srcWeaponId = null) {
   let final = dmg;
   if (e.isBoss && final > 80) final = 80 + (final - 80) * 0.55;
   e.hp -= final;
@@ -66,10 +66,10 @@ export function damageEnemy(e, dmg, crit = false) {
     player.hp = Math.min(player.maxHp, player.hp + final * player.lifesteal);
   }
   if (crit) addCameraShake(0.15);
-  if (e.hp <= 0) killEnemy(e);
+  if (e.hp <= 0) killEnemy(e, srcWeaponId);
 }
 
-export function killEnemy(e) {
+export function killEnemy(e, srcWeaponId = null) {
   if (e.isBoss) {
     for (let i = 0; i < 20; i++) {
       const a = (i / 20) * Math.PI * 2;
@@ -140,8 +140,10 @@ export function killEnemy(e) {
   if (KILL_MILESTONES.has(gameState.kills)) {
     showAlert(`${gameState.kills} KILLS!`, '#42f5a1');
   }
-  // Track kills per equipped item for unlock progression
-  for (const w of player.weapons)     Profile.addItemKill(w.id);
+  // Track kills per item for unlock progression.
+  // Only the weapon that dealt the killing blow gets credit (weapon-specific grind).
+  // Armor tracks kills-while-equipped (credit all worn pieces).
+  if (srcWeaponId) Profile.addItemKill(srcWeaponId);
   for (const a of player.armor_items) Profile.addItemKill(a.id);
 }
 
@@ -944,7 +946,7 @@ function updateProjectiles(dt) {
       if (p.explodeOnExpire && p.aoe > 0) {
         for (const e of enemies) {
           if (e.pos.distanceTo(p.pos) < p.aoe) {
-            damageEnemy(e, p.damage, p.crit);
+            damageEnemy(e, p.damage, p.crit, p.weaponId);
             const d2 = new THREE.Vector3().subVectors(e.pos, p.pos).setY(0).normalize();
             e.knockback.add(d2.multiplyScalar(p.knockback * 0.5 * player.knockback));
           }
@@ -961,7 +963,7 @@ function updateProjectiles(dt) {
         auraInstances.push({ mesh: ring, life: 0.35, maxLife: 0.35 });
       }
       if (p.smokeOnExpire) {
-        spawnSmokeCloud(p.pos.clone(), p.smokeDmg, p.smokeRadius, p.smokeLife, p.smokeSlow);
+        spawnSmokeCloud(p.pos.clone(), p.smokeDmg, p.smokeRadius, p.smokeLife, p.smokeSlow, p.weaponId);
       }
       releasePtLight(p.ptLight);
       killMesh(p.mesh);
@@ -1054,7 +1056,7 @@ function updateProjectiles(dt) {
       const d  = Math.sqrt(dx*dx + dy*dy + dz*dz);
       const hitRadius = p.radius + e.radius + (e.flying ? 0.2 : 0);
       if (d < hitRadius) {
-        damageEnemy(e, p.damage, p.crit);
+        damageEnemy(e, p.damage, p.crit, p.weaponId);
         if (p.slowOnHit) e.slowTimer = Math.max(e.slowTimer || 0, 1.5);
         const dir = new THREE.Vector3(dx, 0, dz).normalize();
         e.knockback.add(dir.multiplyScalar(p.knockback * player.knockback));
@@ -1068,7 +1070,7 @@ function updateProjectiles(dt) {
           for (const e2 of enemies) {
             if (e2 === e) continue;
             if (e2.pos.distanceTo(e.pos) < p.aoe) {
-              damageEnemy(e2, p.damage * 0.7, p.crit);
+              damageEnemy(e2, p.damage * 0.7, p.crit, p.weaponId);
               const d2 = new THREE.Vector3().subVectors(e2.pos, e.pos).setY(0).normalize();
               e2.knockback.add(d2.multiplyScalar(p.knockback * 0.6 * player.knockback));
             }
@@ -1282,7 +1284,7 @@ function updateOrbitals(dt) {
       if (d < e.radius + 0.45 * player.projectileMult) {
         const isCrit   = Math.random() < player.critChance;
         const finalDmg = isCrit ? dmg * player.critMult : dmg;
-        damageEnemy(e, finalDmg, isCrit);
+        damageEnemy(e, finalDmg, isCrit, 'orbit');
         o.hitCd.set(e, 0.4);
         const dir = new THREE.Vector3().subVectors(e.pos, player.pos).setY(0).normalize();
         e.knockback.add(dir.multiplyScalar(2 * player.knockback));

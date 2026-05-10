@@ -156,6 +156,16 @@ export function _applyCharacterModel() {
   }).catch(err => console.error('[WALLOP] Character model load failed:', err));
 }
 
+// Shared character GLB cache — used by both the in-game model and the start-screen preview.
+// All callers get the same gltf object; each caller must SkeletonUtils.clone() before use.
+const _charGltfCache = {};
+export function loadCharAsset(slug) {
+  const url = CHARACTER_MODELS[slug];
+  if (!url) return Promise.reject(new Error(`Unknown character slug: ${slug}`));
+  if (_charGltfCache[slug]) return Promise.resolve(_charGltfCache[slug]);
+  return _loadGLB(url).then(gltf => { _charGltfCache[slug] = gltf; return gltf; });
+}
+
 // Load shared animation clips first, then the equipped character model
 Promise.all([
   _loadGLB('assets/characters/movement.glb'),
@@ -1709,7 +1719,7 @@ export function updateGold(dt) {
 let _onLevelUpReady = null;
 export function setOnLevelUpReady(fn) { _onLevelUpReady = fn; }
 
-export function spawnSmokeCloud(pos, dmgPerTick, radius, life, slow) {
+export function spawnSmokeCloud(pos, dmgPerTick, radius, life, slow, weaponId = null) {
   const mat = new THREE.MeshBasicMaterial({
     color: 0x889aaa, transparent: true, opacity: 0.4,
     blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide,
@@ -1719,7 +1729,7 @@ export function spawnSmokeCloud(pos, dmgPerTick, radius, life, slow) {
   mesh.position.y = 1.0;
   scene.add(mesh);
   spawnParticle(pos.clone().setY(pos.y + 0.5), 0x889aaa, 14, 6);
-  smokeClouds.push({ mesh, pos: pos.clone(), radius, life, maxLife: life, dmgPerTick, tickCd: 0.1, slow });
+  smokeClouds.push({ mesh, pos: pos.clone(), radius, life, maxLife: life, dmgPerTick, tickCd: 0.1, slow, weaponId });
 }
 
 export function updateSmokeClouds(dt) {
@@ -1742,7 +1752,7 @@ export function updateSmokeClouds(dt) {
       for (const e of enemies) {
         if (e.pos.distanceTo(c.pos) < r + 0.5) {
           // damageEnemy is in game.js — use injected callback
-          if (_damageEnemy) _damageEnemy(e, c.dmgPerTick, false);
+          if (_damageEnemy) _damageEnemy(e, c.dmgPerTick, false, c.weaponId);
           if (c.slow) {
             e.slowTimer = Math.max(e.slowTimer || 0, 1.8);
           }

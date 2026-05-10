@@ -13,8 +13,8 @@ import { cam } from './state.js';
 // damageEnemy is injected from game.js (circular dep breaker)
 let _damageEnemy = null;
 export function setDamageEnemyForWeapons(fn) { _damageEnemy = fn; }
-function damageEnemy(e, dmg, crit) {
-  if (_damageEnemy) _damageEnemy(e, dmg, crit);
+function damageEnemy(e, dmg, crit, srcWeaponId = null) {
+  if (_damageEnemy) _damageEnemy(e, dmg, crit, srcWeaponId);
 }
 
 // ============================================================
@@ -127,6 +127,7 @@ function firePizzaShot(w, excludeSet) {
     knockback: 4, crit: isCrit,
     homing: (player.synergies && player.synergies.pizzaSeek) ? 1.5 : 0,
     target: (player.synergies && player.synergies.pizzaSeek) ? target : null,
+    weaponId: w.id,
   });
 }
 
@@ -179,7 +180,7 @@ defWeapon('aura', {
         e.auraCd = tickCd;
         const isCrit = Math.random() < player.critChance;
         const finalDmg = (isCrit ? dmg * player.critMult : dmg) * rageMult;
-        damageEnemy(e, finalDmg, isCrit);
+        damageEnemy(e, finalDmg, isCrit, w.id);
         const sizeResist =
           e.isBoss   ? 0.10 :
           e.isElite  ? 0.30 :
@@ -307,7 +308,7 @@ defWeapon('thunder', {
       auraInstances.push({ mesh: bolt, life: 0.18, maxLife: 0.18, ptLight: boltLight });
       const isCrit = Math.random() < player.critChance + 0.1;
       const dmg = (isCrit ? w.dmg * player.critMult : w.dmg) * player.damageMult;
-      damageEnemy(target, dmg, isCrit);
+      damageEnemy(target, dmg, isCrit, w.id);
       spawnParticle(target.pos.clone().setY(target.pos.y + 1), 0xfff04a, 12, 8);
     }
   },
@@ -352,7 +353,7 @@ defWeapon('shock', {
       if (d < r + e.radius) {
         const isCrit = Math.random() < player.critChance;
         const finalDmg = isCrit ? dmg * player.critMult : dmg;
-        damageEnemy(e, finalDmg, isCrit);
+        damageEnemy(e, finalDmg, isCrit, w.id);
         const dir = new THREE.Vector3().subVectors(e.pos, player.pos).setY(0).normalize();
         e.knockback.add(dir.multiplyScalar(8 * player.knockback));
       }
@@ -418,6 +419,7 @@ function fireFireballShot(w, excludeSet) {
     lifetime: 3.0 * (player.durationMult || 1), mesh,
     homing: 4.0, target, knockback: 6, crit: isCrit,
     aoe: w.aoe * player.projectileMult * (player.aoeMult || 1), isExplosion: false,
+    weaponId: w.id,
   });
   const fireLight = acquirePtLight(0xff5e1a, 2.5, 10);
   if (fireLight) { fireLight.light.position.copy(proj.pos); proj.ptLight = fireLight; }
@@ -481,6 +483,7 @@ defWeapon('boomerang', {
         boomerangAge: 0,
         boomStart, boomDir,
         hitCooldown: new Map(),
+        weaponId: w.id,
       });
     }
   },
@@ -553,6 +556,7 @@ defWeapon('crossbow', {
         pierce: w.pierce + (player.projectilePierce || 0),
         lifetime: 1.4 * (player.durationMult || 1),
         mesh: arrowMesh, crit: isCrit, knockback: 4, owner: 'player',
+        weaponId: w.id,
       });
     }
   },
@@ -634,6 +638,7 @@ defWeapon('smoke', {
         smokeSlow: w.slow || false,
         spinAxis: new THREE.Vector3(1, 0.5, 0),
         owner: 'player', knockback: 0,
+        weaponId: w.id,
       });
     }
   },
@@ -717,6 +722,7 @@ defWeapon('staff', {
         pierce: 0, lifetime: 3.0 * (player.durationMult || 1),
         mesh: boltMesh, crit: isCrit, knockback: 3, owner: 'player',
         homing: true, spinAxis: new THREE.Vector3(0, 1, 0),
+        weaponId: w.id,
       });
     }
   },
@@ -795,6 +801,7 @@ defWeapon('calzone', {
         explodeOnExpire: true,
         aoe: w.aoe * player.projectileMult * (player.aoeMult || 1),
         spinAxis: new THREE.Vector3(0, 1, 0),
+        weaponId: w.id,
       });
     }
   },
@@ -848,6 +855,7 @@ defWeapon('ice', {
         mesh: makeIceShardMesh(player.projectileMult),
         crit: isCrit, knockback: 2,
         slowOnHit: true,
+        weaponId: w.id,
       });
     }
   },
@@ -1072,7 +1080,8 @@ defWeapon('deep_dish', {
     const mesh = makePizzaMesh(); mesh.scale.setScalar(sz);
     spawnProjectile({ pos: player.pos.clone().add(new THREE.Vector3(0, 1.0, 0)), vel: new THREE.Vector3(dx/d * 5.5, 0, dz/d * 5.5),
       damage: dmg, radius: sz * 0.4,
-      pierce: 99, lifetime: 2.8, mesh, spinAxis: new THREE.Vector3(0, 1, 0), knockback: 5 });
+      pierce: 99, lifetime: 2.8, mesh, spinAxis: new THREE.Vector3(0, 1, 0), knockback: 5,
+      weaponId: w.id });
   },
 });
 
@@ -1104,7 +1113,7 @@ defWeapon('blizzard', {
     for (const e of enemies) {
       const dx = e.pos.x - player.pos.x, dz = e.pos.z - player.pos.z;
       if (dx*dx + dz*dz < r2) {
-        damageEnemy(e, dmg, false);
+        damageEnemy(e, dmg, false, w.id);
         e.slowTimer = Math.max(e.slowTimer || 0, 2.0 * player.durationMult);
         e.slowMult = Math.min(e.slowMult || 1, 0.38);
         spawnParticle(e.pos.clone().setY(0.8), 0x88ccff, 2, 2.5);
@@ -1143,7 +1152,7 @@ defWeapon('forge_hammer', {
       const dx = e.pos.x - player.pos.x, dz = e.pos.z - player.pos.z;
       const d2 = dx*dx + dz*dz;
       if (d2 < r2) {
-        damageEnemy(e, dmg, Math.random() < player.critChance);
+        damageEnemy(e, dmg, Math.random() < player.critChance, w.id);
         const kd = Math.sqrt(d2) || 1;
         e.knockback.add(new THREE.Vector3((dx/kd) * 6 * player.knockback, 0, (dz/kd) * 6 * player.knockback));
       }
@@ -1183,7 +1192,8 @@ defWeapon('star_shower', {
       spawnProjectile({ pos: player.pos.clone().add(new THREE.Vector3(0, 1.0, 0)),
         vel: new THREE.Vector3(Math.sin(angle)*speed, 0, Math.cos(angle)*speed),
         damage: dmg, radius: 0.2 * player.projectileMult,
-        pierce, lifetime: 1.3, mesh, spinAxis: new THREE.Vector3(0, 1, 0), knockback: 2 });
+        pierce, lifetime: 1.3, mesh, spinAxis: new THREE.Vector3(0, 1, 0), knockback: 2,
+        weaponId: w.id });
     }
   },
 });
@@ -1229,7 +1239,8 @@ defWeapon('meatball_minigun', {
           spawnProjectile({ pos: player.pos.clone().add(new THREE.Vector3(0, 1.0, 0)),
             vel: new THREE.Vector3((dx/d + spread)*18, 0.1, (dz/d + spread)*18),
             damage: dmg, radius: 0.22,
-            pierce: 1 + (player.projectilePierce || 0), lifetime: 1.0, mesh, knockback: 2 });
+            pierce: 1 + (player.projectilePierce || 0), lifetime: 1.0, mesh, knockback: 2,
+            weaponId: w.id });
         }
       }
       return;
@@ -1280,7 +1291,7 @@ defWeapon('cheese_whip', {
       const ex = dx / dist, ez = dz / dist;
       const dot = ex * fwd.x + ez * fwd.z;
       if (dot > -0.5) { // ~240-degree arc (front + sides)
-        damageEnemy(e, dmg, Math.random() < player.critChance);
+        damageEnemy(e, dmg, Math.random() < player.critChance, w.id);
       }
     }
   },
@@ -1321,7 +1332,7 @@ defWeapon('olive_railgun', {
       if (proj < 0) continue;
       const perp = Math.abs(ex*nz - ez*nx);
       if (perp < 1.2 * player.aoeMult) {
-        damageEnemy(e, dmg, Math.random() < player.critChance * 2);
+        damageEnemy(e, dmg, Math.random() < player.critChance * 2, w.id);
       }
     }
     // Visual: fire a fast thin spark projectile for effect

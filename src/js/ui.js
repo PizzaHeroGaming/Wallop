@@ -21,6 +21,7 @@ import {
   tryInteract, setOpenChestDeps,
   generateChestOffers,
   spawnParticle,
+  CHARACTER_MODELS, _animClips, loadCharAsset,
 } from './entities.js';
 import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js';
 import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js';
@@ -941,7 +942,7 @@ function openArmoryDetail(entry, cat) {
     if (entry.characterUnique) {
       const equippedChar = Profile.get().equippedCharacter || 'pizza_hero';
       const kills     = Profile.getItemKills(entry.gameRef || entry.slug);
-      const threshold = entry.killThreshold || 1500;
+      const threshold = entry.killThreshold || 7500;
       const pct       = Math.min(100, Math.round(kills / threshold * 100));
       if (equippedChar === entry.characterUnique) {
         // Owning character — always in pool, no purchase needed
@@ -1332,6 +1333,11 @@ export function initButtons() {
     document.getElementById('armory-screen').classList.add('hidden');
     document.getElementById('start-screen').classList.remove('hidden');
     document.getElementById('armory-detail').classList.add('hidden');
+    // Sync char select panel to any character change made in the Armory
+    const equipped = Profile.get().equippedCharacter || 'pizza_hero';
+    const idx = _charOrder.indexOf(equipped);
+    if (idx >= 0) { _charSelIdx = idx; _loadPreviewChar(equipped); }
+    _refreshCharSelectUI();
   });
 
   document.querySelectorAll('.armory-tab').forEach(tab => {
@@ -1435,8 +1441,172 @@ export function initUI() {
   initInput();
   initMobile();
   initButtons();
+  initCharSelect();
 
   // Expose renderStageSelect globally so wallop.html's splash onComplete
   // can call it after the start screen becomes visible (belt-and-suspenders).
   window._wallopRenderStageSelect = renderDiffSelect;
+}
+
+// ============================================================
+// START-SCREEN CHARACTER SELECTOR + ROTATING 3D PREVIEW
+// ============================================================
+let _previewRenderer = null;
+let _previewScene    = null;
+let _previewCamera   = null;
+let _previewMixer    = null;
+let _previewGroup    = null;
+let _previewRafId    = null;
+let _previewLastT    = 0;
+
+const _charOrder = ['pizza_hero', 'frost_baker', 'oven_knight', 'crust_runner'];
+let _charSelIdx = 0;
+
+function initCharSelect() {
+  const canvas = document.getElementById('char-preview-canvas');
+  if (!canvas) return;
+
+  // Build a lightweight Three.js renderer just for the character preview
+  _previewRenderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
+  _previewRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  _previewRenderer.setSize(canvas.width / Math.min(window.devicePixelRatio, 2),
+                            canvas.height / Math.min(window.devicePixelRatio, 2));
+  _previewRenderer.outputEncoding = THREE.sRGBEncoding;
+  _previewRenderer.toneMapping    = THREE.ACESFilmicToneMapping;
+
+  _previewScene = new THREE.Scene();
+  const ambient = new THREE.AmbientLight(0xffffff, 0.7);
+  _previewScene.add(ambient);
+  const key = new THREE.DirectionalLight(0xfff8e0, 1.4);
+  key.position.set(2, 5, 4);
+  _previewScene.add(key);
+  const rim = new THREE.DirectionalLight(0x4488ff, 0.6);
+  rim.position.set(-3, 2, -3);
+  _previewScene.add(rim);
+
+  _previewCamera = new THREE.PerspectiveCamera(42, canvas.width / canvas.height, 0.1, 50);
+  _previewCamera.position.set(0, 1.15, 3.2);
+  _previewCamera.lookAt(0, 0.85, 0);
+
+  _previewGroup = new THREE.Group();
+  _previewScene.add(_previewGroup);
+
+  // Seed index to currently equipped character
+  const equipped = Profile.get().equippedCharacter || 'pizza_hero';
+  _charSelIdx = Math.max(0, _charOrder.indexOf(equipped));
+
+  _refreshCharSelectUI();
+  _loadPreviewChar(_charOrder[_charSelIdx]);
+
+  // Navigation arrows
+  document.getElementById('char-prev-btn').addEventListener('click', () => {
+    _charSelIdx = (_charSelIdx - 1 + _charOrder.length) % _charOrder.length;
+    _loadPreviewChar(_charOrder[_charSelIdx]);
+    _refreshCharSelectUI();
+  });
+  document.getElementById('char-next-btn').addEventListener('click', () => {
+    _charSelIdx = (_charSelIdx + 1) % _charOrder.length;
+    _loadPreviewChar(_charOrder[_charSelIdx]);
+    _refreshCharSelectUI();
+  });
+
+  // Select button
+  document.getElementById('char-select-btn').addEventListener('click', () => {
+    const slug = _charOrder[_charSelIdx];
+    if (!Profile.isUnlocked(slug)) return;
+    Profile.setEquippedCharacter(slug);
+    _refreshCharSelectUI();
+  });
+
+  // Render loop
+  function _previewLoop(t) {
+    _previewRafId = requestAnimationFrame(_previewLoop);
+    const dt = Math.min(0.05, (t - _previewLastT) / 1000);
+    _previewLastT = t;
+    if (_previewGroup) _previewGroup.rotation.y += dt * 0.75;
+    if (_previewMixer) _previewMixer.update(dt);
+    _previewRenderer.render(_previewScene, _previewCamera);
+  }
+  requestAnimationFrame(_previewLoop);
+}
+
+function _loadPreviewChar(slug) {
+  loadCharAsset(slug).then(gltf => {
+    if (!_previewGroup) return;
+    // Clear old model
+    while (_previewGroup.children.length) {
+      const child = _previewGroup.children[0];
+      _previewGroup.remove(child);
+      child.traverse(c => {
+        if (c.geometry) c.geometry.dispose();
+        if (c.material) {
+          if (Array.isArray(c.material)) c.material.forEach(m => m.dispose());
+          else c.material.dispose();
+        }
+      });
+    }
+    const model = THREE.SkeletonUtils.clone(gltf.scene);
+    model.scale.setScalar(1.0);
+    _previewGroup.rotation.y = 0;
+    _previewGroup.add(model);
+
+    if (_previewMixer) { _previewMixer.stopAllAction(); _previewMixer = null; }
+    _previewMixer = new THREE.AnimationMixer(model);
+    // Use the shared animation clips loaded by entities.js (may be null briefly on cold start)
+    if (_animClips) {
+      const idle = _animClips.find(c => c.name === 'Idle_A');
+      if (idle) _previewMixer.clipAction(idle).play();
+    }
+  }).catch(() => {});
+}
+
+function _refreshCharSelectUI() {
+  const slug    = _charOrder[_charSelIdx];
+  const entry   = CATALOG.characters.find(c => c.slug === slug);
+  if (!entry) return;
+  const unlocked = Profile.isUnlocked(slug);
+  const equipped = Profile.get().equippedCharacter === slug;
+
+  // Icon + name
+  const badge = document.getElementById('char-select-badge');
+  const name  = document.getElementById('char-select-name');
+  const desc  = document.getElementById('char-select-subdesc');
+  if (badge) badge.textContent = entry.icon || '';
+  if (name)  name.textContent  = entry.name || '';
+  if (desc)  {
+    // Show short stat line, not the full desc (too long)
+    const lines = (entry.desc || '').split('.').filter(Boolean);
+    desc.textContent = lines.slice(1).join('. ').trim() || lines[0] || '';
+  }
+
+  // Select button state
+  const btn = document.getElementById('char-select-btn');
+  if (btn) {
+    if (equipped) {
+      btn.textContent = '✓ SELECTED';
+      btn.disabled    = true;
+      btn.classList.add('dim');
+      btn.classList.remove('hot');
+    } else if (unlocked) {
+      btn.textContent = 'SELECT';
+      btn.disabled    = false;
+      btn.classList.remove('dim');
+      btn.classList.add('hot');
+    } else {
+      btn.textContent = `🔒 ${entry.sliceCost || '?'} SLICES`;
+      btn.disabled    = true;
+      btn.classList.add('dim');
+      btn.classList.remove('hot');
+    }
+  }
+
+  // Dot indicators
+  const dotsEl = document.getElementById('char-select-dots');
+  if (dotsEl) {
+    dotsEl.innerHTML = _charOrder.map((s, i) => {
+      const isLocked   = !Profile.isUnlocked(s);
+      const isActive   = i === _charSelIdx;
+      return `<span class="char-dot${isActive ? ' active' : ''}${isLocked ? ' locked' : ''}"></span>`;
+    }).join('');
+  }
 }

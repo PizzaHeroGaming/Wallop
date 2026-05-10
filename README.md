@@ -85,9 +85,11 @@ wallop/
 | Crust Runner | 500 🍕 | Pepperoni Boomerang 🪃 | +35% speed, double jump, −15% cooldowns | Star Shower ⭐ | Turbo Soles 🏃 |
 
 **Unique item unlock system:** character-exclusive items appear only in that character's
-level-up pool. Other characters can unlock them cross-character: accumulate 1,500 kills
-while the item is equipped, then purchase it from the Armory with Slices. Once purchased,
-it appears in every character's pool permanently.
+level-up pool. Other characters can unlock them cross-character: accumulate **7,500 kills
+with that specific weapon** (or 7,500 kills while that armor is equipped), then purchase
+it from the Armory with Slices. Only kills dealt by that weapon count — kills from other
+weapons do not contribute. Once purchased, the item appears in every character's pool
+permanently.
 
 ---
 
@@ -96,10 +98,10 @@ it appears in every character's pool permanently.
 | Weapon | How to get |
 |---|---|
 | Pizza Toss 🍕, Wallop Aura 💥, Pizza Wheel ☸️, Thunder Strike ⚡, Ground Pound 🌀, Fireball 🔥, Pepperoni Boomerang 🪃, Ice Cone 🧊, Crossbow Bolt 🏹, Smoke Bomb 💨, Bone Staff 🦴, Calzone Bomb 🥟 | Available by default |
-| Deep Dish 🍕 | Pizza Hero exclusive / 1,500 kills + 250 Slices |
-| Blizzard 🌨️ | Frost Baker exclusive / 1,500 kills + 250 Slices |
-| Forge Hammer 🔨 | Oven Knight exclusive / 1,500 kills + 300 Slices |
-| Star Shower ⭐ | Crust Runner exclusive / 1,500 kills + 300 Slices |
+| Deep Dish 🍕 | Pizza Hero exclusive / 7,500 kills with Deep Dish + 250 Slices |
+| Blizzard 🌨️ | Frost Baker exclusive / 7,500 kills with Blizzard + 250 Slices |
+| Forge Hammer 🔨 | Oven Knight exclusive / 7,500 kills with Forge Hammer + 300 Slices |
+| Star Shower ⭐ | Crust Runner exclusive / 7,500 kills with Star Shower + 300 Slices |
 | Meatball Minigun 🍝 | 150 Slices |
 | Cheese Whip 🧀 | 200 Slices |
 | Olive Railgun 🫒 | 300 Slices |
@@ -109,10 +111,10 @@ it appears in every character's pool permanently.
 | Armor | How to get |
 |---|---|
 | Chest Plate 🛡️, Helmet ⛑️, Kinetic Shield 💠, Vampire Amulet 🩸, Running Shoes 👟, Thorn Gauntlets 🌵 | Available by default |
-| Delivery Bag 🎒 | Pizza Hero exclusive / 1,500 kills + 200 Slices |
-| Frost Shell ❄️ | Frost Baker exclusive / 1,500 kills + 200 Slices |
-| Iron Hide 🪨 | Oven Knight exclusive / 1,500 kills + 275 Slices |
-| Turbo Soles 🏃 | Crust Runner exclusive / 1,500 kills + 250 Slices |
+| Delivery Bag 🎒 | Pizza Hero exclusive / 7,500 kills while equipped + 200 Slices |
+| Frost Shell ❄️ | Frost Baker exclusive / 7,500 kills while equipped + 200 Slices |
+| Iron Hide 🪨 | Oven Knight exclusive / 7,500 kills while equipped + 275 Slices |
+| Turbo Soles 🏃 | Crust Runner exclusive / 7,500 kills while equipped + 250 Slices |
 | Mirror Vest 🪞 | 150 Slices |
 | Phoenix Apron 🔥 | 300 Slices |
 
