@@ -1484,9 +1484,9 @@ function initCharSelect() {
   rim.position.set(-3, 2, -3);
   _previewScene.add(rim);
 
-  _previewCamera = new THREE.PerspectiveCamera(42, canvas.width / canvas.height, 0.1, 50);
-  _previewCamera.position.set(0, 1.15, 3.2);
-  _previewCamera.lookAt(0, 0.85, 0);
+  _previewCamera = new THREE.PerspectiveCamera(34, canvas.width / canvas.height, 0.1, 50);
+  _previewCamera.position.set(0, 1.05, 4.8);
+  _previewCamera.lookAt(0, 0.75, 0);
 
   _previewGroup = new THREE.Group();
   _previewScene.add(_previewGroup);
