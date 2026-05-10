@@ -1035,12 +1035,21 @@
 
   /* Short landscape (most phones held horizontally) — vertical room is the
      enemy here. Squeeze title, hide non-essential elements. */
+  /* Landscape mobile: hide title, compact layout, mobile char selector takes over */
+  @media (max-height: 560px) {
+    #title-block { display: none; }
+    #start-screen { gap: 6px; padding-top: 6px; padding-bottom: 6px; }
+    #start-main { gap: 10px; align-items: flex-start; }
+    #start-screen .panel { display: none; }
+    #start-left { gap: 8px; justify-content: center; }
+    .start-run-config { margin-bottom: 0; padding: 8px 12px 10px; }
+    .start-actions { gap: 7px; }
+    .start-actions .btn { padding: 10px 16px; font-size: 9px !important; min-height: 40px; }
+  }
+
   @media (max-height: 500px) {
-    #title { font-size: 32px; margin-bottom: 0; }
-    #subtitle { font-size: 13px; margin: 0; }
-    #title-block { gap: 2px; }
     #start-screen { gap: 8px; padding-top: 10px; padding-bottom: 10px; }
-    /* Hide tips panel and char preview on tiny landscape — diff + buttons is priority */
+    /* Hide tips panel and char preview on very tiny landscape — diff + buttons is priority */
     #start-screen .panel { display: none; }
     #char-select-panel { display: none; }
     .start-run-config { margin-bottom: 4px; padding: 8px 14px 10px; }
@@ -1561,16 +1570,27 @@
   }
   .char-dot.active  { background: var(--accent); }
   .char-dot.locked  { opacity: 0.35; }
-  /* On small screens: char panel goes full-width above start-left */
+  /* Mobile compact char selector — hidden on desktop, shown on mobile */
+  #mob-char-select { display: none; width: 100%; flex-direction: column; align-items: center; gap: 6px; }
+  .mob-char-row { display: flex; align-items: center; gap: 10px; justify-content: center; width: 100%; }
+  .mob-char-info { display: flex; align-items: center; gap: 8px; justify-content: center; min-width: 160px; }
+  #mob-char-badge { font-size: 26px; line-height: 1; }
+  #mob-char-name { font-family: 'Press Start 2P', monospace; font-size: 8px; color: var(--accent); }
+  #mob-char-btn { font-size: 9px !important; padding: 9px 14px !important; min-height: 38px; width: 100%; max-width: 240px; }
+  #mob-char-dots { display: flex; gap: 6px; align-items: center; }
+
+  /* On landscape mobile (short viewport): swap 3D panel for compact selector */
+  @media (max-height: 560px) {
+    #mob-char-select { display: flex; }
+    #char-select-panel { display: none !important; }
+    #start-main { flex-direction: row; }
+  }
+  /* On narrow portrait screens: same swap */
   @media (max-width: 680px) {
-    #start-main { flex-direction: column-reverse; align-items: center; gap: 14px; }
-    #char-select-panel { width: 100%; max-width: 420px; flex-direction: row; flex-wrap: wrap; justify-content: center; padding: 12px 14px; }
-    #char-preview-wrap { order: -1; }
-    #char-preview-canvas { width: 130px; height: 210px; }
-    #char-select-info { flex: 1 1 160px; align-items: flex-start; }
-    #char-select-subdesc { max-width: 180px; font-size: 15px; }
-    #char-select-btn { width: auto; min-width: 120px; }
-    #char-select-dots { flex: 0 0 100%; justify-content: center; }
+    #mob-char-select { display: flex; }
+    #char-select-panel { display: none !important; }
+    #start-main { flex-direction: column; align-items: center; gap: 12px; }
+    #start-left { width: 100%; max-width: 480px; }
   }
   /* ===== end character select ===== */
 
@@ -1788,6 +1808,20 @@ window.addEventListener('load', () => {
       <div class="start-run-config">
         <div class="sel-title">DIFFICULTY</div>
         <div id="diff-btns" class="sel-row"></div>
+      </div>
+      <!-- Mobile-only compact character selector (shown instead of the 3D panel) -->
+      <div id="mob-char-select">
+        <div class="sel-title">CHOOSE YOUR HERO</div>
+        <div class="mob-char-row">
+          <button class="char-arrow" id="mob-char-prev">◀</button>
+          <div class="mob-char-info">
+            <span id="mob-char-badge"></span>
+            <span id="mob-char-name"></span>
+          </div>
+          <button class="char-arrow" id="mob-char-next">▶</button>
+        </div>
+        <button class="btn" id="mob-char-btn"></button>
+        <div id="mob-char-dots"></div>
       </div>
       <div class="start-actions">
         <button class="btn hot" id="start-btn">▶ START RUN</button>
