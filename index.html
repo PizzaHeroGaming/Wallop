@@ -1061,9 +1061,13 @@
       max-width: 560px;
       align-items: stretch;
     }
-    #mob-arena-select  { grid-area: arena; margin: 0; max-width: none; }
+    /* IMPORTANT: must explicitly set display: flex here — the default rule
+       hides these mobile elements with display: none, and on landscape phones
+       wider than 680px the max-width breakpoint never triggers to show them */
+    #mob-arena-select  { display: flex !important; grid-area: arena; margin: 0; max-width: none; }
     .start-run-config  { grid-area: diff; margin: 0; padding: 6px 8px 8px; min-width: 110px; }
-    #mob-char-select   { grid-area: hero; max-width: none; }
+    #mob-char-select   { display: flex !important; grid-area: hero; max-width: none; }
+    #char-select-panel { display: none !important; }
     .start-actions     { grid-area: actions; gap: 6px; flex-wrap: wrap; }
 
     /* Difficulty buttons stack vertically inside the right column */
@@ -2105,6 +2109,6 @@ window.addEventListener('load', () => {
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
-<script type="module" src="src/js/main.js?v=9296f25"></script>
+<script type="module" src="src/js/main.js?v=1b2e098"></script>
 </body>
 </html>
