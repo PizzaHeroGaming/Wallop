@@ -23,16 +23,20 @@ For mobile testing on the same network:
 ```
 
 The root `index.html` is the GitHub Pages build — identical to `src/wallop.html`
-with the module path adjusted to `src/js/main.js`. Rebuild it after any change:
+with the module path adjusted to `src/js/main.js`, plus a `?v=<short-sha>`
+cache-buster on the script src and `no-cache` meta tags so mobile browsers
+always pick up the latest deploy. Rebuild it after any change:
 
 ```bash
 python3 -c "
-import codecs
-with codecs.open('src/wallop.html', encoding='utf-8') as f:
-    c = f.read()
-c = c.replace('src=\"js/main.js\"', 'src=\"src/js/main.js\"')
-with codecs.open('index.html', 'w', encoding='utf-8') as f:
-    f.write(c)
+import codecs, subprocess
+sha = subprocess.check_output(['git','rev-parse','--short','HEAD']).decode().strip()
+with codecs.open('src/wallop.html', encoding='utf-8') as f: c = f.read()
+c = c.replace('src=\"js/main.js\"', f'src=\"src/js/main.js?v={sha}\"')
+if 'http-equiv=\"Cache-Control\"' not in c:
+    nocache = '\n  <meta http-equiv=\"Cache-Control\" content=\"no-cache, no-store, must-revalidate\" />\n  <meta http-equiv=\"Pragma\" content=\"no-cache\" />\n  <meta http-equiv=\"Expires\" content=\"0\" />'
+    c = c.replace('<meta charset=\"UTF-8\" />', '<meta charset=\"UTF-8\" />' + nocache, 1)
+with codecs.open('index.html','w',encoding='utf-8') as f: f.write(c)
 "
 ```
 
