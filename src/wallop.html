@@ -1035,10 +1035,12 @@
 
   /* Short landscape (most phones held horizontally) — vertical room is the
      enemy here. Squeeze title, hide non-essential elements. */
-  /* Landscape mobile: hide title, compact layout, mobile char selector takes over */
+  /* Landscape mobile: shrink title, compact layout, mobile char selector takes over */
   @media (max-height: 560px) {
-    #title-block { display: none; }
-    #start-screen { gap: 6px; padding-top: 6px; padding-bottom: 6px; }
+    #title-block { gap: 0; }
+    #title { font-size: clamp(24px, 8vw, 44px); text-shadow: 3px 3px 0 #000; }
+    #subtitle { font-size: 11px; margin: 0; }
+    #start-screen { gap: 4px; padding-top: 4px; padding-bottom: 4px; }
     #start-main { gap: 10px; align-items: flex-start; }
     #start-screen .panel { display: none; }
     #start-left { gap: 8px; justify-content: center; }
@@ -1854,7 +1856,6 @@ window.addEventListener('load', () => {
     <span id="slice-count">0</span>
     <span class="slice-label">SLICES</span>
   </div>
-  <div style="font-family:'VT323',monospace;font-size:18px;color:var(--ink-dim);">desktop recommended · works on mobile</div>
 </div>
 
 <!-- About screen -->
