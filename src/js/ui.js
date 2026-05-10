@@ -1471,8 +1471,6 @@ function initCharSelect() {
   // inline styles would override media-query CSS rules and break mobile layout.
   _previewRenderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
   _previewRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  _previewRenderer.setSize(canvas.width / Math.min(window.devicePixelRatio, 2),
-                            canvas.height / Math.min(window.devicePixelRatio, 2), false);
   _previewRenderer.outputEncoding = THREE.sRGBEncoding;
   _previewRenderer.toneMapping    = THREE.ACESFilmicToneMapping;
 
@@ -1486,9 +1484,29 @@ function initCharSelect() {
   rim.position.set(-3, 2, -3);
   _previewScene.add(rim);
 
-  _previewCamera = new THREE.PerspectiveCamera(34, canvas.width / canvas.height, 0.1, 50);
-  _previewCamera.position.set(0, 1.3, 4.8);
-  _previewCamera.lookAt(0, 1.1, 0);
+  // Camera pulled back far enough that the full model fits on any canvas size.
+  // lookAt at model mid-body (y≈1.0) for vertical centering.
+  _previewCamera = new THREE.PerspectiveCamera(34, 1, 0.1, 50);
+  _previewCamera.position.set(0, 1.2, 6.5);
+  _previewCamera.lookAt(0, 1.0, 0);
+
+  // ResizeObserver keeps the renderer resolution and camera aspect ratio in sync
+  // with whatever CSS size the canvas is currently displayed at.  Without this,
+  // changing breakpoints (orientation change, responsive CSS) leaves the backing
+  // store at the old size, causing the model to appear cropped or distorted.
+  const _syncPreviewSize = () => {
+    const w = canvas.clientWidth;
+    const h = canvas.clientHeight;
+    if (!w || !h) return;
+    const dpr = Math.min(window.devicePixelRatio, 2);
+    _previewRenderer.setSize(w * dpr, h * dpr, false);
+    _previewCamera.aspect = w / h;
+    _previewCamera.updateProjectionMatrix();
+  };
+  _syncPreviewSize();
+  if (typeof ResizeObserver !== 'undefined') {
+    new ResizeObserver(_syncPreviewSize).observe(canvas);
+  }
 
   _previewGroup = new THREE.Group();
   _previewScene.add(_previewGroup);
