@@ -862,6 +862,13 @@ function resolveCatalogEntry(entry, category) {
   return out;
 }
 
+// Cost to upgrade a boost from its current level to the next.
+// Formula: baseCost × (currentLevel + 1), so each level costs progressively more.
+// e.g. base=100: lvl0→1=100, lvl1→2=200, lvl2→3=300, lvl3→4=400, lvl4→5=500
+function boostCostAtLevel(entry, currentLevel) {
+  return (entry.sliceCost || 100) * (currentLevel + 1);
+}
+
 export function syncSliceDisplays() {
   const n = Profile.get().slices;
   const a = document.getElementById('slice-count');
@@ -903,7 +910,14 @@ function renderArmoryGrid() {
     let footerHtml = '';
     if (cat === 'boosts') {
       const lvl = Profile.getBoostLevel(entry.slug);
-      footerHtml = `<div class="boost-level">LEVEL ${lvl} / ${entry.maxLevel || 1}</div>`;
+      const max = entry.maxLevel || 1;
+      if (lvl >= max) {
+        footerHtml = `<div class="boost-level">LEVEL ${lvl} / ${max} — MAXED</div>`;
+      } else {
+        const nextCost = boostCostAtLevel(entry, lvl);
+        const can = Profile.get().slices >= nextCost;
+        footerHtml = `<div class="boost-level">LEVEL ${lvl} / ${max}</div><div class="cost ${can ? '' : 'unaffordable'}">🍕 ${nextCost} SLICES</div>`;
+      }
     } else if (!unlocked && entry.sliceCost) {
       const can = Profile.get().slices >= entry.sliceCost;
       footerHtml = `<div class="cost ${can ? '' : 'unaffordable'}">🍕 ${entry.sliceCost} SLICES</div>`;
@@ -934,9 +948,9 @@ function openArmoryDetail(entry, cat) {
     if (lvl >= max) {
       actionsHtml = `<button class="upgrade-btn" disabled>MAXED</button>`;
     } else {
-      const cost = entry.sliceCost;
+      const cost = boostCostAtLevel(entry, lvl);
       const can  = slices >= cost;
-      actionsHtml = `<button class="upgrade-btn" data-action="boost" ${can ? '' : 'disabled'}>UPGRADE — 🍕 ${cost}</button>`;
+      actionsHtml = `<button class="upgrade-btn" data-action="boost" ${can ? '' : 'disabled'}>UPGRADE LV${lvl + 1} — 🍕 ${cost}</button>`;
     }
   } else if (!unlocked) {
     if (entry.characterUnique) {
@@ -1013,8 +1027,9 @@ function openArmoryDetail(entry, cat) {
         renderArmoryGrid();
         openArmoryDetail(entry, cat);
       } else if (action === 'boost') {
-        const lvl = Profile.getBoostLevel(entry.slug);
-        if (lvl < (entry.maxLevel || 1) && Profile.spendSlices(entry.sliceCost)) {
+        const lvl  = Profile.getBoostLevel(entry.slug);
+        const cost = boostCostAtLevel(entry, lvl);
+        if (lvl < (entry.maxLevel || 1) && Profile.spendSlices(cost)) {
           Profile.setBoostLevel(entry.slug, lvl + 1);
           syncSliceDisplays();
           renderArmoryGrid();
