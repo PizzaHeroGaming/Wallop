@@ -138,6 +138,11 @@ export function damagePlayer(dmg, attacker) {
   if (attacker && player.thorns > 0 && !attacker.isBoss && _damageEnemyFn) {
     _damageEnemyFn(attacker, player.thorns, false);
   }
+  // Frost shell: slow attacker on hit
+  if (player.frostThorns > 0 && attacker && !attacker.isBoss) {
+    attacker.slowTimer = Math.max(attacker.slowTimer || 0, 1.5 * (player.frostThorns * 0.5));
+    attacker.slowMult = Math.min(attacker.slowMult || 1, 0.45);
+  }
   let final = Math.max(1, dmg - player.armor);
   if (player.shield > 0) {
     const absorbed = Math.min(player.shield, final);
@@ -152,6 +157,20 @@ export function damagePlayer(dmg, attacker) {
   document.getElementById('flash').classList.add('hit');
   setTimeout(() => document.getElementById('flash').classList.remove('hit'), 120);
   if (player.hp <= 0) {
+    if (player.phoenixRevive) {
+      player.phoenixRevive = false;
+      player.hp = Math.ceil(player.maxHp * 0.3);
+      player.invuln = 3.5;
+      showAlert('PHOENIX REVIVAL! 🔥', '#ff6600');
+      // Shockwave: damage all nearby enemies
+      if (_damageEnemyFn) {
+        for (const e of enemies) {
+          const dx = e.pos.x - player.pos.x, dz = e.pos.z - player.pos.z;
+          if (dx*dx + dz*dz < 49) _damageEnemyFn(e, Math.round(80 * player.damageMult), false);
+        }
+      }
+      return;
+    }
     if (player.hasRevive) {
       player.hasRevive = false;
       player.hp = Math.ceil(player.maxHp * 0.3);
@@ -329,7 +348,24 @@ export function pickRarity() {
 export function generateOffers() {
   const candidates = [];
 
+  // Helper: check if a weapon/armor id is accessible to the current character
+  const _charSlug = Profile.get().equippedCharacter || 'pizza_hero';
+  const _allWeaponEntries = CATALOG.weapons || [];
+  const _allArmorEntries  = CATALOG.armor   || [];
+  function _itemAccessible(gameRefId, entryList) {
+    const entry = entryList.find(e => e.gameRef === gameRefId || e.slug === gameRefId);
+    if (!entry) return true; // no catalog entry = always accessible (base items)
+    if (entry.defaultUnlocked) return true;
+    if (entry.characterUnique) {
+      if (_charSlug === entry.characterUnique) return true;
+      return Profile.getItemKills(gameRefId) >= (entry.killThreshold || 1500);
+    }
+    // Slice-unlockable
+    return Profile.isUnlocked(entry.slug);
+  }
+
   for (const wId of Object.keys(WEAPONS)) {
+    if (!_itemAccessible(wId, _allWeaponEntries)) continue;
     const owned = player.weapons.find(w => w.id === wId);
     const def   = WEAPONS[wId];
     if (owned) {
@@ -340,6 +376,7 @@ export function generateOffers() {
   }
 
   for (const aId of Object.keys(ARMOR)) {
+    if (!_itemAccessible(aId, _allArmorEntries)) continue;
     const owned = player.armor_items.find(a => a.id === aId);
     const def   = ARMOR[aId];
     if (owned) {
@@ -714,6 +751,9 @@ export function triggerGameOver(victory) {
   ov.classList.remove('hidden');
   if (_mouseLocked) document.exitPointerLock();
 
+  // Persist itemKills accumulated this run
+  Profile.save();
+
   __runsPlayed++;
   if (__runsPlayed >= 2 && __runsPlayed % 2 === 0) window.GameAds.showInterstitial();
   window.GameAds.preload();
@@ -897,7 +937,22 @@ function openArmoryDetail(entry, cat) {
       actionsHtml = `<button class="upgrade-btn" data-action="boost" ${can ? '' : 'disabled'}>UPGRADE — 🍕 ${cost}</button>`;
     }
   } else if (!unlocked) {
-    if (entry.placeholder && !entry.sliceCost) {
+    if (entry.characterUnique) {
+      const equippedChar = Profile.get().equippedCharacter || 'pizza_hero';
+      const kills = Profile.getItemKills(entry.gameRef || entry.slug);
+      const threshold = entry.killThreshold || 1500;
+      const pct = Math.min(100, Math.round(kills / threshold * 100));
+      if (equippedChar === entry.characterUnique) {
+        actionsHtml = `<div style="font-family:'VT323',monospace;color:var(--accent);font-size:18px;">Your character's exclusive — available in your upgrade pool!</div>`;
+      } else {
+        actionsHtml = `
+          <div style="font-family:'VT323',monospace;color:var(--ink-dim);font-size:16px;margin-bottom:6px;">Unlock by getting ${threshold} kills with this item equipped (on any character)</div>
+          <div style="background:#252a4d;height:8px;border-radius:4px;margin:8px 0;border:2px solid #000">
+            <div style="background:#ffd23f;height:100%;width:${pct}%;border-radius:2px"></div>
+          </div>
+          <div style="font-family:'VT323',monospace;color:var(--ink-dim);font-size:16px;">${kills} / ${threshold} kills (${pct}%)</div>`;
+      }
+    } else if (entry.placeholder && !entry.sliceCost) {
       actionsHtml = `<button class="unlock-btn" disabled>COMING SOON</button>`;
     } else if (entry.sliceCost) {
       const can = slices >= entry.sliceCost;

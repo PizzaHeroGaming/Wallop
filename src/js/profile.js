@@ -19,24 +19,21 @@ export const CATALOG = {
       slug: 'frost_baker',
       name: 'Frost Baker',
       icon: '🧊',
-      desc: 'COMING SOON — Crowd-control specialist. Starts with Ice Cone. Slows everything that moves.',
-      placeholder: true,
+      desc: 'Ice specialist. Starts with Ice Cone. Cold effects last 50% longer. Unique: Blizzard + Frost Shell.',
       sliceCost: 200,
     },
     {
       slug: 'oven_knight',
       name: 'Oven Knight',
       icon: '🛡️',
-      desc: 'COMING SOON — Heavy tank. Starts with Wallop Aura and bonus armor. Slow but unkillable.',
-      placeholder: true,
+      desc: 'Heavy tank. Starts with Wallop Aura. +4 armor, +25 max HP, slower movement. Unique: Forge Hammer + Iron Hide.',
       sliceCost: 350,
     },
     {
       slug: 'crust_runner',
       name: 'Crust Runner',
       icon: '👟',
-      desc: 'COMING SOON — Speed demon. Starts with Pepperoni Boomerang. Triple jump, faster dash.',
-      placeholder: true,
+      desc: 'Speed demon. Starts with Pepperoni Boomerang. +35% speed, double jump, -15% cooldowns. Unique: Star Shower + Turbo Soles.',
       sliceCost: 500,
     },
   ],
@@ -54,23 +51,25 @@ export const CATALOG = {
     { slug: 'crossbow',  gameRef: 'crossbow',  defaultUnlocked: true },
     { slug: 'smoke',     gameRef: 'smoke',     defaultUnlocked: true },
     { slug: 'staff',     gameRef: 'staff',     defaultUnlocked: true },
+    // Character-unique weapons (available only to their character, or after 1500 weapon kills)
+    { slug: 'deep_dish',    gameRef: 'deep_dish',    characterUnique: 'pizza_hero',   killThreshold: 1500 },
+    { slug: 'blizzard',     gameRef: 'blizzard',     characterUnique: 'frost_baker',  killThreshold: 1500 },
+    { slug: 'forge_hammer', gameRef: 'forge_hammer', characterUnique: 'oven_knight',  killThreshold: 1500 },
+    { slug: 'star_shower',  gameRef: 'star_shower',  characterUnique: 'crust_runner', killThreshold: 1500 },
     {
       slug: 'meatball_minigun',
       name: 'Meatball Minigun', icon: '🍝',
-      desc: 'COMING SOON — Spray of fast, low-damage meatballs that pierce.',
-      placeholder: true, sliceCost: 150,
+      gameRef: 'meatball_minigun', sliceCost: 150,
     },
     {
       slug: 'cheese_whip',
       name: 'Cheese Whip', icon: '🧀',
-      desc: 'COMING SOON — Stretchy cheese line that slaps enemies in a wide arc.',
-      placeholder: true, sliceCost: 200,
+      gameRef: 'cheese_whip', sliceCost: 200,
     },
     {
       slug: 'olive_railgun',
       name: 'Olive Railgun', icon: '🫒',
-      desc: 'COMING SOON — High-damage piercing line. Slow charge, devastating.',
-      placeholder: true, sliceCost: 300,
+      gameRef: 'olive_railgun', sliceCost: 300,
     },
   ],
 
@@ -81,17 +80,20 @@ export const CATALOG = {
     { slug: 'vamp',   gameRef: 'vamp',   defaultUnlocked: true },
     { slug: 'boots',  gameRef: 'boots',  defaultUnlocked: true },
     { slug: 'thorns', gameRef: 'thorns', defaultUnlocked: true },
+    // Character-unique armors
+    { slug: 'delivery_bag', gameRef: 'delivery_bag', characterUnique: 'pizza_hero',   killThreshold: 1500 },
+    { slug: 'frost_shell',  gameRef: 'frost_shell',  characterUnique: 'frost_baker',  killThreshold: 1500 },
+    { slug: 'iron_hide',    gameRef: 'iron_hide',    characterUnique: 'oven_knight',  killThreshold: 1500 },
+    { slug: 'turbo_soles',  gameRef: 'turbo_soles',  characterUnique: 'crust_runner', killThreshold: 1500 },
     {
       slug: 'mirror_vest',
       name: 'Mirror Vest', icon: '🪞',
-      desc: 'COMING SOON — Reflects a portion of projectile damage back at the shooter.',
-      placeholder: true, sliceCost: 150,
+      gameRef: 'mirror_vest', sliceCost: 150,
     },
     {
       slug: 'phoenix_apron',
       name: 'Phoenix Apron', icon: '🔥',
-      desc: 'COMING SOON — Once per run, revive at 50% HP with a fiery shockwave.',
-      placeholder: true, sliceCost: 300,
+      gameRef: 'phoenix_apron', sliceCost: 300,
     },
   ],
 
@@ -180,6 +182,7 @@ export const Profile = (function () {
         bestTime: 0,
       },
       clearedStages: { 1: false, 2: false, 3: false },
+      itemKills: {},
     };
   }
   function migrate(saved) {
@@ -246,6 +249,14 @@ export const Profile = (function () {
   function isStageCleared(n) {
     return !!(_state.clearedStages && _state.clearedStages[n]);
   }
+  function addItemKill(slug) {
+    if (!_state.itemKills) _state.itemKills = {};
+    _state.itemKills[slug] = (_state.itemKills[slug] || 0) + 1;
+    // batched save — caller should call save() at run-end
+  }
+  function getItemKills(slug) {
+    return (_state.itemKills && _state.itemKills[slug]) || 0;
+  }
   function reset() {
     _state = defaultProfile();
     save();
@@ -254,6 +265,7 @@ export const Profile = (function () {
     get, save, isUnlocked, unlock, spendSlices, addSlices,
     getBoostLevel, setBoostLevel, setEquippedCharacter,
     clearStage, isStageCleared,
+    addItemKill, getItemKills,
     reset,
   };
 })();

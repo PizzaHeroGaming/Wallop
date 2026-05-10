@@ -140,6 +140,9 @@ export function killEnemy(e) {
   if (KILL_MILESTONES.has(gameState.kills)) {
     showAlert(`${gameState.kills} KILLS!`, '#42f5a1');
   }
+  // Track kills per equipped item for unlock progression
+  for (const w of player.weapons)     Profile.addItemKill(w.id);
+  for (const a of player.armor_items) Profile.addItemKill(a.id);
 }
 
 // spawnGold is imported at top of file from entities.js
@@ -530,6 +533,11 @@ export function resetGame() {
   player.dashCdMult = 1.0;
   player.synergies = {};
   player.hasRevive = false;
+  player.knockResist = 0;
+  player.frostThorns = 0;
+  player.hasBerserker = false;
+  player.turboDash = 0;
+  player.phoenixRevive = false;
 
   // Apply persistent boosts from Armory
   const _bl = slug => Profile.getBoostLevel(slug);
@@ -541,8 +549,30 @@ export function resetGame() {
   if (_bl('boost_gold')   > 0)  player.goldMult += 0.10 * _bl('boost_gold');
   if (_bl('boost_revive') > 0)  player.hasRevive = true;
 
-  const starter = { ...WEAPONS.pizza.init(), id: 'pizza', level: 1 };
+  // Starter weapon based on equipped character
+  const _charStarters = {
+    pizza_hero:   'pizza',
+    frost_baker:  'ice',
+    oven_knight:  'aura',
+    crust_runner: 'boomerang',
+  };
+  const _charSlug  = Profile.get().equippedCharacter || 'pizza_hero';
+  const _starterId = _charStarters[_charSlug] || 'pizza';
+  const starter = { ...WEAPONS[_starterId].init(), id: _starterId, level: 1 };
   player.weapons.push(starter);
+
+  // Character-specific bonuses
+  if (_charSlug === 'oven_knight') {
+    player.armor    += 4;
+    player.maxHp    += 25; player.hp = player.maxHp;
+    player.baseSpeed *= 0.8;
+  } else if (_charSlug === 'frost_baker') {
+    player.durationMult *= 1.5;
+  } else if (_charSlug === 'crust_runner') {
+    player.baseSpeed    *= 1.35;
+    player.maxJumps      = 2; player.jumpsLeft = 2;
+    player.cooldownMult *= 0.85;
+  }
 
   gameState.state         = 'playing';
   gameState.gameTime      = 0;

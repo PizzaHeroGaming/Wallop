@@ -1037,6 +1037,410 @@ defTome('cursed', {
   describeNext: () => '+1 Curse',
 });
 
+// ============================================================
+// CHARACTER-UNIQUE WEAPONS
+// ============================================================
+
+// Pizza Hero unique: massive slow pizza, pierces all
+defWeapon('deep_dish', {
+  name: 'Deep Dish', icon: '🍕',
+  desc: 'Pizza Hero exclusive. A massive slow pizza that pierces every enemy it touches.',
+  maxLevel: 6,
+  init: () => ({ cd: 0 }),
+  upgrade: w => {
+    w.level++;
+    if (w.level === 2) w.dmgMult = 1.4;
+    if (w.level === 3) w.cdMod = 0.82;
+    if (w.level === 4) w.dmgMult = 1.8;
+    if (w.level === 5) { w.sizeMult = 1.6; }
+    if (w.level === 6) w.dmgMult = 2.5;
+  },
+  describeNext: w => {
+    const n = (w?.level || 0) + 1;
+    return { 1:'unlock', 2:'+40% dmg', 3:'faster', 4:'+30% dmg', 5:'bigger pizza', 6:'+40% dmg' }[n] || 'maxed';
+  },
+  tick: (w, dt) => {
+    w.cd -= dt;
+    if (w.cd > 0) return;
+    w.cd = 3.8 * (w.cdMod || 1) * player.cooldownMult;
+    const t = pickTarget(player.pos, 30);
+    if (!t) return;
+    const dmg = Math.round(60 * (w.dmgMult || 1) * player.damageMult);
+    const sz = (w.sizeMult || 1) * 1.9 * player.projectileMult;
+    const dx = t.pos.x - player.pos.x, dz = t.pos.z - player.pos.z;
+    const d = Math.hypot(dx, dz) || 1;
+    const mesh = makePizzaMesh(); mesh.scale.setScalar(sz);
+    spawnProjectile({ pos: player.pos.clone().add(new THREE.Vector3(0, 1.0, 0)), vel: new THREE.Vector3(dx/d * 5.5, 0, dz/d * 5.5),
+      damage: dmg, radius: sz * 0.4,
+      pierce: 99, lifetime: 2.8, mesh, spinAxis: new THREE.Vector3(0, 1, 0), knockback: 5 });
+  },
+});
+
+// Frost Baker unique: ice storm aura — slows + damages
+defWeapon('blizzard', {
+  name: 'Blizzard', icon: '🌨️',
+  desc: 'Frost Baker exclusive. Ice storm swirls around you, slowing and damaging nearby enemies.',
+  maxLevel: 6,
+  init: () => ({ cd: 0, radius: 4.5 }),
+  upgrade: w => {
+    w.level++;
+    if (w.level === 2) w.dmgMult = (w.dmgMult || 1) * 1.25;
+    if (w.level === 3) w.radius += 1.2;
+    if (w.level === 4) w.dmgMult = (w.dmgMult || 1) * 1.3;
+    if (w.level === 5) w.radius += 1.2;
+    if (w.level === 6) w.dmgMult = (w.dmgMult || 1) * 1.5;
+  },
+  describeNext: w => {
+    const n = (w?.level || 0) + 1;
+    return { 1:'unlock', 2:'+25% dmg', 3:'+1.2 radius', 4:'+30% dmg', 5:'+1.2 radius', 6:'+50% dmg' }[n] || 'maxed';
+  },
+  tick: (w, dt) => {
+    w.cd -= dt;
+    if (w.cd > 0) return;
+    w.cd = 0.45;
+    const radius = (w.radius || 4.5) * player.aoeMult;
+    const dmg = Math.round(10 * (w.dmgMult || 1) * player.damageMult);
+    const r2 = radius * radius;
+    for (const e of enemies) {
+      const dx = e.pos.x - player.pos.x, dz = e.pos.z - player.pos.z;
+      if (dx*dx + dz*dz < r2) {
+        damageEnemy(e, dmg, false);
+        e.slowTimer = Math.max(e.slowTimer || 0, 2.0 * player.durationMult);
+        e.slowMult = Math.min(e.slowMult || 1, 0.38);
+        spawnParticle(e.pos.clone().setY(0.8), 0x88ccff, 2, 2.5);
+      }
+    }
+  },
+});
+
+// Oven Knight unique: ground slam AOE
+defWeapon('forge_hammer', {
+  name: 'Forge Hammer', icon: '🔨',
+  desc: 'Oven Knight exclusive. Slams the ground, blasting all nearby enemies with force.',
+  maxLevel: 6,
+  init: () => ({ cd: 0 }),
+  upgrade: w => {
+    w.level++;
+    if (w.level === 2) w.dmgMult = 1.35;
+    if (w.level === 3) w.radiusMult = 1.3;
+    if (w.level === 4) w.dmgMult = 1.7;
+    if (w.level === 5) w.radiusMult = 1.6;
+    if (w.level === 6) w.dmgMult = 2.3;
+  },
+  describeNext: w => {
+    const n = (w?.level || 0) + 1;
+    return { 1:'unlock', 2:'+35% dmg', 3:'+30% radius', 4:'+25% dmg', 5:'+25% radius', 6:'+35% dmg' }[n] || 'maxed';
+  },
+  tick: (w, dt) => {
+    w.cd -= dt;
+    if (w.cd > 0) return;
+    w.cd = 2.4 * player.cooldownMult;
+    const radius = 4.5 * (w.radiusMult || 1) * player.aoeMult;
+    const dmg = Math.round(70 * (w.dmgMult || 1) * player.damageMult);
+    const r2 = radius * radius;
+    spawnParticle(player.pos.clone().setY(0.1), 0xff6600, 20, radius * 0.8);
+    for (const e of enemies) {
+      const dx = e.pos.x - player.pos.x, dz = e.pos.z - player.pos.z;
+      const d2 = dx*dx + dz*dz;
+      if (d2 < r2) {
+        damageEnemy(e, dmg, Math.random() < player.critChance);
+        const kd = Math.sqrt(d2) || 1;
+        e.knockback.add(new THREE.Vector3((dx/kd) * 6 * player.knockback, 0, (dz/kd) * 6 * player.knockback));
+      }
+    }
+  },
+});
+
+// Crust Runner unique: fan of stars in all directions
+defWeapon('star_shower', {
+  name: 'Star Shower', icon: '⭐',
+  desc: 'Crust Runner exclusive. Fires pepperoni stars in all directions that pierce enemies.',
+  maxLevel: 6,
+  init: () => ({ cd: 0, starCount: 8 }),
+  upgrade: w => {
+    w.level++;
+    if (w.level === 2) w.dmgMult = 1.3;
+    if (w.level === 3) w.starCount += 4;
+    if (w.level === 4) w.dmgMult = 1.6;
+    if (w.level === 5) w.starCount += 4;
+    if (w.level === 6) w.dmgMult = 2.0;
+  },
+  describeNext: w => {
+    const n = (w?.level || 0) + 1;
+    return { 1:'unlock', 2:'+30% dmg', 3:'+4 stars', 4:'+25% dmg', 5:'+4 stars', 6:'+25% dmg' }[n] || 'maxed';
+  },
+  tick: (w, dt) => {
+    w.cd -= dt;
+    if (w.cd > 0) return;
+    w.cd = 1.4 * player.cooldownMult;
+    const count = (w.starCount || 8) + (player.extraProjectiles || 0);
+    const dmg = Math.round(22 * (w.dmgMult || 1) * player.damageMult);
+    const pierce = 1 + (player.projectilePierce || 0);
+    for (let i = 0; i < count; i++) {
+      const angle = (i / count) * Math.PI * 2;
+      const speed = 14;
+      const mesh = makePizzaMesh(); mesh.scale.setScalar(0.35 * player.projectileMult);
+      spawnProjectile({ pos: player.pos.clone().add(new THREE.Vector3(0, 1.0, 0)),
+        vel: new THREE.Vector3(Math.sin(angle)*speed, 0, Math.cos(angle)*speed),
+        damage: dmg, radius: 0.2 * player.projectileMult,
+        pierce, lifetime: 1.3, mesh, spinAxis: new THREE.Vector3(0, 1, 0), knockback: 2 });
+    }
+  },
+});
+
+// ============================================================
+// SLICE-UNLOCKABLE WEAPONS
+// ============================================================
+
+// Rapid-fire meatball spray
+defWeapon('meatball_minigun', {
+  name: 'Meatball Minigun', icon: '🍝',
+  desc: 'Rapid-fire meatballs that pierce one enemy. Low damage, very high rate of fire.',
+  maxLevel: 6,
+  init: () => ({ cd: 0, burstLeft: 0, burstTimer: 0 }),
+  upgrade: w => {
+    w.level++;
+    if (w.level === 2) w.dmgMult = 1.2;
+    if (w.level === 3) w.cdMod = 0.82;
+    if (w.level === 4) w.burstBonus = 2;
+    if (w.level === 5) w.dmgMult = 1.5;
+    if (w.level === 6) { w.burstBonus = 4; w.dmgMult = 1.8; }
+  },
+  describeNext: w => {
+    const n = (w?.level || 0) + 1;
+    return { 1:'unlock', 2:'+20% dmg', 3:'faster', 4:'+2 burst', 5:'+25% dmg', 6:'+2 burst, +20% dmg' }[n] || 'maxed';
+  },
+  tick: (w, dt) => {
+    // Burst logic: fire a burst of shots then cooldown
+    if (w.burstLeft > 0) {
+      w.burstTimer -= dt;
+      if (w.burstTimer <= 0) {
+        w.burstTimer = 0.09;
+        w.burstLeft--;
+        const t = pickTarget(player.pos, 28);
+        if (t) {
+          const dmg = Math.round(10 * (w.dmgMult || 1) * player.damageMult);
+          const dx = t.pos.x - player.pos.x, dz = t.pos.z - player.pos.z;
+          const d = Math.hypot(dx, dz) || 1;
+          const spread = (Math.random() - 0.5) * 0.25;
+          const mesh = makeBoneMesh(); mesh.scale.setScalar(0.28);
+          mesh.material = mesh.material.clone();
+          mesh.material.color.setHex(0xcc4400);
+          spawnProjectile({ pos: player.pos.clone().add(new THREE.Vector3(0, 1.0, 0)),
+            vel: new THREE.Vector3((dx/d + spread)*18, 0.1, (dz/d + spread)*18),
+            damage: dmg, radius: 0.22,
+            pierce: 1 + (player.projectilePierce || 0), lifetime: 1.0, mesh, knockback: 2 });
+        }
+      }
+      return;
+    }
+    w.cd -= dt;
+    if (w.cd > 0) return;
+    w.cd = 1.6 * (w.cdMod || 1) * player.cooldownMult;
+    w.burstLeft = 6 + (w.burstBonus || 0) + (player.extraProjectiles || 0);
+    w.burstTimer = 0;
+  },
+});
+
+// Wide arc cheese melee
+defWeapon('cheese_whip', {
+  name: 'Cheese Whip', icon: '🧀',
+  desc: 'A stretchy cheese arc that hits ALL enemies in a wide cone in front of you.',
+  maxLevel: 6,
+  init: () => ({ cd: 0 }),
+  upgrade: w => {
+    w.level++;
+    if (w.level === 2) w.dmgMult = 1.3;
+    if (w.level === 3) w.arcMult = 1.3;
+    if (w.level === 4) w.dmgMult = 1.65;
+    if (w.level === 5) w.arcMult = 1.6;
+    if (w.level === 6) w.dmgMult = 2.1;
+  },
+  describeNext: w => {
+    const n = (w?.level || 0) + 1;
+    return { 1:'unlock', 2:'+30% dmg', 3:'+30% range', 4:'+25% dmg', 5:'+25% range', 6:'+25% dmg' }[n] || 'maxed';
+  },
+  tick: (w, dt) => {
+    w.cd -= dt;
+    if (w.cd > 0) return;
+    w.cd = 1.7 * player.cooldownMult;
+    const range = 5.5 * (w.arcMult || 1) * player.aoeMult;
+    const dmg = Math.round(45 * (w.dmgMult || 1) * player.damageMult);
+    // Get player facing direction from camera
+    const fwd = new THREE.Vector3();
+    // Use cam yaw from state since we have access to cam
+    fwd.set(-Math.sin(cam.yaw), 0, -Math.cos(cam.yaw)).normalize();
+    const r2 = range * range;
+    spawnParticle(player.pos.clone().add(fwd.clone().multiplyScalar(range * 0.5)).setY(1), 0xffee00, 12, range * 0.6);
+    for (const e of enemies) {
+      const dx = e.pos.x - player.pos.x, dz = e.pos.z - player.pos.z;
+      const d2 = dx*dx + dz*dz;
+      if (d2 > r2) continue;
+      const dist = Math.sqrt(d2) || 1;
+      const ex = dx / dist, ez = dz / dist;
+      const dot = ex * fwd.x + ez * fwd.z;
+      if (dot > -0.5) { // ~240-degree arc (front + sides)
+        damageEnemy(e, dmg, Math.random() < player.critChance);
+      }
+    }
+  },
+});
+
+// Slow powerful piercing beam
+defWeapon('olive_railgun', {
+  name: 'Olive Railgun', icon: '🫒',
+  desc: 'High-charge beam that fires through EVERY enemy in a line. Devastating.',
+  maxLevel: 6,
+  init: () => ({ cd: 0 }),
+  upgrade: w => {
+    w.level++;
+    if (w.level === 2) w.dmgMult = 1.4;
+    if (w.level === 3) w.cdMod = 0.85;
+    if (w.level === 4) w.dmgMult = 1.8;
+    if (w.level === 5) w.cdMod = 0.72;
+    if (w.level === 6) w.dmgMult = 2.4;
+  },
+  describeNext: w => {
+    const n = (w?.level || 0) + 1;
+    return { 1:'unlock', 2:'+40% dmg', 3:'faster charge', 4:'+30% dmg', 5:'much faster', 6:'+35% dmg' }[n] || 'maxed';
+  },
+  tick: (w, dt) => {
+    w.cd -= dt;
+    if (w.cd > 0) return;
+    w.cd = 3.5 * (w.cdMod || 1) * player.cooldownMult;
+    const t = pickTarget(player.pos, 35);
+    if (!t) return;
+    const dmg = Math.round(120 * (w.dmgMult || 1) * player.damageMult);
+    const dx = t.pos.x - player.pos.x, dz = t.pos.z - player.pos.z;
+    const d = Math.hypot(dx, dz) || 1;
+    // Instant raycast: hit all enemies along the line
+    const nx = dx/d, nz = dz/d;
+    for (const e of enemies) {
+      const ex = e.pos.x - player.pos.x, ez = e.pos.z - player.pos.z;
+      const proj = ex*nx + ez*nz;
+      if (proj < 0) continue;
+      const perp = Math.abs(ex*nz - ez*nx);
+      if (perp < 1.2 * player.aoeMult) {
+        damageEnemy(e, dmg, Math.random() < player.critChance * 2);
+      }
+    }
+    // Visual: fire a fast thin spark projectile for effect
+    const mesh = makeSparkMesh(); mesh.scale.set(0.2, 0.2, 3.0);
+    mesh.material = mesh.material.clone(); mesh.material.color.setHex(0x44ff44);
+    spawnProjectile({ pos: player.pos.clone().add(new THREE.Vector3(0, 1.2, 0)),
+      vel: new THREE.Vector3(nx*30, 0, nz*30), damage: 0,
+      radius: 0.1, pierce: 99, lifetime: 0.8, mesh, knockback: 0 });
+    spawnParticle(player.pos.clone().setY(1.2), 0x44ff44, 8, 2);
+  },
+});
+
+// ============================================================
+// CHARACTER-UNIQUE ARMORS
+// ============================================================
+
+// Pizza Hero unique: XP range + knockback resist
+defArmor('delivery_bag', {
+  name: 'Delivery Bag', icon: '🎒',
+  desc: 'Pizza Hero exclusive. Boosts XP pickup range and reduces knockback taken.',
+  maxLevel: 4,
+  init: () => ({ }),
+  upgrade: a => {
+    a.level = (a.level || 0) + 1;
+    player.pickupRange += 1.8;
+    if (a.level === 2) player.pickupRange += 0.7;
+    if (a.level === 3) player.pickupRange += 0.7;
+    if (a.level === 4) player.pickupRange += 1.0;
+    player.knockResist = Math.min(0.7, (player.knockResist || 0) + 0.18);
+  },
+  describeNext: a => {
+    const n = (a?.level || 0) + 1;
+    return { 1:'+XP range, +18% knock resist', 2:'+XP range, +18%', 3:'+XP range, +18%', 4:'+XP range, +16%' }[n] || 'maxed';
+  },
+});
+
+// Frost Baker unique: ice shield that absorbs damage and slows attackers on break
+defArmor('frost_shell', {
+  name: 'Frost Shell', icon: '🧊',
+  desc: 'Frost Baker exclusive. Ice shield absorbs damage and slows attackers on break.',
+  maxLevel: 4,
+  init: () => ({ }),
+  upgrade: a => {
+    a.level = (a.level || 0) + 1;
+    const gain = 35;
+    player.shieldMax += gain; player.shield = Math.min(player.shield + gain, player.shieldMax);
+    player.frostThorns = (player.frostThorns || 0) + 1;
+  },
+  describeNext: a => {
+    const n = (a?.level || 0) + 1;
+    return n <= 4 ? '+35 ice shield, slows attackers' : 'maxed';
+  },
+});
+
+// Oven Knight unique: heavy flat armor + berserker trigger
+defArmor('iron_hide', {
+  name: 'Iron Hide', icon: '⚙️',
+  desc: 'Oven Knight exclusive. Massive flat armor. Below 30% HP: +50% damage, knockback immune.',
+  maxLevel: 4,
+  init: () => ({ }),
+  upgrade: a => {
+    a.level = (a.level || 0) + 1;
+    player.armor += 3;
+    player.hasBerserker = true;
+  },
+  describeNext: a => {
+    const n = (a?.level || 0) + 1;
+    return n <= 4 ? '+3 armor, berserker rage below 30% HP' : 'maxed';
+  },
+});
+
+// Crust Runner unique: speed boost + dash deals damage
+defArmor('turbo_soles', {
+  name: 'Turbo Soles', icon: '⚡',
+  desc: 'Crust Runner exclusive. Dashing deals damage to nearby enemies and restores HP.',
+  maxLevel: 4,
+  init: () => ({ }),
+  upgrade: a => {
+    a.level = (a.level || 0) + 1;
+    player.baseSpeed *= 1.08;
+    player.dashCdMult *= 0.9;
+    player.turboDash = (player.turboDash || 0) + 1;
+  },
+  describeNext: a => {
+    const n = (a?.level || 0) + 1;
+    return n <= 4 ? '+8% speed, -10% dash cd, dash deals 40 dmg' : 'maxed';
+  },
+});
+
+// ============================================================
+// SLICE-UNLOCKABLE ARMORS
+// ============================================================
+
+// Reflects damage back to attacker
+defArmor('mirror_vest', {
+  name: 'Mirror Vest', icon: '🪞',
+  desc: 'Reflects incoming damage back to the attacker.',
+  maxLevel: 4,
+  init: () => ({ }),
+  upgrade: a => {
+    a.level = (a.level || 0) + 1;
+    player.thorns = (player.thorns || 0) + 8; // 8 thorn damage per level
+  },
+  describeNext: a => '+8 thorn damage reflected',
+});
+
+// One-time revive with explosion
+defArmor('phoenix_apron', {
+  name: 'Phoenix Apron', icon: '🔥',
+  desc: 'Once per run: survive a lethal hit at 30% HP with a fiery shockwave.',
+  maxLevel: 1,
+  init: () => ({ }),
+  upgrade: a => {
+    a.level = (a.level || 0) + 1;
+    player.phoenixRevive = true;
+  },
+  describeNext: a => (a?.level || 0) >= 1 ? 'maxed' : 'phoenix revive on death',
+});
+
 // Placeholder: _getWeaponAssets helper (avoids importing private _weaponAssets from entities.js)
 // Thunder and Staff weapon ticks check for wand asset readiness. We use _cloneWeaponMesh which
 // returns null if not yet loaded, so no special access needed.
