@@ -334,7 +334,8 @@ const PizzaHeroSplash = (function () {
       duration    = 3800,
       skipOnInput = true,
       tagline     = 'GAMING',
-      onComplete  = () => {}
+      onDismiss   = () => {},   // fires IMMEDIATELY when fade-out starts (cross-fade)
+      onComplete  = () => {}    // fires AFTER splash is removed from DOM
     } = opts;
 
     document.querySelectorAll('.phs-splash').forEach(el => el.remove());
@@ -364,6 +365,7 @@ const PizzaHeroSplash = (function () {
       window.removeEventListener('keydown', onKey);
       splash.removeEventListener('click', onClick);
       splash.classList.add('phs-out');
+      try { onDismiss(); } catch (e) { console.error(e); }
       setTimeout(() => {
         splash.remove();
         try { onComplete(); } catch (e) { console.error(e); }

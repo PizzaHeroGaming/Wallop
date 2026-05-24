@@ -286,6 +286,16 @@
   .overlay.hidden { display: none; }
 
   #start-screen { background: #0d1126; }
+  /* Cross-fade in from transparent when the PHG splash starts its exit.
+     The .phs-fade-in class is added by the splash's onDismiss callback;
+     CSS transition handles the opacity ramp. Matches Athanor's bumper. */
+  #start-screen.phs-fade-in {
+    animation: phs-screen-in 1.1s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+  }
+  @keyframes phs-screen-in {
+    0%   { opacity: 0; transform: scale(0.98); }
+    100% { opacity: 1; transform: scale(1); }
+  }
 
   /* Dev-mode banner — pinned at top-left, always-on while dev mode is active */
   #dev-mode-banner {
@@ -2308,7 +2318,8 @@ const PizzaHeroSplash = (function () {
       duration    = 3800,
       skipOnInput = true,
       tagline     = 'GAMING',
-      onComplete  = () => {}
+      onDismiss   = () => {},   // fires IMMEDIATELY when fade-out starts (for cross-fade)
+      onComplete  = () => {}    // fires AFTER splash is removed from DOM
     } = opts;
 
     document.querySelectorAll('.phs-splash').forEach(el => el.remove());
@@ -2338,6 +2349,9 @@ const PizzaHeroSplash = (function () {
       window.removeEventListener('keydown', onKey);
       splash.removeEventListener('click', onClick);
       splash.classList.add('phs-out');
+      // Fire onDismiss synchronously so the caller can cross-fade its next
+      // screen IN during the 1.1s splash fade-out.
+      try { onDismiss(); } catch (e) { console.error(e); }
       setTimeout(() => {
         splash.remove();
         try { onComplete(); } catch (e) { console.error(e); }
@@ -2360,14 +2374,21 @@ const PizzaHeroSplash = (function () {
 })();
 </script>
 <script>
-// Show the splash on first load, then reveal the game's start screen.
+// Show the splash on first load, then cross-fade into the game's start screen.
+// onDismiss fires the moment the splash begins its 1.1s fade-out; we reveal
+// the start screen at the same instant and let its own opacity transition
+// fade it IN while the splash fades OUT — matches Athanor's bumper exit.
 window.addEventListener('load', () => {
   PizzaHeroSplash.show({
     duration: 0,
     skipOnInput: true,
     tagline: 'GAMING',
-    onComplete: () => {
-      document.getElementById('start-screen').classList.remove('hidden');
+    onDismiss: () => {
+      const start = document.getElementById('start-screen');
+      start.classList.remove('hidden');
+      // Force the element to render in its initial transparent state, then
+      // flip to opaque so the CSS transition kicks in.
+      start.classList.add('phs-fade-in');
       // Re-render stage/diff buttons in case initUI ran before modules settled
       if (typeof window._wallopRenderStageSelect === 'function') {
         window._wallopRenderStageSelect();
@@ -2787,6 +2808,6 @@ window.addEventListener('load', () => {
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
-<script type="module" src="src/js/main.js?v=bcd473a"></script>
+<script type="module" src="src/js/main.js?v=41202f7"></script>
 </body>
 </html>
