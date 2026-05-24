@@ -22,6 +22,7 @@ import {
   generateChestOffers,
   spawnParticle,
   CHARACTER_MODELS, _animClips, loadCharAsset,
+  _applyCharacterModel,
 } from './entities.js';
 import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js';
 import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js';
@@ -1051,6 +1052,7 @@ function openArmoryDetail(entry, cat) {
         }
       } else if (action === 'equip') {
         Profile.setEquippedCharacter(entry.slug);
+        _applyCharacterModel().catch(() => {}); // preload model for next run
         renderArmoryGrid();
         openArmoryDetail(entry, cat);
       } else if (action === 'boost') {
@@ -1730,22 +1732,19 @@ function initCharSelect() {
     _refreshCharSelectUI();
   });
 
-  // Select button — desktop
-  document.getElementById('char-select-btn').addEventListener('click', () => {
+  // Pick a character: update Profile + preload its in-game model so the
+  // visual swap is ready before the next run starts (avoids a race where
+  // resetGame's _applyCharacterModel sees a stale cache and skips).
+  function _pickCharacter() {
     const slug = _charOrder[_charSelIdx];
     if (!Profile.isUnlocked(slug)) return;
     Profile.setEquippedCharacter(slug);
     _refreshCharSelectUI();
-  });
-
-  // Select button — mobile
+    _applyCharacterModel().catch(() => {}); // fire-and-forget; resetGame will re-call if needed
+  }
+  document.getElementById('char-select-btn').addEventListener('click', _pickCharacter);
   const _mobSelectBtn = document.getElementById('mob-char-btn');
-  if (_mobSelectBtn) _mobSelectBtn.addEventListener('click', () => {
-    const slug = _charOrder[_charSelIdx];
-    if (!Profile.isUnlocked(slug)) return;
-    Profile.setEquippedCharacter(slug);
-    _refreshCharSelectUI();
-  });
+  if (_mobSelectBtn) _mobSelectBtn.addEventListener('click', _pickCharacter);
 
   // Render loop
   function _previewLoop(t) {

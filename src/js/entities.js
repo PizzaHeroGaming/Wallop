@@ -143,19 +143,44 @@ function _bindAnimActions(mixer) {
 
 export function _applyCharacterModel() {
   const slug = (typeof Profile !== 'undefined' && Profile.get().equippedCharacter) || 'pizza_hero';
-  if (slug === _loadedCharSlug && player.group.children.length > 0) return Promise.resolve();
+  // Skip-load fast path: already loaded AND the player.group actually has that model
+  // attached.  We tag the root we added with userData._wallop_charSlug so we can
+  // verify the current visible model matches the equipped slug — without this,
+  // a previous load that left _loadedCharSlug=newSlug but rejected (or got
+  // overwritten by a concurrent call) could permanently strand the wrong model.
+  if (slug === _loadedCharSlug
+      && player.group.children.length > 0
+      && player.group.children[0].userData?._wallop_charSlug === slug) {
+    return Promise.resolve();
+  }
   const url = CHARACTER_MODELS[slug] || CHARACTER_MODELS.pizza_hero;
-  _loadedCharSlug = slug;
   return _loadGLB(url).then(charGltf => {
-    while (player.group.children.length) player.group.remove(player.group.children[0]);
+    // Clear whatever was there (previous character, or stale partial load)
+    while (player.group.children.length) {
+      const c = player.group.children[0];
+      player.group.remove(c);
+      // Dispose old mesh resources to avoid GPU leaks across char swaps
+      c.traverse(o => {
+        if (o.geometry) o.geometry.dispose();
+        if (o.material) {
+          if (Array.isArray(o.material)) o.material.forEach(m => m.dispose());
+          else o.material.dispose();
+        }
+      });
+    }
     const model = THREE.SkeletonUtils.clone(charGltf.scene);
     model.scale.setScalar(1.0);
+    model.userData._wallop_charSlug = slug; // tag so we can verify next time
     model.traverse(c => { if (c.isMesh) c.castShadow = true; });
     player.group.add(model);
     if (playerMixer) playerMixer.stopAllAction();
     playerMixer = new THREE.AnimationMixer(model);
     _bindAnimActions(playerMixer);
-  }).catch(err => console.error('[WALLOP] Character model load failed:', err));
+    _loadedCharSlug = slug; // set AFTER successful apply, so a failed load doesn't strand
+  }).catch(err => {
+    console.error('[WALLOP] Character model load failed:', err);
+    _loadedCharSlug = null; // allow retry on next call
+  });
 }
 
 // Shared character GLB cache — used by both the in-game model and the start-screen preview.
