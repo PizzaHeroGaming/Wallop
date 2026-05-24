@@ -1,6 +1,6 @@
 // game.js — core game logic: damageEnemy, update loop, player movement, spawning
 // Imports (acyclic — game.js is the top of the dep graph among game modules):
-import { scene, camera, renderer, composer, sun, clock, isMobile, tryEnterFullscreen, releasePtLight, setRendererArena } from './renderer.js';
+import { scene, camera, renderer, composer, sun, clock, isMobile, tryEnterFullscreen, releasePtLight, setRendererArena } from './renderer.js?v=12ea06f';
 import {
   player,
   playerMixer, playerIdleAction, playerWalkAction, playerRunAction,
@@ -18,16 +18,16 @@ import {
   updateShieldOrbital, updateParticles,
   setDamageEnemyCb, setOnLevelUpReady,
   spawnGold, spawnSmokeCloud, makeEnemyMesh, ENEMY_DEFS,
-} from './entities.js';
-import { WEAPONS, ARMOR, TOMES, setDamageEnemyForWeapons, rebuildOrbits } from './weapons.js';
+} from './entities.js?v=12ea06f';
+import { WEAPONS, ARMOR, TOMES, setDamageEnemyForWeapons, rebuildOrbits } from './weapons.js?v=12ea06f';
 import {
   gameState, cam,
-} from './state.js';
-import { CFG, STAGE_MULTS, DIFFICULTIES } from './config.js';
-import { Profile, ARENAS } from './profile.js';
-import { groundHeight, resolveSolids, setTerrainArena } from './terrain.js';
-import { setWorldArena } from './world.js';
-import { killMesh, clamp, rand, tmp, tmp2, flatPhong } from './utils.js';
+} from './state.js?v=12ea06f';
+import { CFG, STAGE_MULTS, DIFFICULTIES } from './config.js?v=12ea06f';
+import { Profile, ARENAS } from './profile.js?v=12ea06f';
+import { groundHeight, resolveSolids, setTerrainArena } from './terrain.js?v=12ea06f';
+import { setWorldArena } from './world.js?v=12ea06f';
+import { killMesh, clamp, rand, tmp, tmp2, flatPhong } from './utils.js?v=12ea06f';
 import {
   showDamage, showAlert, updateBossArrow, updateLoadoutDisplay,
   syncSliceDisplays, triggerGameOver,
@@ -39,7 +39,7 @@ import {
   setDamageEnemyForUI, setResetGameCb, setJumpDashCbs, setCallBossCb,
   initUI,
   addCameraShake,
-} from './ui.js';
+} from './ui.js?v=12ea06f';
 
 // Player animation state (module-level so it persists across frames)
 let _animState = 'idle';
