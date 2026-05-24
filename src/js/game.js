@@ -1,6 +1,6 @@
 // game.js — core game logic: damageEnemy, update loop, player movement, spawning
 // Imports (acyclic — game.js is the top of the dep graph among game modules):
-import { scene, camera, renderer, composer, sun, clock, isMobile, tryEnterFullscreen, releasePtLight, setRendererArena } from './renderer.js?v=b0eab68';
+import { scene, camera, renderer, composer, sun, clock, isMobile, tryEnterFullscreen, releasePtLight, setRendererArena } from './renderer.js?v=7ce2e7d';
 import {
   player,
   playerMixer, playerIdleAction, playerWalkAction, playerRunAction,
@@ -18,16 +18,16 @@ import {
   updateShieldOrbital, updateParticles,
   setDamageEnemyCb, setOnLevelUpReady,
   spawnGold, spawnSmokeCloud, makeEnemyMesh, ENEMY_DEFS,
-} from './entities.js?v=b0eab68';
-import { WEAPONS, ARMOR, TOMES, setDamageEnemyForWeapons, rebuildOrbits } from './weapons.js?v=b0eab68';
+} from './entities.js?v=7ce2e7d';
+import { WEAPONS, ARMOR, TOMES, setDamageEnemyForWeapons, rebuildOrbits } from './weapons.js?v=7ce2e7d';
 import {
   gameState, cam,
-} from './state.js?v=b0eab68';
-import { CFG, STAGE_MULTS, DIFFICULTIES } from './config.js?v=b0eab68';
-import { Profile, ARENAS } from './profile.js?v=b0eab68';
-import { groundHeight, resolveSolids, setTerrainArena } from './terrain.js?v=b0eab68';
-import { setWorldArena } from './world.js?v=b0eab68';
-import { killMesh, clamp, rand, tmp, tmp2, flatPhong } from './utils.js?v=b0eab68';
+} from './state.js?v=7ce2e7d';
+import { CFG, STAGE_MULTS, DIFFICULTIES } from './config.js?v=7ce2e7d';
+import { Profile, ARENAS } from './profile.js?v=7ce2e7d';
+import { groundHeight, resolveSolids, setTerrainArena } from './terrain.js?v=7ce2e7d';
+import { setWorldArena } from './world.js?v=7ce2e7d';
+import { killMesh, clamp, rand, tmp, tmp2, flatPhong } from './utils.js?v=7ce2e7d';
 import {
   showDamage, showAlert, updateBossArrow, updateLoadoutDisplay,
   syncSliceDisplays, triggerGameOver,
@@ -39,7 +39,7 @@ import {
   setDamageEnemyForUI, setResetGameCb, setJumpDashCbs, setCallBossCb,
   initUI,
   addCameraShake,
-} from './ui.js?v=b0eab68';
+} from './ui.js?v=7ce2e7d';
 
 // Player animation state (module-level so it persists across frames)
 let _animState = 'idle';
@@ -1009,7 +1009,11 @@ function updateEnemies(dt) {
     const isVisible = distSq < 50 * 50;
 
     if (isNear || e.isBoss || e.isElite) {
-      e.mesh.lookAt(player.pos.x, e.pos.y + e.height * 0.5, player.pos.z);
+      // lookAt at the mesh's OWN Y, never the player's height — when the enemy
+      // is touching the player the horizontal distance approaches zero and any
+      // vertical offset in the target makes the lookAt vector nearly vertical,
+      // which tilts the mesh forward and makes the enemy appear to lay down.
+      e.mesh.lookAt(player.pos.x, e.mesh.position.y, player.pos.z);
     } else if (isVisible) {
       e.mesh.rotation.y = Math.atan2(dxc, dzc) + Math.PI;
     }
