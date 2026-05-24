@@ -1743,6 +1743,85 @@
     .about-section { padding: 12px 14px; margin-bottom: 10px; }
   }
   /* ===== end about screen ===== */
+
+  /* ============================================================
+     KENNEY UI PACK OVERRIDES — pixel-art frames + buttons
+     Sourced from kenney_ui-pack-pixel-adventure (CC0).
+     Each tile is 32x32 with a ~6px chunky outline; we use
+     border-image to slice that outline and stretch the interior
+     so the frame stays sharp at any element size.
+     ============================================================ */
+
+  /* PASS 1 — Loadout slots (HUD strip) */
+  .loadout-slot {
+    /* Fixed-size element (32x32) — just drop the slot tile in as background */
+    background: url('assets/ui/slot.png') center / 100% 100% no-repeat;
+    border: none;
+    image-rendering: pixelated;
+  }
+  .loadout-slot.empty { opacity: 0.45; }
+  /* Subtle category tint via a top-right corner dot (since border-color no longer applies) */
+  .loadout-slot.weapon::after,
+  .loadout-slot.armor::after,
+  .loadout-slot.tome::after {
+    content: ''; position: absolute; top: 2px; right: 2px;
+    width: 5px; height: 5px; border: 1px solid #000;
+  }
+  .loadout-slot.weapon::after { background: var(--hot); }
+  .loadout-slot.armor::after  { background: var(--rare); }
+  .loadout-slot.tome::after   { background: var(--epic); }
+
+  /* PASS 1 — SLICES counter chip on the start screen */
+  #slice-counter {
+    background: transparent;
+    border: none;
+    border-image: url('assets/ui/btn_wood.png') 6 fill / 6px / 0 stretch;
+    box-shadow: none;
+    padding: 14px 22px;
+    image-rendering: pixelated;
+    color: var(--accent);
+  }
+  #slice-counter .slice-label { color: #6a3818; }
+
+  /* PASS 2 — HP / XP / Boss HP frames (the wrapper, not the fill) */
+  #hp-wrap, #xp-wrap, #boss-wrap {
+    background: transparent !important;
+    border: none !important;
+    border-image: url('assets/ui/panel_cream.png') 6 fill / 6px / 0 stretch !important;
+    box-shadow: none !important;
+    image-rendering: pixelated;
+    padding: 6px 8px;
+  }
+  #hp-bar, #xp-bar { background: rgba(0,0,0,0.55); border-color: rgba(0,0,0,0.6); }
+
+  /* PASS 3 — Buttons */
+  .btn {
+    background: transparent;
+    border: none;
+    border-image: url('assets/ui/btn_wood.png') 6 fill / 6px / 0 stretch;
+    box-shadow: none;
+    color: #2a1a05;
+    text-shadow: 1px 1px 0 #f5e9c8;
+    image-rendering: pixelated;
+    /* Use a fake drop-shadow via filter (border-image kills box-shadow visually) */
+    filter: drop-shadow(3px 3px 0 #000);
+    transition: transform 0.08s, filter 0.08s;
+  }
+  .btn:hover { transform: translate(-1px, -1px); filter: drop-shadow(4px 4px 0 #000); }
+  .btn:active { transform: translate(2px, 2px); filter: drop-shadow(1px 1px 0 #000); }
+  .btn.hot {
+    border-image: url('assets/ui/btn_red.png') 6 fill / 6px / 0 stretch;
+    color: #fff; text-shadow: 1px 1px 0 #5a0010;
+  }
+  .btn.hot:hover { background: transparent; }
+  .btn.dim {
+    border-image: url('assets/ui/panel_blue.png') 6 fill / 6px / 0 stretch;
+    color: var(--ink-dim); text-shadow: none;
+    filter: drop-shadow(2px 2px 0 rgba(0,0,0,0.7));
+  }
+  .btn.dim:hover { background: transparent; }
+  .btn:disabled, .btn[disabled] { filter: drop-shadow(1px 1px 0 #000) grayscale(0.5); opacity: 0.7; cursor: not-allowed; }
+  /* ===== end Kenney UI pack overrides ===== */
 </style>
 </head>
 <body>
@@ -2255,6 +2334,6 @@ window.addEventListener('load', () => {
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
-<script type="module" src="src/js/main.js?v=a734b18"></script>
+<script type="module" src="src/js/main.js?v=d2c85ad"></script>
 </body>
 </html>
