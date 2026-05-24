@@ -34,11 +34,16 @@ export const ARENAS = {
     desc: 'Autumn descends. Trees go gold, winds turn cold.',
     order: 2, unlocksFrom: 'pepperoni_pines',
     sky:    { top: '#6b3a78', mid: '#c45a48', low: '#ffb070', bottom: '#ffd494', wisp: '#ffaa6e' },
-    fog:    { color: 0xeed1b3, density: 0.009 },
-    lights: { sun: 0xffb86e, sunIntensity: 1.10, rim: 0xff7a3c, hemiSky: 0xffc890, hemiGround: 0xa0623a },
-    ground: { base: '#a0623a', accent1: '#85502a', accent2: '#b87a48', accent3: '#945a30', flowers: ['#ff5a1f', '#ffaa3a', '#d4a838', '#a83820', '#ffd07a'] },
-    grass:  0xc88838, fern: 0x9a5828, log: 0x4e2810, logCap: 0x8a5a2a, mushroomCaps: [0xa83018, 0xd07a2a, 0x6a3a14],
-    sceneryTint: 0xd4a060,                // warm orange material tint
+    fog:    { color: 0xd8b890, density: 0.009 },
+    // Sun intensity lowered (1.10 → 0.85) and hemisphere ground darkened
+    // so warm lighting doesn't push the brown ground into glowing-red territory
+    lights: { sun: 0xffb86e, sunIntensity: 0.85, rim: 0xff7a3c, hemiSky: 0xeeb878, hemiGround: 0x5a3820 },
+    // Ground darkened + desaturated (was fluorescent red/orange, washed cape out).
+    // New palette reads as warm dry earth + dust, contrasting both the green
+    // and red of the Pizza Hero outfit.
+    ground: { base: '#6a4222', accent1: '#553318', accent2: '#7a5230', accent3: '#5e3a1c', flowers: ['#ff5a1f', '#ffaa3a', '#d4a838', '#a83820', '#ffd07a'] },
+    grass:  0xa07a3a, fern: 0x6a4020, log: 0x3e2008, logCap: 0x6a4220, mushroomCaps: [0xa83018, 0xd07a2a, 0x6a3a14],
+    sceneryTint: 0xc89868,                // warm dusty tan tint
     treeWeights: { leafy: 0.30, pine: 0.20, bare: 0.50 },
     distantHillHueRange: [0.05, 0.10], distantHillSat: 0.40, distantHillLig: 0.42,
     // Rocky autumn terrain — sandstone boulders scattered as cover
