@@ -24,21 +24,17 @@ For mobile testing on the same network:
 
 The root `index.html` is the GitHub Pages build — identical to `src/wallop.html`
 with the module path adjusted to `src/js/main.js`, plus a `?v=<short-sha>`
-cache-buster on the script src and `no-cache` meta tags so mobile browsers
-always pick up the latest deploy. Rebuild it after any change:
+cache-buster appended to **every** module import so mobile browsers always
+pick up the latest deploy. Rebuild it after any change with the bundled script:
 
 ```bash
-python3 -c "
-import codecs, subprocess
-sha = subprocess.check_output(['git','rev-parse','--short','HEAD']).decode().strip()
-with codecs.open('src/wallop.html', encoding='utf-8') as f: c = f.read()
-c = c.replace('src=\"js/main.js\"', f'src=\"src/js/main.js?v={sha}\"')
-if 'http-equiv=\"Cache-Control\"' not in c:
-    nocache = '\n  <meta http-equiv=\"Cache-Control\" content=\"no-cache, no-store, must-revalidate\" />\n  <meta http-equiv=\"Pragma\" content=\"no-cache\" />\n  <meta http-equiv=\"Expires\" content=\"0\" />'
-    c = c.replace('<meta charset=\"UTF-8\" />', '<meta charset=\"UTF-8\" />' + nocache, 1)
-with codecs.open('index.html','w',encoding='utf-8') as f: f.write(c)
-"
+python3 scripts/build-pages.py
 ```
+
+The script rewrites every `from './X.js'` import across `src/js/` to include
+`?v=<short-sha>` (idempotent — re-running with the same sha is a no-op,
+a new sha bumps all imports). Without this, returning players' browsers
+serve cached `config.js` / `ui.js` etc. even though `main.js` is fresh.
 
 ---
 
@@ -48,45 +44,53 @@ with codecs.open('index.html','w',encoding='utf-8') as f: f.write(c)
 wallop/
 ├── CLAUDE.md                   ← Architecture briefing for Claude Code
 ├── README.md                   ← This file
-├── index.html                  ← GitHub Pages build (auto-generated from wallop.html)
+├── index.html                  ← GitHub Pages build (generated from wallop.html)
 ├── .claude/settings.json       ← Pre-approved Claude Code permissions
 ├── .gitignore
+├── scripts/
+│   ├── build-pages.py          ← Rebuild index.html + cache-bust JS imports
+│   └── validate.sh             ← node --check all JS modules + inline scripts
 ├── src/
 │   ├── wallop.html             ← Game entry point (HTML shell + inline CSS + splash wiring)
 │   ├── js/
 │   │   ├── main.js             ← Animate loop, resize, fullscreen, context loss
-│   │   ├── game.js             ← Core loop: damageEnemy, update, spawning, bosses
+│   │   ├── game.js             ← Core loop: damageEnemy, update, spawning, bosses, challenges
 │   │   ├── entities.js         ← Player, enemies, projectiles, chests, gems, pools
 │   │   ├── weapons.js          ← All weapon / armor / tome definitions (defWeapon etc.)
 │   │   ├── upgrades.js         ← STAT_UPGRADES, SYNERGY_UPGRADES
-│   │   ├── ui.js               ← HUD, level-up, armory, pause, game-over, offer gen
-│   │   ├── profile.js          ← Meta-progression: Profile singleton, CATALOG, Slices
-│   │   ├── state.js            ← gameState, cam
-│   │   ├── config.js           ← CFG constants, STAGE_MULTS, DIFFICULTIES
+│   │   ├── ui.js               ← HUD, level-up, armory, pause, game-over, challenges menu
+│   │   ├── profile.js          ← Meta-progression: Profile singleton, CATALOG, CHALLENGES, ARENAS
+│   │   ├── state.js            ← gameState (stage, arena, activeChallenge, etc.), cam
+│   │   ├── config.js           ← CFG constants, STAGE_MULTS, DIFFICULTIES, VERSION
 │   │   ├── renderer.js         ← Three.js scene, camera, renderer, composer
-│   │   ├── world.js            ← Terrain, scenery, forest ring
+│   │   ├── world.js            ← Per-arena scenery, ground theming, obstacles
 │   │   └── terrain.js          ← groundHeight(), resolveSolids()
 │   └── splash/
-│       └── pizza-hero-splash.html  ← Studio bumper (integrated)
+│       └── pizza-hero-splash.html  ← PHG studio bumper (synced with Athanor)
 ├── assets/
 │   ├── icons/icon.svg          ← 512×512 maskable app icon
-│   ├── KayKit_Adventurers_2.0_FREE/   ← Character GLTF models
-│   ├── KayKit_Skeletons_1.1_FREE/     ← Skeleton enemy GLTF models
-│   └── KayKit_Forest_Nature_Pack_*/   ← Scenery props
+│   ├── characters/             ← Character GLBs (knight, mage, barbarian, rogue, ranger, hooded)
+│   ├── ui/                     ← Kenney UI pack tiles (CC0 — wood frames, buttons, slots)
+│   ├── KayKit_Adventurers_2.0_FREE/   ← Source pack (untracked)
+│   ├── KayKit_Skeletons_1.1_FREE/     ← Source pack (untracked)
+│   └── KayKit_Forest_Nature_Pack_*/   ← Source pack (untracked)
+├── kenney_ui-pack-pixel-adventure/    ← UI source pack (CC0, untracked)
 └── docs/
     └── icon-preview.html
 ```
 
 ---
 
-## Characters
+## Characters (6 — 1 default + 5 slice-unlockable)
 
 | Character | Cost | Starter | Stat bonuses | Unique weapon | Unique armor |
 |---|---|---|---|---|---|
-| Pizza Hero | default | Pizza Toss 🍕 | — | Deep Dish 🍕 | Delivery Bag 🎒 |
-| Frost Baker | 200 🍕 | Ice Cone 🧊 | Cold effects +50% duration | Blizzard 🌨️ | Frost Shell ❄️ |
-| Oven Knight | 350 🍕 | Wallop Aura 💥 | +4 armor, +25 HP, −20% speed | Forge Hammer 🔨 | Iron Hide 🪨 |
-| Crust Runner | 500 🍕 | Pepperoni Boomerang 🪃 | +35% speed, double jump, −15% cooldowns | Star Shower ⭐ | Turbo Soles 🏃 |
+| 🍕 Pizza Hero | default | Pizza Toss 🍕 | — | Deep Dish 🍕 | Delivery Bag 🎒 |
+| 🧊 Frost Baker | 200 🍕 | Ice Cone 🧊 | Cold effects +50% duration | Blizzard 🌨️ | Frost Shell ❄️ |
+| 🧱 Oven Knight | 350 🍕 | Wallop Aura 💥 | +4 armor, +25 HP, −20% speed | Forge Hammer 🔨 | Iron Hide 🪨 |
+| 🏃 Crust Runner | 500 🍕 | Pepperoni Boomerang 🪃 | +35% speed, double jump, −15% cooldowns | Star Shower ⭐ | Turbo Soles 🏃 |
+| 🏹 Anchovy Archer | 600 🍕 | Crossbow Bolt 🏹 | +15% crit, +30% crit dmg, +1 pierce, −10 HP | Tomahawk Anchovy 🪓 | Sniper's Cloak 🎯 |
+| 🥷 Stealth Slice | 750 🍕 | Smoke Bomb 💨 | +15% dodge, +20% damage, +10% speed, −15 HP | Shadow Slice 🌑 | Phantom Hood 👤 |
 
 **Unique item unlock system:** character-exclusive items appear only in that character's
 level-up pool. Other characters can unlock them cross-character: accumulate **7,500 kills
@@ -97,7 +101,7 @@ permanently.
 
 ---
 
-## Weapons (12 base + 4 char-unique + 3 slice-unlockable)
+## Weapons (12 base + 6 char-unique + 3 slice-unlockable)
 
 | Weapon | How to get |
 |---|---|
@@ -106,11 +110,13 @@ permanently.
 | Blizzard 🌨️ | Frost Baker exclusive / 7,500 kills with Blizzard + 250 Slices |
 | Forge Hammer 🔨 | Oven Knight exclusive / 7,500 kills with Forge Hammer + 300 Slices |
 | Star Shower ⭐ | Crust Runner exclusive / 7,500 kills with Star Shower + 300 Slices |
+| Tomahawk Anchovy 🪓 | Anchovy Archer exclusive / 7,500 kills with Tomahawk Anchovy + 325 Slices |
+| Shadow Slice 🌑 | Stealth Slice exclusive / 7,500 kills with Shadow Slice + 325 Slices |
 | Meatball Minigun 🍝 | 150 Slices |
 | Cheese Whip 🧀 | 200 Slices |
 | Olive Railgun 🫒 | 300 Slices |
 
-## Armor (6 base + 4 char-unique + 2 slice-unlockable)
+## Armor (6 base + 6 char-unique + 2 slice-unlockable)
 
 | Armor | How to get |
 |---|---|
@@ -119,13 +125,50 @@ permanently.
 | Frost Shell ❄️ | Frost Baker exclusive / 7,500 kills while equipped + 200 Slices |
 | Iron Hide 🪨 | Oven Knight exclusive / 7,500 kills while equipped + 275 Slices |
 | Turbo Soles 🏃 | Crust Runner exclusive / 7,500 kills while equipped + 250 Slices |
+| Sniper's Cloak 🎯 | Anchovy Archer exclusive / 7,500 kills while equipped + 275 Slices |
+| Phantom Hood 👤 | Stealth Slice exclusive / 7,500 kills while equipped + 275 Slices |
 | Mirror Vest 🪞 | 150 Slices |
 | Phoenix Apron 🔥 | 300 Slices |
 
-## Tomes (8 base)
+## Tomes (10 — 8 base + 2 implemented)
 
 Tome of Power 📕, Tome of Swiftness 📒, Tome of Fortune 📗, Tome of Wisdom 📘,
-Tome of Reach 📙, Tome of Warding 📓, Hunter's Tome 📔, Cursed Tome 💀
+Tome of Reach 📙, Tome of Warding 📓, Hunter's Tome 📔, Cursed Tome 💀,
+Tome of Echoes 📜 (every Nth projectile fires a free duplicate),
+Tome of Time ⏳ (slows ALL enemies briefly when you take damage).
+
+---
+
+## Arenas (3 — 1 default + 2 progression-gated)
+
+| Arena | Unlock | Theme | Inner-arena obstacles |
+|---|---|---|---|
+| 🌲 Pepperoni Pines | default | Lush green forest | None (beginner-friendly) |
+| 🍂 Sundried Slopes | beat Pepperoni stage 3 on Normal+ | Warm dry autumn earth | 16 sandstone boulders scattered for cover |
+| 🧊 Frostbite Glacier | beat Sundried stage 3 on Normal+ | Icy mid-tone blue snow | 22 tall ice spires forming chokepoints |
+
+Each arena swaps the sky, fog, sun/hemisphere lighting, ground texture, scenery
+tint, tree-type weights, distant-hill palette, AND inner-arena terrain.
+
+---
+
+## Challenges (5 starter)
+
+Special-rules runs accessed from the **🏆 CHALLENGES** button on the start menu.
+Each challenge pays out Slices on **first completion only**; replays are
+allowed but give nothing. Pick a challenge → run launches with its modifiers
+applied.
+
+| Challenge | Reward | Objective |
+|---|---|---|
+| 💥 Glass Cannon | 100 🍕 | Half max HP + 50% damage. Survive to 5:00. |
+| ⚡ Speed Demon | 150 🍕 | Defeat the Sauce Slinger before 4:00 elapsed. |
+| 💀 Slaughterhouse | 125 🍕 | 150 kills in the first 4:00. |
+| 👻 Untouchable | 250 🍕 | Survive to 4:00 with ZERO damage taken. |
+| 🍕 Pizza Purist | 200 🍕 | Beat the Sauce Slinger using only Pizza Toss. |
+
+Add more in `src/js/profile.js` (CHALLENGES data) + `src/js/game.js`
+(CHALLENGE_LOGIC[id].setup / check).
 
 ---
 
@@ -149,13 +192,15 @@ Spent in the **Armory** to unlock characters, weapons, armor, and permanent run 
 
 Three stages, played in sequence. Defeat the Warlord to advance.
 Weapons, armor, tomes, and XP level all carry over between stages.
-The player is healed 50% of max HP on each advance.
+The player is healed 50% of max HP on each advance, and **~50% of their
+weapons/armor/tomes are randomly stripped** at each advance to keep
+the difficulty curve meaningful.
 
 | Stage | Enemy scale | Boss HP | Boss DMG | Slice bonus |
 |---|---|---|---|---|
 | 1 | ×1.0 | ×1.0 | ×1.0 | ×1.0 |
-| 2 | ×1.35 | ×1.5 | ×1.3 | ×1.5 |
-| 3 | ×1.75 | ×2.2 | ×1.7 | ×2.5 |
+| 2 | ×1.8 | ×2.0 | ×1.6 | ×1.5 |
+| 3 | ×2.6 | ×3.2 | ×2.4 | ×2.5 |
 
 Early enemies in stages 2 and 3 have a minimum strength floor that reflects the
 player's accumulated power (Stage 2 floor ≈ 5-min equivalent, Stage 3 ≈ 8-min).
@@ -235,13 +280,28 @@ First prompt: **"Read CLAUDE.md and confirm you understand the project's constra
 
 ---
 
+## Dev mode (testing)
+
+About screen → **DEV MODE (TESTING)** section. Credentials: `Dev` / `password`.
+Snapshots the current profile to a separate localStorage key, then overrides
+the active profile with "everything unlocked + 999,999 slices + every boost
+maxed" for QA. Exit restores the snapshot byte-for-byte. A red `🔧 DEV MODE`
+chip is pinned to the top of every screen while active.
+
+---
+
 ## Roadmap
 
+**Content gaps still to fill:**
+- Procedural sound design / SFX (game is currently silent)
+- Music loops per arena
+- More challenges (system supports easy addition — 5 starters)
+- Boss models (currently procedural — Sauce Slinger / Hammer Chef / Warlord)
+
+**Shipping work:**
 - Capacitor wrapper for Google Play Store launch
 - AdMob integration (rewarded-ad reroll already wired with simulation)
-- Tome of Echoes and Tome of Time implementations
-- iOS build
-- Procedurally varied arena biomes / stage themes
+- iOS build (Capacitor handles both)
 
 ---
 
