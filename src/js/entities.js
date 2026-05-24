@@ -1,9 +1,9 @@
-import { CFG, IS_MOBILE_EARLY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=5d8c07f';
-import { scene, camera, isMobile, tryEnterFullscreen, renderer, acquirePtLight, releasePtLight } from './renderer.js?v=5d8c07f';
-import { groundHeight, addSolid, resolveSolids, solidProps } from './terrain.js?v=5d8c07f';
-import { killMesh, clamp, rand, tmp, tmp2, flatPhong, smoothPhong } from './utils.js?v=5d8c07f';
-import { gameState } from './state.js?v=5d8c07f';
-import { Profile } from './profile.js?v=5d8c07f';
+import { CFG, IS_MOBILE_EARLY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=ca2d610';
+import { scene, camera, isMobile, tryEnterFullscreen, renderer, acquirePtLight, releasePtLight } from './renderer.js?v=ca2d610';
+import { groundHeight, addSolid, resolveSolids, solidProps } from './terrain.js?v=ca2d610';
+import { killMesh, clamp, rand, tmp, tmp2, flatPhong, smoothPhong } from './utils.js?v=ca2d610';
+import { gameState } from './state.js?v=ca2d610';
+import { Profile } from './profile.js?v=ca2d610';
 
 // ============================================================
 // PLAYER
@@ -1252,9 +1252,17 @@ export function spawnEnemy(typeKey, opts = {}) {
     const _qClips = getQuaterniusClips(enemy.mesh._quaterniusSlug);
     if (_qClips && _qClips.length) {
       enemy.mixer = new THREE.AnimationMixer(enemy.mesh);
+      // Quaternius clip naming varies by category:
+      //   Big/Blob:  Idle / Walk / Run
+      //   Flying:    Flying_Idle / Fast_Flying  (no Walk/Run)
+      //   Some:      Bite_Front / Headbutt / Punch as alt actions
       const _qGet = re => _qClips.find(c => re.test(c.name));
       const _idleClip = _qGet(/idle/i) || _qClips[0];
-      const _walkClip = _qGet(/^walk/i) || _qGet(/run/i) || _idleClip;
+      const _walkClip = _qGet(/^walk/i)
+                     || _qGet(/^run/i)
+                     || _qGet(/fast.?fly/i)        // Fast_Flying for bees/ghosts/dragons
+                     || _qGet(/^fly(?!ing_idle)/i) // any "Fly*" that isn't the idle
+                     || _idleClip;
       enemy.idleAction = _idleClip ? enemy.mixer.clipAction(_idleClip) : null;
       enemy.walkAction = _walkClip ? enemy.mixer.clipAction(_walkClip) : null;
       if (enemy.idleAction) enemy.idleAction.play();
