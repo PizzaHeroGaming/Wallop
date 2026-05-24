@@ -476,6 +476,7 @@ function _stripHalfItems() {
   player.goldMult      = 1.0;
   player.phoenixRevive = false;
   player.hasRevive     = false;
+  player.hasPhantomDash = false;
   // Tome of Echoes / Tome of Time defaults
   player.echoInterval  = 0;
   player._echoCounter  = 0;
@@ -707,6 +708,7 @@ export function resetGame() {
   player.knockResist = 0;
   player.frostThorns = 0;
   player.hasBerserker = false;
+  player.hasPhantomDash = false;
   player.turboDash = 0;
   player.phoenixRevive = false;
 
@@ -804,6 +806,8 @@ function updatePlayer(dt) {
 
   let speed = player.baseSpeed;
   if (player.dashTimer > 0) speed *= 3.5;
+  // Phantom Hood: speed boost when under 40% HP
+  if (player.hasPhantomDash && player.hp < player.maxHp * 0.4) speed *= 1.25;
   player.vel.x = wx * speed;
   player.vel.z = wz * speed;
   player.vel.y -= CFG.GRAVITY * dt;

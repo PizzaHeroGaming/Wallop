@@ -1244,6 +1244,124 @@ defWeapon('star_shower', {
   },
 });
 
+// Anchovy Archer unique: spinning thrown axe that pierces deeply and returns
+defWeapon('tomahawk_anchovy', {
+  name: 'Tomahawk Anchovy', icon: '🪓',
+  desc: 'Anchovy Archer exclusive. A spinning thrown axe with massive pierce. Crit-focused.',
+  maxLevel: 6,
+  init: () => ({ cd: 0, count: 1, pierce: 4, dmgMult: 1 }),
+  upgrade: w => {
+    w.level++;
+    if (w.level === 2) w.dmgMult = 1.3;
+    if (w.level === 3) w.pierce += 2;
+    if (w.level === 4) w.count = 2;
+    if (w.level === 5) w.dmgMult = 1.7;
+    if (w.level === 6) { w.count = 3; w.pierce += 3; }
+  },
+  describeNext: w => {
+    const n = (w?.level || 0) + 1;
+    return { 1:'unlock', 2:'+30% dmg', 3:'+2 pierce', 4:'2 axes', 5:'+40% dmg', 6:'3 axes, +3 pierce' }[n] || 'maxed';
+  },
+  tick: (w, dt) => {
+    w.cd -= dt;
+    if (w.cd > 0) return;
+    w.cd = 1.8 * (w.cdMod || 1) * player.cooldownMult;
+    const target = pickTarget(player.pos, 28, 6);
+    const count = (w.count || 1) + (player.extraProjectiles || 0);
+    const start = player.pos.clone().add(new THREE.Vector3(0, 1.0, 0));
+    for (let i = 0; i < count; i++) {
+      let dir;
+      if (target) {
+        dir = new THREE.Vector3(target.pos.x - start.x, 0, target.pos.z - start.z).normalize();
+      } else {
+        const a = (i / Math.max(count, 1)) * Math.PI * 2;
+        dir = new THREE.Vector3(Math.sin(a), 0, Math.cos(a));
+      }
+      if (count > 1) {
+        const spread = (i - (count - 1) / 2) * 0.28;
+        const cs = Math.cos(spread), sn = Math.sin(spread);
+        const nx = dir.x * cs - dir.z * sn;
+        const nz = dir.x * sn + dir.z * cs;
+        dir.set(nx, 0, nz).normalize();
+      }
+      // Use cached axe_1handed.glb if available, fall back to a simple group
+      let mesh = _cloneWeaponMesh('axe_1handed');
+      if (mesh) {
+        mesh.scale.setScalar(0.9 * player.projectileMult);
+      } else {
+        mesh = new THREE.Group();
+        const blade = new THREE.Mesh(
+          new THREE.BoxGeometry(0.3, 0.05, 0.5),
+          new THREE.MeshPhongMaterial({ color: 0x8899aa, flatShading: true })
+        );
+        mesh.add(blade);
+      }
+      const isCrit = Math.random() < player.critChance;
+      const dmg = (isCrit ? 32 * player.critMult : 32) * (w.dmgMult || 1) * player.damageMult;
+      spawnProjectile({
+        pos: start.clone(), vel: dir.clone().multiplyScalar(18),
+        damage: dmg, radius: 0.32 * player.projectileMult,
+        pierce: (w.pierce || 4) + (player.projectilePierce || 0),
+        lifetime: 1.6 * (player.durationMult || 1),
+        mesh, crit: isCrit, knockback: 3, owner: 'player',
+        spinAxis: new THREE.Vector3(0, 1, 0),
+        weaponId: w.id,
+      });
+    }
+  },
+});
+
+// Stealth Slice unique: ring of shadow daggers that orbit briefly then fly outward
+defWeapon('shadow_slice', {
+  name: 'Shadow Slice', icon: '🌑',
+  desc: 'Stealth Slice exclusive. Conjures shadow daggers that orbit you, then strike outward.',
+  maxLevel: 6,
+  init: () => ({ cd: 0, count: 4, dmgMult: 1 }),
+  upgrade: w => {
+    w.level++;
+    if (w.level === 2) w.dmgMult = 1.3;
+    if (w.level === 3) w.count += 2;
+    if (w.level === 4) w.dmgMult = 1.6;
+    if (w.level === 5) w.count += 2;
+    if (w.level === 6) w.dmgMult = 2.2;
+  },
+  describeNext: w => {
+    const n = (w?.level || 0) + 1;
+    return { 1:'unlock', 2:'+30% dmg', 3:'+2 daggers', 4:'+30% dmg', 5:'+2 daggers', 6:'+60% dmg' }[n] || 'maxed';
+  },
+  tick: (w, dt) => {
+    w.cd -= dt;
+    if (w.cd > 0) return;
+    w.cd = 2.6 * player.cooldownMult;
+    const count = (w.count || 4) + (player.extraProjectiles || 0);
+    // Always-crit daggers (Stealth Slice's signature)
+    const baseDmg = 35 * (w.dmgMult || 1) * player.damageMult;
+    for (let i = 0; i < count; i++) {
+      const angle = (i / count) * Math.PI * 2;
+      const speed = 16;
+      const mesh = new THREE.Group();
+      const blade = new THREE.Mesh(
+        new THREE.BoxGeometry(0.1, 0.05, 0.55),
+        new THREE.MeshPhongMaterial({ color: 0x222244, emissive: 0x6633aa, emissiveIntensity: 0.6, flatShading: true })
+      );
+      mesh.add(blade);
+      mesh.scale.setScalar(player.projectileMult);
+      const isCrit = true; // signature crit
+      const dmg = baseDmg * player.critMult;
+      spawnProjectile({
+        pos: player.pos.clone().add(new THREE.Vector3(Math.sin(angle) * 1.2, 1.0, Math.cos(angle) * 1.2)),
+        vel: new THREE.Vector3(Math.sin(angle) * speed, 0, Math.cos(angle) * speed),
+        damage: dmg, radius: 0.18 * player.projectileMult,
+        pierce: 2 + (player.projectilePierce || 0),
+        lifetime: 1.2 * (player.durationMult || 1),
+        mesh, crit: isCrit, knockback: 2, owner: 'player',
+        weaponId: w.id,
+      });
+    }
+    spawnParticle(player.pos.clone().setY(1.0), 0x6633aa, 12, 2.0);
+  },
+});
+
 // ============================================================
 // SLICE-UNLOCKABLE WEAPONS
 // ============================================================
@@ -1465,6 +1583,43 @@ defArmor('turbo_soles', {
   describeNext: a => {
     const n = (a?.level || 0) + 1;
     return n <= 4 ? '+8% speed, -10% dash cd, dash deals 40 dmg' : 'maxed';
+  },
+});
+
+// Anchovy Archer unique: pure offense — crit chance, crit damage, pierce
+defArmor('snipers_cloak', {
+  name: "Sniper's Cloak", icon: '🎯',
+  desc: 'Anchovy Archer exclusive. Boosts crit chance, crit damage, and projectile pierce.',
+  maxLevel: 4,
+  init: () => ({ }),
+  upgrade: a => {
+    a.level = (a.level || 0) + 1;
+    player.critChance += 0.06;
+    player.critMult   += 0.20;
+    if (a.level === 2 || a.level === 4) player.projectilePierce = (player.projectilePierce || 0) + 1;
+  },
+  describeNext: a => {
+    const n = (a?.level || 0) + 1;
+    const pierceBit = (n === 2 || n === 4) ? ', +1 pierce' : '';
+    return n <= 4 ? `+6% crit, +20% crit dmg${pierceBit}` : 'maxed';
+  },
+});
+
+// Stealth Slice unique: evasive lifesteal — dodge chance + lifesteal + speed when low HP
+defArmor('phantom_hood', {
+  name: 'Phantom Hood', icon: '👤',
+  desc: 'Stealth Slice exclusive. Dodge chance and lifesteal. Speed boost when below 40% HP.',
+  maxLevel: 4,
+  init: () => ({ }),
+  upgrade: a => {
+    a.level = (a.level || 0) + 1;
+    player.dodgeChance += 0.05;
+    player.lifesteal   += 0.03;
+    player.hasPhantomDash = true;
+  },
+  describeNext: a => {
+    const n = (a?.level || 0) + 1;
+    return n <= 4 ? '+5% dodge, +3% lifesteal, low-HP speed boost' : 'maxed';
   },
 });
 
