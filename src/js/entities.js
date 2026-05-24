@@ -1,8 +1,9 @@
-import { CFG, IS_MOBILE_EARLY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=12ea06f';
-import { scene, camera, isMobile, tryEnterFullscreen, renderer, acquirePtLight, releasePtLight } from './renderer.js?v=12ea06f';
-import { groundHeight, addSolid, resolveSolids, solidProps } from './terrain.js?v=12ea06f';
-import { killMesh, clamp, rand, tmp, tmp2, flatPhong, smoothPhong } from './utils.js?v=12ea06f';
-import { gameState } from './state.js?v=12ea06f';
+import { CFG, IS_MOBILE_EARLY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=b0eab68';
+import { scene, camera, isMobile, tryEnterFullscreen, renderer, acquirePtLight, releasePtLight } from './renderer.js?v=b0eab68';
+import { groundHeight, addSolid, resolveSolids, solidProps } from './terrain.js?v=b0eab68';
+import { killMesh, clamp, rand, tmp, tmp2, flatPhong, smoothPhong } from './utils.js?v=b0eab68';
+import { gameState } from './state.js?v=b0eab68';
+import { Profile } from './profile.js?v=b0eab68';
 
 // ============================================================
 // PLAYER
@@ -142,7 +143,7 @@ function _bindAnimActions(mixer) {
 }
 
 export function _applyCharacterModel() {
-  const slug = (typeof Profile !== 'undefined' && Profile.get().equippedCharacter) || 'pizza_hero';
+  const slug = Profile.get().equippedCharacter || 'pizza_hero';
   // Skip-load fast path: already loaded AND the player.group actually has that model
   // attached.  We tag the root we added with userData._wallop_charSlug so we can
   // verify the current visible model matches the equipped slug — without this,
