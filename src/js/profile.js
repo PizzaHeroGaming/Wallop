@@ -59,14 +59,19 @@ export const ARENAS = {
     slug: 'frostbite_glacier', name: 'Frostbite Glacier', icon: '🧊',
     desc: 'Snow blankets every slope. Cold seeps into your crust.',
     order: 3, unlocksFrom: 'sundried_slopes',
-    sky:    { top: '#5070a8', mid: '#a8c4dd', low: '#dde8f0', bottom: '#e8f4ff', wisp: '#ffffff' },
-    fog:    { color: 0xc8dde8, density: 0.010 },
-    lights: { sun: 0xe0eeff, sunIntensity: 0.95, rim: 0xa8c8ee, hemiSky: 0xddeeff, hemiGround: 0xc8d8e0 },
-    ground: { base: '#dde8f0', accent1: '#c4d4e0', accent2: '#eef4fa', accent3: '#b8c8d4', flowers: ['#ffffff', '#a8c8ee', '#e0e8f0', '#c8d4e8', '#ffffff'] },
-    grass:  0xc8d8e8, fern: 0x9ab0c0, log: 0x5a4a3a, logCap: 0x8a7a6a, mushroomCaps: [0xeef4ff, 0xb8c8e0, 0x8898b0],
-    sceneryTint: 0xaecbe6,                // cooler blue-tinted frost (visible against texture green)
+    sky:    { top: '#3a5a90', mid: '#7ea4c8', low: '#b8cfde', bottom: '#d2e2ee', wisp: '#ffffff' },
+    // Darker, denser fog so distance reads as cold mist rather than white void
+    fog:    { color: 0x8aa5b8, density: 0.011 },
+    // Sun intensity dropped 0.95 → 0.7; hemisphere ground darkened so the
+    // pale ground isn't lit into pure white from all sides at once
+    lights: { sun: 0xe0eeff, sunIntensity: 0.70, rim: 0x7ea4c8, hemiSky: 0xbacde4, hemiGround: 0x4a5a6a },
+    // Mid-tone icy blue-gray ground with proper contrast — was near-white
+    // (#dde8f0) and washing everything out under the cool sun
+    ground: { base: '#7c93a8', accent1: '#5e7488', accent2: '#9aaec0', accent3: '#506478', flowers: ['#ffffff', '#a8c8ee', '#e0e8f0', '#c8d4e8', '#ffffff'] },
+    grass:  0x8ca0b4, fern: 0x6a7e92, log: 0x3a3025, logCap: 0x6a5e4e, mushroomCaps: [0xc8d8ec, 0x8aa0b8, 0x586878],
+    sceneryTint: 0x88aacc,                // deeper cool blue tint
     treeWeights: { leafy: 0.10, pine: 0.60, bare: 0.30 },
-    distantHillHueRange: [0.55, 0.60], distantHillSat: 0.18, distantHillLig: 0.62,
+    distantHillHueRange: [0.55, 0.60], distantHillSat: 0.18, distantHillLig: 0.42,
     // Brutal icy maze — tall narrow ice spires create chokepoints
     terrain: {
       obstacles: 22,
