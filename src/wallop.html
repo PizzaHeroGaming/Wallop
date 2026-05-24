@@ -2040,6 +2040,47 @@
   .arena-card .name, [data-arena] .name { color: #b8501c !important; font-size: 9px !important; }
   .arena-card .hint, [data-arena] .hint,
   .arena-card .desc, [data-arena] .desc { color: #2a1a05 !important; font-size: 13px !important; }
+
+  /* =====================================================================
+     PASS 6 — Inset everything well clear of the brown frame edge
+     The Kenney 32x32 tile has a brown trim that reads as ~10-14px thick
+     visually (corners stretch a bit at element-sized rendering).  Bump
+     internal padding on EVERY framed surface so no text or icon touches
+     the visible brown border — content sits purely on the cream.
+     ===================================================================== */
+  /* Generic side panels */
+  .panel              { padding: 24px 36px !important; }
+  .about-section      { padding: 24px 36px !important; }
+  .about-panel        { padding: 0 !important; }  /* no frame, no padding */
+  /* Card-style boxes */
+  .armory-card        { padding: 22px 22px 24px !important; min-height: 220px !important; }
+  .challenge-card     { padding: 18px 22px !important; gap: 18px !important; }
+  .choice             { padding: 22px 18px !important; }
+  /* Headers / strips */
+  #armory-header      { padding: 14px 32px !important; }
+  #armory-slices      { padding: 12px 22px !important; }
+  #slice-counter      { padding: 16px 28px !important; }
+  /* Buttons get a slightly larger inset so labels don't kiss the brown */
+  .btn                { padding: 16px 26px !important; }
+  .btn.hot            { padding: 16px 26px !important; }
+  .armory-tab         { padding: 12px 20px !important; }
+  .diff-btn           { padding: 12px 20px !important; }
+  /* Arena selection cards */
+  .arena-card, [data-arena] { padding: 18px 20px !important; min-height: 120px !important; }
+  /* Configure-your-run difficulty + arena section boxes */
+  .start-run-config   { padding: 20px 28px !important; }
+  /* Stage select panel */
+  .stage-select-panel { padding: 22px 32px !important; }
+  /* Character preview side panel */
+  #char-select-panel  { padding: 22px 26px !important; }
+  #mob-char-select    { padding: 18px 22px !important; }
+  #mob-arena-select   { padding: 18px 22px !important; }
+  /* Pause sections */
+  .pause-section      { padding: 18px 24px !important; }
+  /* Stat tiles (TIME / KILLS / GOLD) */
+  .stat-tile          { padding: 10px 16px !important; }
+  /* HP / XP / Boss bar wrappers — the bars themselves sit inside the cream */
+  #hp-wrap, #xp-wrap, #boss-wrap { padding: 10px 14px !important; }
   /* ===== end Kenney UI pack overrides ===== */
 </style>
 </head>
