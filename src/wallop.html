@@ -1729,10 +1729,47 @@
   .about-section { background: var(--panel); border: 3px solid #000; box-shadow: 4px 4px 0 #000; padding: 18px 20px; margin-bottom: 14px; }
   .about-heading { font-family: 'Press Start 2P', monospace; font-size: 10px; color: var(--accent); letter-spacing: 1px; margin-bottom: 12px; }
   .about-body { font-family: 'VT323', monospace; font-size: 20px; color: var(--ink); line-height: 1.5; margin: 0 0 10px; }
-  .patch-entry { margin-bottom: 16px; }
-  .patch-ver { font-family: 'Press Start 2P', monospace; font-size: 8px; color: var(--hot); margin-bottom: 8px; }
-  .patch-list { font-family: 'VT323', monospace; font-size: 18px; color: var(--ink-dim); margin: 0; padding-left: 20px; line-height: 1.6; }
-  .patch-list li { margin-bottom: 2px; }
+  /* Patch entries: <details> + <summary> accordion. v0.6 starts open; rest closed. */
+  details.patch-entry {
+    margin-bottom: 10px;
+    background: rgba(0, 0, 0, 0.05);
+    border: 2px solid rgba(106, 56, 24, 0.35);
+    border-radius: 0;
+  }
+  details.patch-entry[open] {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(106, 56, 24, 0.55);
+  }
+  summary.patch-ver {
+    font-family: 'Press Start 2P', monospace; font-size: 9px;
+    color: var(--hot);
+    padding: 10px 14px 10px 28px;
+    cursor: pointer;
+    list-style: none;          /* hide default disclosure triangle */
+    position: relative;
+    user-select: none;
+    letter-spacing: 0.5px;
+  }
+  summary.patch-ver::-webkit-details-marker { display: none; }
+  summary.patch-ver::before {
+    /* Custom chevron: ▶ when closed, ▼ when open */
+    content: '▶';
+    position: absolute; left: 10px; top: 50%;
+    transform: translateY(-50%);
+    font-size: 8px; color: var(--hot);
+    transition: transform 0.12s ease;
+  }
+  details.patch-entry[open] summary.patch-ver::before {
+    transform: translateY(-50%) rotate(90deg);
+  }
+  summary.patch-ver:hover { background: rgba(184, 80, 28, 0.12); }
+  .patch-list {
+    font-family: 'VT323', monospace; font-size: 18px;
+    color: var(--ink-dim);
+    margin: 0; padding: 4px 18px 12px 36px;
+    line-height: 1.5;
+  }
+  .patch-list li { margin-bottom: 3px; }
   @media (max-height: 500px) {
     #about-screen { padding: 10px 12px 20px; }
     .about-title { font-size: 14px; }
@@ -2488,8 +2525,8 @@ window.addEventListener('load', () => {
     <div class="about-section">
       <div class="about-heading">PATCH LOG</div>
 
-      <div class="patch-entry">
-        <div class="patch-ver">v0.6 — Arenas &amp; Roster</div>
+      <details class="patch-entry" open>
+        <summary class="patch-ver">v0.6 — Arenas &amp; Roster</summary>
         <ul class="patch-list">
           <li>2 new playable characters: Anchovy Archer 🏹 + Stealth Slice 🥷, each with unique weapon + armor (Tomahawk Anchovy / Sniper's Cloak, Shadow Slice / Phantom Hood)</li>
           <li>2 new unlockable arenas: Sundried Slopes 🍂 (autumn boulders) + Frostbite Glacier 🧊 (ice spires) — each progression-gated behind beating the previous on Normal+</li>
@@ -2503,10 +2540,10 @@ window.addEventListener('load', () => {
           <li>Distant hills no longer over-bloom into glowing orbs</li>
           <li>Boss kill on Stage 1 or 2 no longer ends the run as a Stage 3 victory</li>
         </ul>
-      </div>
+      </details>
 
-      <div class="patch-entry">
-        <div class="patch-ver">v0.5 — Character Update</div>
+      <details class="patch-entry">
+        <summary class="patch-ver">v0.5 — Character Update</summary>
         <ul class="patch-list">
           <li>3 new playable characters: Frost Baker, Oven Knight, Crust Runner</li>
           <li>Each character has a unique weapon + armor exclusive to them</li>
@@ -2520,10 +2557,10 @@ window.addEventListener('load', () => {
           <li>Stage scaling: Stage 2/3 enemy floors prevent early waves from feeling like a cooldown lap</li>
           <li>Camera resumes automatically after choosing from chest/level-up screens</li>
         </ul>
-      </div>
+      </details>
 
-      <div class="patch-entry">
-        <div class="patch-ver">v0.4 — Weapons &amp; Visuals</div>
+      <details class="patch-entry">
+        <summary class="patch-ver">v0.4 — Weapons &amp; Visuals</summary>
         <ul class="patch-list">
           <li>KayKit 3D character models for the player and skeleton enemies</li>
           <li>KayKit weapon models: boomerang → 3D axe, wand orbiting for Thunder Strike, round shield orbital</li>
@@ -2531,10 +2568,10 @@ window.addEventListener('load', () => {
           <li>Thunder wand cosmetic orbits the player while equipped</li>
           <li>GPU resource leak fix — all meshes now properly disposed on removal (eliminates pink-screen crash)</li>
         </ul>
-      </div>
+      </details>
 
-      <div class="patch-entry">
-        <div class="patch-ver">v0.3 — Boss System</div>
+      <details class="patch-entry">
+        <summary class="patch-ver">v0.3 — Boss System</summary>
         <ul class="patch-list">
           <li>3-tier boss system: The Sauce Slinger (3:00), The Hammer Chef (6:00), The Warlord (10:00)</li>
           <li>Boss phase transitions at 50% and 25% HP (Enraged / Desperate)</li>
@@ -2543,10 +2580,10 @@ window.addEventListener('load', () => {
           <li>Victory screen with run stats</li>
           <li>Slice meta-currency earned from boss kills, spent in Armory</li>
         </ul>
-      </div>
+      </details>
 
-      <div class="patch-entry">
-        <div class="patch-ver">v0.2 — Core Loop</div>
+      <details class="patch-entry">
+        <summary class="patch-ver">v0.2 — Core Loop</summary>
         <ul class="patch-list">
           <li>Level-up and chest choice screens with reroll (gold + watch-ad)</li>
           <li>Armor and Tome systems alongside the weapon pool</li>
@@ -2555,10 +2592,10 @@ window.addEventListener('load', () => {
           <li>Mobile dual-stick floating joystick controls</li>
           <li>Full mobile browser support: viewport, fullscreen, no scroll</li>
         </ul>
-      </div>
+      </details>
 
-      <div class="patch-entry">
-        <div class="patch-ver">v0.1 — Initial Release</div>
+      <details class="patch-entry">
+        <summary class="patch-ver">v0.1 — Initial Release</summary>
         <ul class="patch-list">
           <li>Three.js 3D world with procedural rolling terrain and forest ring</li>
           <li>Pizza Delivery Hero player with animated walk/run/idle cycle</li>
@@ -2567,24 +2604,25 @@ window.addEventListener('load', () => {
           <li>Jump, dash, camera rotate</li>
           <li>XP gems, gold coins, chest spawns</li>
         </ul>
-      </div>
+      </details>
+    </div>
 
-      <!-- Dev mode: testing-only login that unlocks everything, reverts on exit -->
-      <div class="about-section" id="dev-mode-section">
-        <div class="about-heading">DEV MODE (TESTING)</div>
-        <p class="about-body" id="dev-mode-status">
-          Unlock all characters, items, and slices for testing. All changes revert when you exit.
-        </p>
-        <div id="dev-mode-login" style="display:flex;flex-direction:column;gap:8px;max-width:280px;">
-          <input id="dev-user" type="text" placeholder="Username" autocomplete="off"
-            style="font-family:'VT323',monospace;font-size:18px;padding:8px 10px;background:var(--panel-2);color:var(--ink);border:3px solid #000;outline:none;" />
-          <input id="dev-pass" type="password" placeholder="Password" autocomplete="off"
-            style="font-family:'VT323',monospace;font-size:18px;padding:8px 10px;background:var(--panel-2);color:var(--ink);border:3px solid #000;outline:none;" />
-          <button class="btn" id="dev-login-btn" style="align-self:flex-start;">🔧 ENTER DEV MODE</button>
-          <div id="dev-login-err" style="font-family:'VT323',monospace;font-size:16px;color:var(--hot);min-height:18px;"></div>
-        </div>
-        <button class="btn hot" id="dev-exit-btn" style="display:none;">🔧 EXIT DEV MODE</button>
+    <!-- Dev mode: testing-only login that unlocks everything, reverts on exit.
+         Moved OUT of the patch-log section (was incorrectly nested inside). -->
+    <div class="about-section" id="dev-mode-section">
+      <div class="about-heading">DEV MODE (TESTING)</div>
+      <p class="about-body" id="dev-mode-status">
+        Unlock all characters, items, and slices for testing. All changes revert when you exit.
+      </p>
+      <div id="dev-mode-login" style="display:flex;flex-direction:column;gap:8px;max-width:280px;">
+        <input id="dev-user" type="text" placeholder="Username" autocomplete="off"
+          style="font-family:'VT323',monospace;font-size:18px;padding:8px 10px;background:var(--panel-2);color:var(--ink);border:3px solid #000;outline:none;" />
+        <input id="dev-pass" type="password" placeholder="Password" autocomplete="off"
+          style="font-family:'VT323',monospace;font-size:18px;padding:8px 10px;background:var(--panel-2);color:var(--ink);border:3px solid #000;outline:none;" />
+        <button class="btn" id="dev-login-btn" style="align-self:flex-start;">🔧 ENTER DEV MODE</button>
+        <div id="dev-login-err" style="font-family:'VT323',monospace;font-size:16px;color:var(--hot);min-height:18px;"></div>
       </div>
+      <button class="btn hot" id="dev-exit-btn" style="display:none;">🔧 EXIT DEV MODE</button>
     </div>
 
     <button class="btn" id="about-close" style="margin-top:16px;">← BACK</button>
