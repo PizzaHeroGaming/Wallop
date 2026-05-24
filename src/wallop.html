@@ -2345,6 +2345,12 @@ const PizzaHeroSplash = (function () {
       dismissed = true;
       window.removeEventListener('keydown', onKey);
       splash.removeEventListener('click', onClick);
+      // CRITICAL: drop phs-shake before applying phs-out. Both classes carry
+      // the same specificity and phs-shake's animation rule (defined later
+      // in the stylesheet) WINS over phs-fade-out if both are present —
+      // resulting in no fade animation at all, then a jump-cut to gone when
+      // splash.remove() fires after 1100ms.
+      splash.classList.remove('phs-shake');
       splash.classList.add('phs-out');
       // Fire onDismiss synchronously so the caller can cross-fade its next
       // screen IN during the 1.1s splash fade-out.

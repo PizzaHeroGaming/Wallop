@@ -364,6 +364,9 @@ const PizzaHeroSplash = (function () {
       dismissed = true;
       window.removeEventListener('keydown', onKey);
       splash.removeEventListener('click', onClick);
+      // Drop phs-shake before phs-out so the fade-out animation actually
+      // runs (see comment in src/wallop.html for the full explanation).
+      splash.classList.remove('phs-shake');
       splash.classList.add('phs-out');
       try { onDismiss(); } catch (e) { console.error(e); }
       setTimeout(() => {
