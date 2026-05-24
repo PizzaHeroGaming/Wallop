@@ -89,6 +89,20 @@ export const CATALOG = {
       desc: 'Speed demon. Starts with Pepperoni Boomerang. +35% speed, double jump, -15% cooldowns. Unique: Star Shower + Turbo Soles.',
       sliceCost: 500,
     },
+    {
+      slug: 'anchovy_archer',
+      name: 'Anchovy Archer',
+      icon: '🏹',
+      desc: 'Long-range purist. Starts with Crossbow Bolt. +15% crit, +30% crit dmg, +1 pierce, -10 max HP.',
+      sliceCost: 600,
+    },
+    {
+      slug: 'stealth_slice',
+      name: 'Stealth Slice',
+      icon: '🥷',
+      desc: 'Late-night delivery shadow. Starts with Smoke Bomb. +15% dodge, +20% damage, +10% speed, -15 max HP.',
+      sliceCost: 750,
+    },
   ],
 
   weapons: [

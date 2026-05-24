@@ -45,10 +45,12 @@ export const player = {
 // CHARACTER_MODELS maps catalog slugs → GLB paths.
 // ============================================================
 export const CHARACTER_MODELS = {
-  pizza_hero:   'assets/characters/knight.glb',
-  oven_knight:  'assets/characters/barbarian.glb',
-  frost_baker:  'assets/characters/mage.glb',
-  crust_runner: 'assets/characters/rogue.glb',
+  pizza_hero:     'assets/characters/knight.glb',
+  oven_knight:    'assets/characters/barbarian.glb',
+  frost_baker:    'assets/characters/mage.glb',
+  crust_runner:   'assets/characters/rogue.glb',
+  anchovy_archer: 'assets/characters/ranger.glb',
+  stealth_slice:  'assets/characters/rogue_hooded.glb',
 };
 
 export let playerMixer = null;

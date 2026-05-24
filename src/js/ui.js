@@ -1592,7 +1592,7 @@ let _previewGroup    = null;
 let _previewRafId    = null;
 let _previewLastT    = 0;
 
-const _charOrder = ['pizza_hero', 'frost_baker', 'oven_knight', 'crust_runner'];
+const _charOrder = ['pizza_hero', 'frost_baker', 'oven_knight', 'crust_runner', 'anchovy_archer', 'stealth_slice'];
 let _charSelIdx = 0;
 
 function initCharSelect() {

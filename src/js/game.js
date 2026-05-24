@@ -426,7 +426,10 @@ function _stripHalfItems() {
     return shuffled.slice(0, keep);
   }
 
-  const _charStarters = { pizza_hero: 'pizza', frost_baker: 'ice', oven_knight: 'aura', crust_runner: 'boomerang' };
+  const _charStarters = {
+    pizza_hero: 'pizza', frost_baker: 'ice', oven_knight: 'aura', crust_runner: 'boomerang',
+    anchovy_archer: 'crossbow', stealth_slice: 'smoke',
+  };
   const _charSlug = Profile.get().equippedCharacter || 'pizza_hero';
   const starterWepId = _charStarters[_charSlug] || 'pizza';
 
@@ -499,6 +502,14 @@ function _stripHalfItems() {
     player.baseSpeed   *= 1.35;
     player.maxJumps     = 2;
     player.cooldownMult *= 0.85;
+  } else if (_charSlug === 'anchovy_archer') {
+    player.critChance      += 0.15;
+    player.critMult        += 0.30;
+    player.projectilePierce += 1;
+  } else if (_charSlug === 'stealth_slice') {
+    player.dodgeChance += 0.15;
+    player.damageMult  += 0.20;
+    player.baseSpeed   *= 1.10;
   }
 
   // Replay upgrade() for each kept armor item to re-apply its effects
@@ -711,10 +722,12 @@ export function resetGame() {
 
   // Starter weapon based on equipped character
   const _charStarters = {
-    pizza_hero:   'pizza',
-    frost_baker:  'ice',
-    oven_knight:  'aura',
-    crust_runner: 'boomerang',
+    pizza_hero:     'pizza',
+    frost_baker:    'ice',
+    oven_knight:    'aura',
+    crust_runner:   'boomerang',
+    anchovy_archer: 'crossbow',
+    stealth_slice:  'smoke',
   };
   const _charSlug  = Profile.get().equippedCharacter || 'pizza_hero';
   const _starterId = _charStarters[_charSlug] || 'pizza';
@@ -732,6 +745,16 @@ export function resetGame() {
     player.baseSpeed    *= 1.35;
     player.maxJumps      = 2; player.jumpsLeft = 2;
     player.cooldownMult *= 0.85;
+  } else if (_charSlug === 'anchovy_archer') {
+    player.critChance      += 0.15;
+    player.critMult        += 0.30;
+    player.projectilePierce += 1;
+    player.maxHp           -= 10; player.hp = player.maxHp;
+  } else if (_charSlug === 'stealth_slice') {
+    player.dodgeChance += 0.15;
+    player.damageMult  += 0.20;
+    player.baseSpeed   *= 1.10;
+    player.maxHp       -= 15; player.hp = player.maxHp;
   }
 
   gameState.state         = 'playing';
