@@ -15,7 +15,7 @@
 //   keyboard/mobile → tryJump, tryDash (game.js): use _jumpFn/_dashFn, set via setJumpDashCbs()
 //   openChest → presentChoiceScreen (this file): setOpenChestDeps is called in initUI()
 
-import { camera, renderer, isMobile, tryEnterFullscreen } from './renderer.js?v=7ce2e7d';
+import { camera, renderer, isMobile, tryEnterFullscreen } from './renderer.js?v=a734b18';
 import {
   player, enemies,
   tryInteract, setOpenChestDeps,
@@ -23,16 +23,16 @@ import {
   spawnParticle,
   CHARACTER_MODELS, _animClips, loadCharAsset,
   _applyCharacterModel,
-} from './entities.js?v=7ce2e7d';
-import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=7ce2e7d';
-import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=7ce2e7d';
-import { gameState, cam } from './state.js?v=7ce2e7d';
-import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=7ce2e7d';
+} from './entities.js?v=a734b18';
+import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=a734b18';
+import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=a734b18';
+import { gameState, cam } from './state.js?v=a734b18';
+import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=a734b18';
 // VERSION lives on CFG.VERSION too — reading via property access doesn't
 // blow up if a cached older config.js is loaded without the named export
 const VERSION = CFG.VERSION || '0.0.0';
-import { Profile, CATALOG, ARENAS } from './profile.js?v=7ce2e7d';
-import { tmp, tmp2 } from './utils.js?v=7ce2e7d';
+import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=a734b18';
+import { tmp, tmp2 } from './utils.js?v=a734b18';
 
 // ============================================================
 // INJECTION CALLBACKS (break circular deps)
@@ -156,6 +156,10 @@ export function damagePlayer(dmg, attacker) {
       e.slowTimer = Math.max(e.slowTimer || 0, dur);
       e.slowMult  = Math.min(e.slowMult || 1, mult);
     }
+  }
+  // Untouchable challenge: any post-dodge damage flips the fail flag.
+  if (gameState.activeChallenge && gameState.challengeData) {
+    gameState.challengeData.tookDamage = true;
   }
   let final = Math.max(1, dmg - player.armor);
   if (player.shield > 0) {
@@ -891,6 +895,30 @@ export function syncSliceDisplays() {
   if (b) b.textContent = n;
 }
 
+// Render the list of challenges as cards. Completed ones get a 'done' visual.
+function renderChallenges() {
+  const list = document.getElementById('challenges-list');
+  if (!list) return;
+  list.innerHTML = '';
+  for (const c of CHALLENGES) {
+    const done = Profile.isChallengeCompleted(c.id);
+    const card = document.createElement('div');
+    card.className = 'challenge-card' + (done ? ' completed' : '');
+    card.innerHTML = `
+      <div class="challenge-icon">${c.icon}</div>
+      <div class="challenge-body">
+        <div class="challenge-name">${c.name}</div>
+        <div class="challenge-desc">${c.desc}</div>
+        <div class="challenge-reward">🍕 ${c.reward} SLICES${done ? '' : ''}</div>
+      </div>
+      <button class="btn ${done ? '' : 'hot'}" data-challenge="${c.id}">
+        ${done ? 'REPLAY' : '▶ PLAY'}
+      </button>
+    `;
+    list.appendChild(card);
+  }
+}
+
 // Show/hide the dev-mode banner + swap About-screen login UI based on state.
 function refreshDevModeUI() {
   const active = Profile.isInDevMode();
@@ -1434,6 +1462,7 @@ export function initButtons() {
     document.getElementById('run-config-screen').classList.add('hidden');
     document.getElementById('hud').style.display = 'block';
     gameState.difficulty = _selectedDiff;
+    gameState.activeChallenge = null; // normal run — clear any leftover challenge
     tryEnterFullscreen();
     if (_resetGameFn) _resetGameFn();
     if (!isMobile()) renderer.domElement.requestPointerLock();
@@ -1503,6 +1532,33 @@ export function initButtons() {
       document.getElementById('armory-detail').classList.add('hidden');
       renderArmoryGrid();
     });
+  });
+
+  // ── Challenges ──
+  const chBtn = document.getElementById('challenges-btn');
+  if (chBtn) chBtn.addEventListener('click', () => {
+    document.getElementById('start-screen').classList.add('hidden');
+    document.getElementById('challenges-screen').classList.remove('hidden');
+    renderChallenges();
+  });
+  const chClose = document.getElementById('challenges-close');
+  if (chClose) chClose.addEventListener('click', () => {
+    document.getElementById('challenges-screen').classList.add('hidden');
+    document.getElementById('start-screen').classList.remove('hidden');
+  });
+  // Click delegation for the PLAY buttons inside challenge cards
+  const chList = document.getElementById('challenges-list');
+  if (chList) chList.addEventListener('click', e => {
+    const btn = e.target.closest('[data-challenge]');
+    if (!btn) return;
+    const id = btn.dataset.challenge;
+    document.getElementById('challenges-screen').classList.add('hidden');
+    document.getElementById('hud').style.display = 'block';
+    gameState.activeChallenge = id;
+    gameState.difficulty = _selectedDiff;
+    tryEnterFullscreen();
+    if (_resetGameFn) _resetGameFn();
+    if (!isMobile()) renderer.domElement.requestPointerLock();
   });
 
   // Pause

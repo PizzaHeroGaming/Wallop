@@ -290,6 +290,7 @@ export const Profile = (function () {
       },
       unlockedArenas: { pepperoni_pines: true },
       itemKills: {},
+      completedChallenges: {},
     };
   }
   function migrate(saved) {
@@ -526,6 +527,20 @@ export const Profile = (function () {
     return true;
   }
 
+  // ── Challenges ──
+  function isChallengeCompleted(id) {
+    return !!(_state.completedChallenges && _state.completedChallenges[id]);
+  }
+  // Marks a challenge as completed. Returns true if this was the FIRST completion
+  // (so callers know whether to grant the slice reward — challenges only pay out once).
+  function markChallengeCompleted(id) {
+    if (!_state.completedChallenges) _state.completedChallenges = {};
+    if (_state.completedChallenges[id]) { save(); return false; }
+    _state.completedChallenges[id] = true;
+    save();
+    return true;
+  }
+
   return {
     get, save, isUnlocked, unlock, spendSlices, addSlices,
     getBoostLevel, setBoostLevel, setEquippedCharacter,
@@ -535,8 +550,52 @@ export const Profile = (function () {
     addItemKill, getItemKills,
     reset,
     enterDevMode, exitDevMode, isInDevMode,
+    isChallengeCompleted, markChallengeCompleted,
   };
 })();
+
+// ============================================================
+// CHALLENGES — handcrafted run-modifier objectives.  Data only.
+// The actual setup/check logic lives in game.js CHALLENGE_LOGIC[id]
+// where it has access to player + gameState + WEAPONS.
+// ============================================================
+export const CHALLENGES = [
+  {
+    id: 'glass_cannon',
+    name: 'Glass Cannon',
+    icon: '💥',
+    desc: 'Start with half max HP and +50% damage. Survive to 5:00.',
+    reward: 100,
+  },
+  {
+    id: 'speed_demon',
+    name: 'Speed Demon',
+    icon: '⚡',
+    desc: 'Defeat the Sauce Slinger (Stage 1 boss) before 4:00 elapsed.',
+    reward: 150,
+  },
+  {
+    id: 'slaughterhouse',
+    name: 'Slaughterhouse',
+    icon: '💀',
+    desc: 'Reach 150 kills within the first 4:00.',
+    reward: 125,
+  },
+  {
+    id: 'untouchable',
+    name: 'Untouchable',
+    icon: '👻',
+    desc: 'Survive to 4:00 WITHOUT taking a single point of damage.',
+    reward: 250,
+  },
+  {
+    id: 'pizza_purist',
+    name: 'Pizza Purist',
+    icon: '🍕',
+    desc: 'Beat the Sauce Slinger using only Pizza Toss (no other weapons offered).',
+    reward: 200,
+  },
+];
 
 // Note: STAT_UPGRADES and SYNERGY_UPGRADES are defined in upgrades.js (not here)
 // because their apply() closures reference `player` from entities.js.

@@ -1,6 +1,6 @@
 // game.js — core game logic: damageEnemy, update loop, player movement, spawning
 // Imports (acyclic — game.js is the top of the dep graph among game modules):
-import { scene, camera, renderer, composer, sun, clock, isMobile, tryEnterFullscreen, releasePtLight, setRendererArena } from './renderer.js?v=7ce2e7d';
+import { scene, camera, renderer, composer, sun, clock, isMobile, tryEnterFullscreen, releasePtLight, setRendererArena } from './renderer.js?v=a734b18';
 import {
   player,
   playerMixer, playerIdleAction, playerWalkAction, playerRunAction,
@@ -18,16 +18,16 @@ import {
   updateShieldOrbital, updateParticles,
   setDamageEnemyCb, setOnLevelUpReady,
   spawnGold, spawnSmokeCloud, makeEnemyMesh, ENEMY_DEFS,
-} from './entities.js?v=7ce2e7d';
-import { WEAPONS, ARMOR, TOMES, setDamageEnemyForWeapons, rebuildOrbits } from './weapons.js?v=7ce2e7d';
+} from './entities.js?v=a734b18';
+import { WEAPONS, ARMOR, TOMES, setDamageEnemyForWeapons, rebuildOrbits } from './weapons.js?v=a734b18';
 import {
   gameState, cam,
-} from './state.js?v=7ce2e7d';
-import { CFG, STAGE_MULTS, DIFFICULTIES } from './config.js?v=7ce2e7d';
-import { Profile, ARENAS } from './profile.js?v=7ce2e7d';
-import { groundHeight, resolveSolids, setTerrainArena } from './terrain.js?v=7ce2e7d';
-import { setWorldArena } from './world.js?v=7ce2e7d';
-import { killMesh, clamp, rand, tmp, tmp2, flatPhong } from './utils.js?v=7ce2e7d';
+} from './state.js?v=a734b18';
+import { CFG, STAGE_MULTS, DIFFICULTIES } from './config.js?v=a734b18';
+import { Profile, ARENAS, CHALLENGES } from './profile.js?v=a734b18';
+import { groundHeight, resolveSolids, setTerrainArena } from './terrain.js?v=a734b18';
+import { setWorldArena } from './world.js?v=a734b18';
+import { killMesh, clamp, rand, tmp, tmp2, flatPhong } from './utils.js?v=a734b18';
 import {
   showDamage, showAlert, updateBossArrow, updateLoadoutDisplay,
   syncSliceDisplays, triggerGameOver,
@@ -39,7 +39,7 @@ import {
   setDamageEnemyForUI, setResetGameCb, setJumpDashCbs, setCallBossCb,
   initUI,
   addCameraShake,
-} from './ui.js?v=7ce2e7d';
+} from './ui.js?v=a734b18';
 
 // Player animation state (module-level so it persists across frames)
 let _animState = 'idle';
@@ -97,6 +97,12 @@ export function killEnemy(e, srcWeaponId = null) {
       const bonusNote = totalSlices !== e.sliceDrop ? ` (×${rawMult.toFixed(1)})` : '';
       showAlert(`+${totalSlices} 🍕 SLICES${bonusNote}`, '#ffd23f');
       syncSliceDisplays();
+    }
+    // Challenge hook: mark first-stage boss defeat time for speed_demon + pizza_purist
+    if (e.bossTier === 'mini1' && gameState.activeChallenge && gameState.challengeData) {
+      if (gameState.challengeData.sauceDefeatedAt == null) {
+        gameState.challengeData.sauceDefeatedAt = gameState.gameTime;
+      }
     }
     if (e.bossTier === 'final') {
       // Track per-arena per-stage progress (legacy clearStage kept in sync inside).
@@ -777,6 +783,19 @@ export function resetGame() {
   for (let i = 0; i < 5; i++) {
     const p = pickChestPosition();
     spawnChest(p.x, p.z, Math.random() < 0.25 ? 'rare' : 'common');
+  }
+
+  // Apply active challenge modifiers AFTER all normal setup is done so they
+  // override defaults (e.g. halved maxHp must win over boost_health additions).
+  if (gameState.activeChallenge) {
+    gameState.challengeData = {};
+    const logic = CHALLENGE_LOGIC[gameState.activeChallenge];
+    if (logic && logic.setup) {
+      try { logic.setup(player, gameState); }
+      catch (e) { console.error('[WALLOP] challenge setup failed:', e); }
+    }
+  } else {
+    gameState.challengeData = {};
   }
 
   updateLoadoutDisplay();
@@ -1529,12 +1548,121 @@ export function update(dt) {
   updateBossArrow();
   tickHUD(dt);
 
+  // Challenge win/fail check — runs every frame while a challenge is active.
+  if (gameState.activeChallenge) {
+    const logic = CHALLENGE_LOGIC[gameState.activeChallenge];
+    if (logic && logic.check) {
+      let result = 'pending';
+      try { result = logic.check(player, gameState); } catch (e) {}
+      if (result === 'won') {
+        _completeActiveChallenge();
+        return;
+      } else if (result === 'failed') {
+        // Failure routes through the normal game-over flow (player death already
+        // triggered it in most cases — failed() handles explicit forfeit cases).
+        gameState.activeChallenge = null; // strip before triggering so banner reads correctly
+        triggerGameOver(false);
+        return;
+      }
+    }
+  }
+
   // Win condition
   if (gameState.bossSpawned) {
     const finalBossAlive = enemies.some(e => e.isBoss && e.bossTier === 'final');
     if (!finalBossAlive) triggerGameOver(true);
   }
 }
+
+// ============================================================
+// CHALLENGES — per-challenge setup + frame check
+// ============================================================
+function _completeActiveChallenge() {
+  const id = gameState.activeChallenge;
+  const def = CHALLENGES.find(c => c.id === id);
+  if (!def) { gameState.activeChallenge = null; triggerGameOver(true); return; }
+  const firstTime = Profile.markChallengeCompleted(id);
+  if (firstTime) {
+    Profile.addSlices(def.reward);
+    gameState.slicesEarned = (gameState.slicesEarned || 0) + def.reward;
+    syncSliceDisplays();
+    showAlert(`${def.icon} ${def.name.toUpperCase()} — +${def.reward} 🍕`, '#ffd23f');
+  } else {
+    showAlert(`${def.icon} ${def.name.toUpperCase()} — REPEAT (no reward)`, '#42f5a1');
+  }
+  gameState.activeChallenge = null;
+  setTimeout(() => triggerGameOver(true), 1800);
+}
+
+const CHALLENGE_LOGIC = {
+  glass_cannon: {
+    setup(player /*, gameState*/) {
+      player.maxHp     = Math.max(20, Math.round(player.maxHp * 0.5));
+      player.hp        = player.maxHp;
+      player.damageMult += 0.5;
+    },
+    check(player, gameState) {
+      if (player.hp <= 0) return 'failed';
+      if (gameState.gameTime >= 300) return 'won';
+      return 'pending';
+    },
+  },
+  speed_demon: {
+    setup(/* player, gameState */) {
+      // No modifiers — pure timing challenge against the natural 3:00 boss spawn
+    },
+    check(player, gameState) {
+      if (player.hp <= 0) return 'failed';
+      // Check kill log on the Stage 1 boss (mini1 / sauce slinger).  We mark it
+      // when miniboss1Defeated is set in killEnemy. Until then, just count time.
+      if (gameState.challengeData.sauceDefeatedAt != null) {
+        return gameState.challengeData.sauceDefeatedAt < 240 ? 'won' : 'failed';
+      }
+      if (gameState.gameTime >= 240) return 'failed';
+      return 'pending';
+    },
+  },
+  slaughterhouse: {
+    setup() {},
+    check(player, gameState) {
+      if (player.hp <= 0) return 'failed';
+      if (gameState.kills >= 150) return 'won';
+      if (gameState.gameTime >= 240) return 'failed';
+      return 'pending';
+    },
+  },
+  untouchable: {
+    setup(/* player, gameState */) {
+      // Mark a flag — damagePlayer in ui.js sets challengeData.tookDamage = true
+    },
+    check(player, gameState) {
+      if (gameState.challengeData.tookDamage) return 'failed';
+      if (player.hp <= 0) return 'failed';
+      if (gameState.gameTime >= 240) return 'won';
+      return 'pending';
+    },
+  },
+  pizza_purist: {
+    setup(player, gameState) {
+      // Set a filter so the level-up screen only offers pizza-related upgrades
+      // (the starter weapon is already pizza for Pizza Hero; for other chars,
+      // we force it).  Strip every weapon except 'pizza'.
+      player.weapons = player.weapons.filter(w => w.id === 'pizza');
+      if (!player.weapons.find(w => w.id === 'pizza')) {
+        // Force-add pizza if char's starter was different
+        const wpn = WEAPONS.pizza;
+        if (wpn) player.weapons.push({ ...wpn.init(), id: 'pizza', level: 1 });
+      }
+      gameState.challengeData.weaponFilter = 'pizza_only';
+    },
+    check(player, gameState) {
+      if (player.hp <= 0) return 'failed';
+      if (gameState.challengeData.sauceDefeatedAt != null) return 'won';
+      if (gameState.gameTime >= 300) return 'failed'; // 5min ceiling
+      return 'pending';
+    },
+  },
+};
 
 // ============================================================
 // INIT — wire all injection callbacks and kick off initUI

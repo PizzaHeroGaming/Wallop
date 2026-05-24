@@ -19,6 +19,12 @@ export const gameState = {
   finalSwarm: false,
   _lastWave: 0,
   chestTimer: 90,
+  // Active challenge id (string) or null. Set by the challenges menu before
+  // calling resetGame; consumed by CHALLENGE_LOGIC[id].setup/check in game.js.
+  activeChallenge: null,
+  // Per-run challenge state bag — challenges read/write here to track progress
+  // (e.g. tookDamage flag for Untouchable, weaponFilter for Pizza Purist).
+  challengeData: {},
 };
 
 // Camera orientation — shared between input handling (game.js) and
