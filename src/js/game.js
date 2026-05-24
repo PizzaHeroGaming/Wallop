@@ -1,6 +1,6 @@
 // game.js — core game logic: damageEnemy, update loop, player movement, spawning
 // Imports (acyclic — game.js is the top of the dep graph among game modules):
-import { scene, camera, renderer, composer, sun, clock, isMobile, tryEnterFullscreen, releasePtLight, setRendererArena } from './renderer.js?v=d2c85ad';
+import { scene, camera, renderer, composer, sun, clock, isMobile, tryEnterFullscreen, releasePtLight, setRendererArena } from './renderer.js?v=7283616';
 import {
   player,
   playerMixer, playerIdleAction, playerWalkAction, playerRunAction,
@@ -18,16 +18,16 @@ import {
   updateShieldOrbital, updateParticles,
   setDamageEnemyCb, setOnLevelUpReady,
   spawnGold, spawnSmokeCloud, makeEnemyMesh, ENEMY_DEFS,
-} from './entities.js?v=d2c85ad';
-import { WEAPONS, ARMOR, TOMES, setDamageEnemyForWeapons, rebuildOrbits } from './weapons.js?v=d2c85ad';
+} from './entities.js?v=7283616';
+import { WEAPONS, ARMOR, TOMES, setDamageEnemyForWeapons, rebuildOrbits } from './weapons.js?v=7283616';
 import {
   gameState, cam,
-} from './state.js?v=d2c85ad';
-import { CFG, STAGE_MULTS, DIFFICULTIES } from './config.js?v=d2c85ad';
-import { Profile, ARENAS, CHALLENGES } from './profile.js?v=d2c85ad';
-import { groundHeight, resolveSolids, setTerrainArena } from './terrain.js?v=d2c85ad';
-import { setWorldArena } from './world.js?v=d2c85ad';
-import { killMesh, clamp, rand, tmp, tmp2, flatPhong } from './utils.js?v=d2c85ad';
+} from './state.js?v=7283616';
+import { CFG, STAGE_MULTS, DIFFICULTIES } from './config.js?v=7283616';
+import { Profile, ARENAS, CHALLENGES } from './profile.js?v=7283616';
+import { groundHeight, resolveSolids, setTerrainArena } from './terrain.js?v=7283616';
+import { setWorldArena } from './world.js?v=7283616';
+import { killMesh, clamp, rand, tmp, tmp2, flatPhong } from './utils.js?v=7283616';
 import {
   showDamage, showAlert, updateBossArrow, updateLoadoutDisplay,
   syncSliceDisplays, triggerGameOver,
@@ -39,7 +39,7 @@ import {
   setDamageEnemyForUI, setResetGameCb, setJumpDashCbs, setCallBossCb,
   initUI,
   addCameraShake,
-} from './ui.js?v=d2c85ad';
+} from './ui.js?v=7283616';
 
 // Player animation state (module-level so it persists across frames)
 let _animState = 'idle';

@@ -1810,7 +1810,7 @@
   .btn:hover { transform: translate(-1px, -1px); filter: drop-shadow(4px 4px 0 #000); }
   .btn:active { transform: translate(2px, 2px); filter: drop-shadow(1px 1px 0 #000); }
   .btn.hot {
-    border-image: url('assets/ui/btn_red.png') 6 fill / 6px / 0 stretch;
+    border-image: url('assets/ui/btn_red_v2.png') 6 fill / 6px / 0 stretch;
     color: #fff; text-shadow: 1px 1px 0 #5a0010;
   }
   .btn.hot:hover { background: transparent; }
@@ -1821,6 +1821,147 @@
   }
   .btn.dim:hover { background: transparent; }
   .btn:disabled, .btn[disabled] { filter: drop-shadow(1px 1px 0 #000) grayscale(0.5); opacity: 0.7; cursor: not-allowed; }
+
+  /* ── PASS 4 — Panels / cards / overlays ──
+     One sweeping rule for everything that used to be `background:var(--panel);
+     border:3px solid #000; box-shadow:4px 4px 0 #000`. The cream wood panel
+     reads well as a "page" / "card" surface.  We use !important sparingly to
+     beat the existing inline styles without rewriting every selector. */
+  .panel,
+  .about-panel,
+  .about-section,
+  .armory-card,
+  #armory-header,
+  .choice,
+  .challenge-card,
+  .start-run-config,
+  .stage-select-panel,
+  .pause-section,
+  #char-select-panel,
+  #mob-char-select,
+  #mob-arena-select,
+  .stat-tile,
+  #armory-detail,
+  #run-config-body,
+  #challenges-list .challenge-card,
+  .about-panel > .about-section {
+    background: transparent !important;
+    border: none !important;
+    border-image: url('assets/ui/panel_cream.png') 6 fill / 6px / 0 stretch !important;
+    box-shadow: none !important;
+    image-rendering: pixelated;
+    filter: drop-shadow(3px 3px 0 #000);
+  }
+  /* Dark-themed surfaces (armory grid container, pause body, etc.) get the
+     blue panel for visual distinction from the cream cards inside them. */
+  #armory-grid,
+  #armory-screen,
+  #pause-body,
+  #pause-screen .pause-content,
+  #gameover-screen .gameover-content {
+    background: transparent !important;
+    border: none !important;
+  }
+  /* Locked / equipped armory cards keep their state hint via opacity rather
+     than border color (border is now an image). */
+  .armory-card.locked { opacity: 0.7; }
+  .armory-card.equipped { filter: drop-shadow(3px 3px 0 #000) drop-shadow(0 0 6px var(--accent)); }
+  /* Armory tabs sit ON the wood panel so they need a slight visual lift */
+  .armory-tab {
+    background: transparent !important;
+    border: none !important;
+    border-image: url('assets/ui/btn_wood.png') 6 fill / 6px / 0 stretch !important;
+    box-shadow: none !important;
+    image-rendering: pixelated;
+    color: #2a1a05;
+    text-shadow: 1px 1px 0 #f5e9c8;
+  }
+  .armory-tab.active {
+    border-image: url('assets/ui/btn_red_v2.png') 6 fill / 6px / 0 stretch !important;
+    color: #fff;
+    text-shadow: 1px 1px 0 #5a0010;
+  }
+  /* Make .panel text inside the wood frame still readable (text was tuned for dark panel) */
+  .panel h2, .panel li, .panel kbd { color: #2a1a05; }
+  .panel kbd {
+    background: rgba(255,255,255,0.5);
+    border: 2px solid #2a1a05;
+    color: #2a1a05;
+  }
+  /* About body text is bigger; tone background color through */
+  .about-body { color: #3a2510; }
+  .about-heading { color: #b8501c; }
+  .about-version { color: #b8501c; }
+  /* Challenge card inner texts: now on cream */
+  .challenge-name { color: #b8501c; }
+  .challenge-desc { color: #3a2510; }
+  .challenge-reward { color: #2a1a05; }
+  .challenge-card.completed .challenge-name { color: #6a3818; }
+  /* Run-config title needs contrast on a darker background; leave alone */
+  /* Difficulty buttons use .btn already so they inherit the wood-frame look */
+  /* Stat tiles (TIME/KILLS/GOLD) — keep them readable on cream */
+  .stat-tile .label { color: #6a3818 !important; }
+  .stat-tile .value { color: #2a1a05 !important; text-shadow: none !important; }
+
+  /* Armory card text — were dark-themed colors, now invisible on cream */
+  .armory-card .name { color: #b8501c !important; }
+  .armory-card .desc { color: #3a2510 !important; }
+  .armory-card .cost { color: #2a1a05 !important; }
+  .armory-card .boost-level { color: #6a3818 !important; }
+  /* Armory header text */
+  #armory-title { color: #b8501c !important; text-shadow: 2px 2px 0 #f5e9c8 !important; }
+  /* #armory-slices is its own pill — give it the same cream-frame look as #slice-counter */
+  #armory-slices {
+    background: transparent !important;
+    border: none !important;
+    border-image: url('assets/ui/btn_wood.png') 6 fill / 6px / 0 stretch !important;
+    box-shadow: none !important;
+    color: var(--accent) !important;
+  }
+  #armory-slices #armory-slice-count { color: #2a1a05 !important; }
+  #armory-slices .slice-label { color: #6a3818 !important; }
+  /* Armory close X — keep red */
+  #armory-close { color: #fff !important; }
+  /* Tab active state: ensure it wins specificity. Use the same body styling as
+     .btn.hot. Targets both `.armory-tab.active` and the equivalent attribute. */
+  .armory-tab.active,
+  .armory-tab[aria-selected="true"] {
+    border-image: url('assets/ui/btn_red_v2.png') 6 fill / 6px / 0 stretch !important;
+    color: #fff !important;
+    text-shadow: 1px 1px 0 #5a0010 !important;
+  }
+
+  /* About + Challenges page text — also dark on cream */
+  .about-title { color: #b8501c !important; text-shadow: 3px 3px 0 #f5e9c8 !important; }
+  .about-sub   { color: #3a2510 !important; }
+
+  /* Run-config screen — title pops on dark; the body itself has cream frame */
+  #run-config-title { color: var(--accent) !important; }
+
+  /* Difficulty buttons + arena cards (small interactive elements on the run-config) */
+  .diff-btn,
+  .arena-card,
+  [data-arena] {
+    background: transparent !important;
+    border: none !important;
+    border-image: url('assets/ui/btn_wood.png') 6 fill / 6px / 0 stretch !important;
+    box-shadow: none !important;
+    color: #2a1a05 !important;
+    text-shadow: 1px 1px 0 #f5e9c8 !important;
+  }
+  .diff-btn.active,
+  .arena-card.active,
+  [data-arena].active {
+    border-image: url('assets/ui/btn_red_v2.png') 6 fill / 6px / 0 stretch !important;
+    color: #fff !important;
+    text-shadow: 1px 1px 0 #5a0010 !important;
+  }
+
+  /* Pause-screen + game-over body text — these sit inside the cream-framed
+     wrap now, so dark text is needed for the labels */
+  .pause-section .pause-h { color: #b8501c !important; }
+  .pause-row .v, .pause-row .k { color: #2a1a05 !important; }
+  .pause-weapon { color: #2a1a05 !important; }
   /* ===== end Kenney UI pack overrides ===== */
 </style>
 </head>
@@ -2334,6 +2475,6 @@ window.addEventListener('load', () => {
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
-<script type="module" src="src/js/main.js?v=d2c85ad"></script>
+<script type="module" src="src/js/main.js?v=7283616"></script>
 </body>
 </html>
