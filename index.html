@@ -286,6 +286,16 @@
   .overlay.hidden { display: none; }
 
   #start-screen { background: #0d1126; }
+
+  /* Dev-mode banner — pinned at top-left, always-on while dev mode is active */
+  #dev-mode-banner {
+    position: fixed; top: 8px; left: 50%; transform: translateX(-50%);
+    z-index: 999999;
+    font-family: 'Press Start 2P', monospace; font-size: 9px; color: #fff;
+    background: var(--hot); border: 3px solid #000; box-shadow: 3px 3px 0 #000;
+    padding: 6px 12px; letter-spacing: 1px; pointer-events: none;
+    text-shadow: 1px 1px 0 #000;
+  }
   #title-block {
     display: flex; flex-direction: column; align-items: center; gap: 8px;
   }
@@ -1700,6 +1710,9 @@
 </head>
 <body>
 
+<!-- Dev mode banner — visible on every screen while dev mode is active -->
+<div id="dev-mode-banner" style="display:none;">🔧 DEV MODE</div>
+
 <!-- Rotate device hint (portrait phones only) -->
 <div id="rotate-hint">
   <div class="icon">📱</div>
@@ -2066,6 +2079,23 @@ window.addEventListener('load', () => {
           <li>XP gems, gold coins, chest spawns</li>
         </ul>
       </div>
+
+      <!-- Dev mode: testing-only login that unlocks everything, reverts on exit -->
+      <div class="about-section" id="dev-mode-section">
+        <div class="about-heading">DEV MODE (TESTING)</div>
+        <p class="about-body" id="dev-mode-status">
+          Unlock all characters, items, and slices for testing. All changes revert when you exit.
+        </p>
+        <div id="dev-mode-login" style="display:flex;flex-direction:column;gap:8px;max-width:280px;">
+          <input id="dev-user" type="text" placeholder="Username" autocomplete="off"
+            style="font-family:'VT323',monospace;font-size:18px;padding:8px 10px;background:var(--panel-2);color:var(--ink);border:3px solid #000;outline:none;" />
+          <input id="dev-pass" type="password" placeholder="Password" autocomplete="off"
+            style="font-family:'VT323',monospace;font-size:18px;padding:8px 10px;background:var(--panel-2);color:var(--ink);border:3px solid #000;outline:none;" />
+          <button class="btn" id="dev-login-btn" style="align-self:flex-start;">🔧 ENTER DEV MODE</button>
+          <div id="dev-login-err" style="font-family:'VT323',monospace;font-size:16px;color:var(--hot);min-height:18px;"></div>
+        </div>
+        <button class="btn hot" id="dev-exit-btn" style="display:none;">🔧 EXIT DEV MODE</button>
+      </div>
     </div>
 
     <button class="btn" id="about-close" style="margin-top:16px;">← BACK</button>
@@ -2159,6 +2189,6 @@ window.addEventListener('load', () => {
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
-<script type="module" src="src/js/main.js?v=71ba014"></script>
+<script type="module" src="src/js/main.js?v=17cf3a4"></script>
 </body>
 </html>

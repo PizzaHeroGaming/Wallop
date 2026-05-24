@@ -887,6 +887,23 @@ export function syncSliceDisplays() {
   if (b) b.textContent = n;
 }
 
+// Show/hide the dev-mode banner + swap About-screen login UI based on state.
+function refreshDevModeUI() {
+  const active = Profile.isInDevMode();
+  const banner = document.getElementById('dev-mode-banner');
+  if (banner) banner.style.display = active ? 'block' : 'none';
+  const loginBox = document.getElementById('dev-mode-login');
+  const exitBtn  = document.getElementById('dev-exit-btn');
+  const status   = document.getElementById('dev-mode-status');
+  if (loginBox) loginBox.style.display = active ? 'none' : 'flex';
+  if (exitBtn)  exitBtn.style.display  = active ? 'inline-block' : 'none';
+  if (status) {
+    status.textContent = active
+      ? 'Dev mode is active — everything is unlocked and slices are maxed. Exit to restore your real profile.'
+      : 'Unlock all characters, items, and slices for testing. All changes revert when you exit.';
+  }
+}
+
 let __armoryCurrentTab = 'characters';
 
 function renderArmoryGrid() {
@@ -1506,11 +1523,43 @@ export function initButtons() {
   document.getElementById('about-btn').addEventListener('click', () => {
     document.getElementById('start-screen').classList.add('hidden');
     document.getElementById('about-screen').classList.remove('hidden');
+    refreshDevModeUI();
   });
   document.getElementById('about-close').addEventListener('click', () => {
     document.getElementById('about-screen').classList.add('hidden');
     document.getElementById('start-screen').classList.remove('hidden');
   });
+
+  // ── Dev mode (testing): login at the bottom of About screen ──
+  const devLoginBtn = document.getElementById('dev-login-btn');
+  const devExitBtn  = document.getElementById('dev-exit-btn');
+  const devUserEl   = document.getElementById('dev-user');
+  const devPassEl   = document.getElementById('dev-pass');
+  const devErrEl    = document.getElementById('dev-login-err');
+  const _postDevModeRefresh = () => {
+    refreshDevModeUI();
+    syncSliceDisplays();
+    try { renderArenaSelect(); } catch (e) {}
+    try { _refreshMobileArenaUI(); } catch (e) {}
+    try { _refreshCharSelectUI(); } catch (e) {}
+  };
+  if (devLoginBtn) devLoginBtn.addEventListener('click', () => {
+    const ok = Profile.enterDevMode((devUserEl?.value || '').trim(), devPassEl?.value || '');
+    if (!ok) {
+      if (devErrEl) devErrEl.textContent = 'Invalid credentials.';
+      return;
+    }
+    if (devErrEl) devErrEl.textContent = '';
+    if (devUserEl) devUserEl.value = '';
+    if (devPassEl) devPassEl.value = '';
+    _postDevModeRefresh();
+  });
+  if (devExitBtn) devExitBtn.addEventListener('click', () => {
+    Profile.exitDevMode();
+    _postDevModeRefresh();
+  });
+  // Initial banner sync on page load (in case dev mode persisted from a previous session)
+  refreshDevModeUI();
 
   // Exit
   document.getElementById('exit-btn').addEventListener('click', () => {

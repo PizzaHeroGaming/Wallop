@@ -460,6 +460,62 @@ export const Profile = (function () {
     _state = defaultProfile();
     save();
   }
+
+  // ── Dev mode ──
+  // Stores a snapshot of the player's real profile in a separate localStorage
+  // key, then overrides the active profile with "everything unlocked + max
+  // slices" for testing.  exitDevMode() restores the snapshot exactly.
+  const DEV_SNAPSHOT_KEY = 'wallop_dev_snapshot_v1';
+  const DEV_USER = 'Dev';
+  const DEV_PASS = 'password';
+  function isInDevMode() {
+    return !!_state.devMode;
+  }
+  function enterDevMode(user, pass) {
+    if (user !== DEV_USER || pass !== DEV_PASS) return false;
+    if (_state.devMode) return true;
+    // Snapshot the current real profile to a separate key
+    try {
+      localStorage.setItem(DEV_SNAPSHOT_KEY, JSON.stringify(_state));
+    } catch (e) {}
+    // Build the god-mode profile by unlocking every catalog entry and arena,
+    // maxing every boost, and dropping 999,999 slices on top.
+    _state.devMode = true;
+    _state.slices  = 999999;
+    for (const cat of Object.values(CATALOG)) {
+      for (const entry of cat) {
+        _state.unlocked[entry.slug] = true;
+        if (entry.maxLevel && _state.boostLevels) {
+          _state.boostLevels[entry.slug] = entry.maxLevel;
+        }
+      }
+    }
+    if (!_state.unlockedArenas) _state.unlockedArenas = {};
+    for (const slug of Object.keys(ARENAS)) {
+      _state.unlockedArenas[slug] = true;
+    }
+    save();
+    return true;
+  }
+  function exitDevMode() {
+    if (!_state.devMode) return false;
+    let snapshot = null;
+    try {
+      const raw = localStorage.getItem(DEV_SNAPSHOT_KEY);
+      if (raw) snapshot = JSON.parse(raw);
+    } catch (e) {}
+    if (snapshot) {
+      _state = snapshot;
+      _state.devMode = false; // safety: snapshot shouldn't have devMode set, but enforce
+    } else {
+      // No snapshot found — just clear the dev flag.  (Unlikely path, but don't strand the player.)
+      _state.devMode = false;
+    }
+    try { localStorage.removeItem(DEV_SNAPSHOT_KEY); } catch (e) {}
+    save();
+    return true;
+  }
+
   return {
     get, save, isUnlocked, unlock, spendSlices, addSlices,
     getBoostLevel, setBoostLevel, setEquippedCharacter,
@@ -468,6 +524,7 @@ export const Profile = (function () {
     getNextArena, setEquippedArena, getEquippedArena,
     addItemKill, getItemKills,
     reset,
+    enterDevMode, exitDevMode, isInDevMode,
   };
 })();
 
