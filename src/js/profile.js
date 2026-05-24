@@ -26,6 +26,8 @@ export const ARENAS = {
     sceneryTint: null,                    // no tint — use original GLB colors
     treeWeights: { leafy: 0.65, pine: 0.25, bare: 0.10 },
     distantHillHueRange: [0.30, 0.35], distantHillSat: 0.30, distantHillLig: 0.48,
+    // Beginner arena — no in-arena obstacles
+    terrain: { obstacles: 0 },
   },
   sundried_slopes: {
     slug: 'sundried_slopes', name: 'Sundried Slopes', icon: '🍂',
@@ -39,6 +41,14 @@ export const ARENAS = {
     sceneryTint: 0xd4a060,                // warm orange material tint
     treeWeights: { leafy: 0.30, pine: 0.20, bare: 0.50 },
     distantHillHueRange: [0.05, 0.10], distantHillSat: 0.40, distantHillLig: 0.42,
+    // Rocky autumn terrain — sandstone boulders scattered as cover
+    terrain: {
+      obstacles: 16,
+      kind: 'boulder',
+      minR: 11, maxR: 48,
+      scaleRange: [1.6, 3.2],
+      color: 0x8a5a3a,
+    },
   },
   frostbite_glacier: {
     slug: 'frostbite_glacier', name: 'Frostbite Glacier', icon: '🧊',
@@ -52,6 +62,15 @@ export const ARENAS = {
     sceneryTint: 0xeef4ff,                // cool white tint
     treeWeights: { leafy: 0.10, pine: 0.60, bare: 0.30 },
     distantHillHueRange: [0.55, 0.60], distantHillSat: 0.18, distantHillLig: 0.62,
+    // Brutal icy maze — tall narrow ice spires create chokepoints
+    terrain: {
+      obstacles: 22,
+      kind: 'spire',
+      minR: 10, maxR: 50,
+      scaleRange: [1.0, 2.2],
+      color: 0xb8e0ff,
+      emissive: 0x224466,
+    },
   },
 };
 

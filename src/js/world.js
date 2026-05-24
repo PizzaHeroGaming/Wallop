@@ -1,7 +1,8 @@
 import { CFG, IS_MOBILE_EARLY } from './config.js';
 import { scene } from './renderer.js';
-import { groundHeight, addSolid, obstacles } from './terrain.js';
+import { groundHeight, addSolid, obstacles, solidProps } from './terrain.js';
 import { ARENAS } from './profile.js';
+import { killMesh } from './utils.js';
 
 // ── Arena theming ──
 // Currently-applied arena slug. Used by add* functions to color procedural
@@ -60,9 +61,94 @@ function _restoreMeshTint(mesh) {
   });
 }
 
+// ── Arena obstacles (boulders / ice spires) ────────────────────────────────
+// Per-arena, NOT placed at world build time.  Created/destroyed in setWorldArena.
+const _arenaObstacleMeshes = [];
+const _arenaObstacleSolids = [];
+
+function _clearArenaObstacles() {
+  for (const m of _arenaObstacleMeshes) killMesh(m);
+  _arenaObstacleMeshes.length = 0;
+  for (const s of _arenaObstacleSolids) {
+    const i = solidProps.indexOf(s);
+    if (i >= 0) solidProps.splice(i, 1);
+  }
+  _arenaObstacleSolids.length = 0;
+}
+
+function _addBoulder(x, z, scale, color) {
+  // Chunky low-poly boulder — flattened sphere
+  const geo = new THREE.SphereGeometry(scale, 8, 6);
+  const mat = new THREE.MeshPhongMaterial({ color, flatShading: true, shininess: 2 });
+  const m = new THREE.Mesh(geo, mat);
+  // Slightly squish + slight rotation for variety
+  m.scale.set(1.0, 0.7 + Math.random() * 0.3, 1.0);
+  m.rotation.y = Math.random() * Math.PI * 2;
+  m.position.set(x, scale * 0.25, z);
+  m.castShadow = true;
+  m.receiveShadow = true;
+  scene.add(m);
+  _arenaObstacleMeshes.push(m);
+  _arenaObstacleSolids.push(addSolid(x, z, scale * 0.9));
+}
+
+function _addIceSpire(x, z, scale, color, emissive) {
+  // Tall narrow ice spire — group of stacked tapered cylinders for crystal look
+  const g = new THREE.Group();
+  const mat = new THREE.MeshPhongMaterial({
+    color, emissive: emissive || 0x000000, emissiveIntensity: 0.15,
+    flatShading: true, shininess: 60, transparent: true, opacity: 0.92,
+  });
+  const base = new THREE.Mesh(new THREE.CylinderGeometry(scale * 0.9, scale * 1.1, scale * 1.0, 6), mat);
+  base.position.y = scale * 0.5;
+  g.add(base);
+  const mid = new THREE.Mesh(new THREE.CylinderGeometry(scale * 0.55, scale * 0.9, scale * 1.4, 6), mat);
+  mid.position.y = scale * 1.7;
+  g.add(mid);
+  const tip = new THREE.Mesh(new THREE.CylinderGeometry(0.05, scale * 0.55, scale * 1.6, 6), mat);
+  tip.position.y = scale * 3.2;
+  g.add(tip);
+  g.rotation.y = Math.random() * Math.PI * 2;
+  g.position.set(x, 0, z);
+  g.traverse(c => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; } });
+  scene.add(g);
+  _arenaObstacleMeshes.push(g);
+  _arenaObstacleSolids.push(addSolid(x, z, scale * 0.95));
+}
+
+// Place inner-arena obstacles for the given arena.  Skips if arena.terrain.obstacles is 0.
+function _placeArenaObstacles(a) {
+  const t = a.terrain;
+  if (!t || !t.obstacles) return;
+  const count = t.obstacles;
+  const [scaleMin, scaleMax] = t.scaleRange || [1.5, 2.5];
+  const minR = t.minR || 10;
+  const maxR = t.maxR || 45;
+  const placed = []; // for spacing check
+  let attempts = 0;
+  while (placed.length < count && attempts < count * 12) {
+    attempts++;
+    const a2 = Math.random() * Math.PI * 2;
+    const r  = minR + Math.random() * (maxR - minR);
+    const x  = Math.cos(a2) * r;
+    const z  = Math.sin(a2) * r;
+    const sc = scaleMin + Math.random() * (scaleMax - scaleMin);
+    // Spacing: don't place too close to existing arena obstacles
+    let ok = true;
+    for (const p of placed) {
+      if (Math.hypot(x - p.x, z - p.z) < (sc + p.s) * 1.5) { ok = false; break; }
+    }
+    if (!ok) continue;
+    placed.push({ x, z, s: sc });
+    if (t.kind === 'spire') _addIceSpire(x, z, sc, t.color, t.emissive);
+    else                    _addBoulder(x, z, sc, t.color);
+  }
+}
+
 // Public: swap arena visuals.  Retints all already-placed scenery,
-// recolors procedural decoration, and updates internal state so any
-// scenery placed AFTER this call also picks up the new theme.
+// recolors procedural decoration, swaps in arena-specific obstacles,
+// and updates internal state so any scenery placed AFTER this call
+// also picks up the new theme.
 export function setWorldArena(arenaSlug) {
   const a = ARENAS[arenaSlug] || ARENAS.pepperoni_pines;
   _currentArena = a;
@@ -82,6 +168,9 @@ export function setWorldArena(arenaSlug) {
   for (const m of _proceduralByKind.flower) {
     setMatColor(m.material, parseInt(a.ground.flowers[Math.floor(Math.random() * a.ground.flowers.length)].replace('#',''), 16));
   }
+  // Swap in arena-specific obstacles
+  _clearArenaObstacles();
+  _placeArenaObstacles(a);
 }
 
 // ============================================================

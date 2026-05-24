@@ -137,7 +137,9 @@ export const obstacles = [];
 export const solidProps = [];
 
 export function addSolid(x, z, radius) {
-  solidProps.push({ x, z, radius });
+  const s = { x, z, radius };
+  solidProps.push(s);
+  return s;
 }
 
 export function resolveSolids(x, z, agentRadius = 0.5) {
