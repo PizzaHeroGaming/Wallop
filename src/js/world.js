@@ -343,7 +343,9 @@ export function addCloud(x, y, z, scale = 1) {
 
 export function addDistantHill(x, z, radius, height, color) {
   const geo = new THREE.SphereGeometry(radius, 10, 8);
-  const mat = new THREE.MeshPhongMaterial({ color, flatShading: true, shininess: 0 });
+  // Unlit material so the sun doesn't push facing faces over the bloom threshold
+  // and make distant hills glow.  Fog still affects MeshBasicMaterial normally.
+  const mat = new THREE.MeshBasicMaterial({ color, fog: true });
   const m = new THREE.Mesh(geo, mat);
   m.scale.y = (height / radius) * 0.85;
   m.position.set(x, -radius * 0.15, z);
@@ -384,8 +386,9 @@ export function addDistantHill(x, z, radius, height, color) {
     const radius = 14 + Math.random() * 12;
     const height = 8 + Math.random() * 14;
     const hue = 0.30 + Math.random() * 0.05;
-    const sat = 0.25 + Math.random() * 0.12;
-    const lig = 0.42 + Math.random() * 0.12;
+    const sat = 0.30 + Math.random() * 0.10;
+    // Darker hills (lig 0.28-0.38) so fog blend never pushes them past bloom
+    const lig = 0.28 + Math.random() * 0.10;
     addDistantHill(Math.cos(a) * r, Math.sin(a) * r, radius, height, new THREE.Color().setHSL(hue, sat, lig));
   }
   const farRing2 = CFG.ARENA + 100;
@@ -394,7 +397,8 @@ export function addDistantHill(x, z, radius, height, color) {
     const r = farRing2 + (Math.random() - 0.5) * 50;
     const radius = 22 + Math.random() * 18;
     const height = 14 + Math.random() * 18;
-    addDistantHill(Math.cos(a) * r, Math.sin(a) * r, radius, height, new THREE.Color().setHSL(0.55 + Math.random() * 0.06, 0.20, 0.55));
+    // Faraway hills slightly lighter so they read as more distant
+    addDistantHill(Math.cos(a) * r, Math.sin(a) * r, radius, height, new THREE.Color().setHSL(0.55 + Math.random() * 0.06, 0.25, 0.38));
   }
 
   for (let i = 0; i < 16; i++) {
