@@ -46,11 +46,12 @@ export const ARENAS = {
     sceneryTint: 0xc89868,                // warm dusty tan tint
     treeWeights: { leafy: 0.30, pine: 0.20, bare: 0.50 },
     distantHillHueRange: [0.05, 0.10], distantHillSat: 0.40, distantHillLig: 0.42,
-    // Rocky autumn terrain — sandstone boulders scattered as cover
+    // Rocky autumn terrain — sandstone boulders scattered across the full
+    // arena (was capped at radius 48 / 80 — left the outer ring empty)
     terrain: {
-      obstacles: 16,
+      obstacles: 26,
       kind: 'boulder',
-      minR: 11, maxR: 48,
+      minR: 8, maxR: 74,
       scaleRange: [1.6, 3.2],
       color: 0x8a5a3a,
     },
@@ -72,11 +73,12 @@ export const ARENAS = {
     sceneryTint: 0x88aacc,                // deeper cool blue tint
     treeWeights: { leafy: 0.10, pine: 0.60, bare: 0.30 },
     distantHillHueRange: [0.55, 0.60], distantHillSat: 0.18, distantHillLig: 0.42,
-    // Brutal icy maze — tall narrow ice spires create chokepoints
+    // Brutal icy maze — tall narrow ice spires distributed across the full
+    // arena (was capped at radius 50 / 80 — left the outer ring empty)
     terrain: {
-      obstacles: 22,
+      obstacles: 34,
       kind: 'spire',
-      minR: 10, maxR: 50,
+      minR: 8, maxR: 74,
       scaleRange: [1.0, 2.2],
       color: 0xb8e0ff,
       emissive: 0x224466,

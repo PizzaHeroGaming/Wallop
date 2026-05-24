@@ -1,8 +1,8 @@
-import { CFG, IS_MOBILE_EARLY } from './config.js?v=ca2d610';
-import { scene } from './renderer.js?v=ca2d610';
-import { groundHeight, addSolid, obstacles, solidProps } from './terrain.js?v=ca2d610';
-import { ARENAS } from './profile.js?v=ca2d610';
-import { killMesh } from './utils.js?v=ca2d610';
+import { CFG, IS_MOBILE_EARLY } from './config.js?v=f036d5b';
+import { scene } from './renderer.js?v=f036d5b';
+import { groundHeight, addSolid, obstacles, solidProps } from './terrain.js?v=f036d5b';
+import { ARENAS } from './profile.js?v=f036d5b';
+import { killMesh } from './utils.js?v=f036d5b';
 
 // ── Arena theming ──
 // Currently-applied arena slug. Used by add* functions to color procedural
@@ -152,10 +152,13 @@ function _addIceSpire(x, z, scale, color, emissive) {
 function _placeArenaObstacles(a) {
   const t = a.terrain;
   if (!t || !t.obstacles) return;
+  // Reach extended: was capped at maxR=45 (~56% of arena) so boulders/spires
+  // never appeared in the outer arena. Now defaults to 72 so they distribute
+  // across the full play area; per-arena entries can still override.
   const count = t.obstacles;
   const [scaleMin, scaleMax] = t.scaleRange || [1.5, 2.5];
   const minR = t.minR || 10;
-  const maxR = t.maxR || 45;
+  const maxR = t.maxR || 72;
   const placed = []; // for spacing check
   let attempts = 0;
   while (placed.length < count && attempts < count * 12) {
@@ -543,12 +546,14 @@ function _placeWorldProps() {
   }
 
   const groveCenters = [];
-  for (let i = 0; i < 10; i++) {
+  // Push groves out to nearly the full arena radius (was capped at ±44 of 80,
+  // which left an obvious empty band between inner groves and the forest ring).
+  for (let i = 0; i < 16; i++) {
     let cx, cz, ok = false, tries = 0;
     while (!ok && tries < 40) {
       tries++;
-      cx = (Math.random() - 0.5) * (CFG.ARENA - 12) * 1.3;
-      cz = (Math.random() - 0.5) * (CFG.ARENA - 12) * 1.3;
+      cx = (Math.random() - 0.5) * (CFG.ARENA - 6) * 1.95;
+      cz = (Math.random() - 0.5) * (CFG.ARENA - 6) * 1.95;
       ok = Math.hypot(cx, cz) > 10;
       for (const g of groveCenters) if (Math.hypot(g.x - cx, g.z - cz) < 14) ok = false;
     }
@@ -584,15 +589,34 @@ function _placeWorldProps() {
       addBush(g.x + Math.cos(ba) * br, g.z + Math.sin(ba) * br);
     }
   }
-  for (let i = 0; i < 14; i++) {
-    const tx = (Math.random() - 0.5) * (CFG.ARENA - 6) * 1.6;
-    const tz = (Math.random() - 0.5) * (CFG.ARENA - 6) * 1.6;
+  // Standalone inner trees — spread bumped to ±74 so the outer ring of the
+  // arena gets visual coverage too (was capped at ±59).
+  for (let i = 0; i < 28; i++) {
+    const tx = (Math.random() - 0.5) * (CFG.ARENA - 4) * 1.85;
+    const tz = (Math.random() - 0.5) * (CFG.ARENA - 4) * 1.85;
     if (Math.hypot(tx, tz) < 7) continue;
     let tooClose = false;
     for (const p of innerTreePositions) if (Math.hypot(p.x - tx, p.z - tz) < 3) { tooClose = true; break; }
     if (tooClose) continue;
     innerTreePositions.push({ x: tx, z: tz });
     if (Math.random() < 0.3) addPineTree(tx, tz); else addTree(tx, tz);
+  }
+
+  // Outer-arena filler band — bushes and small trees in the 50-78 ring that
+  // was previously empty. Skip if it would clip into a grove.
+  for (let i = 0; i < 36; i++) {
+    const a = Math.random() * Math.PI * 2;
+    const r = 50 + Math.random() * 28;
+    const fx = Math.cos(a) * r, fz = Math.sin(a) * r;
+    let tooClose = false;
+    for (const p of innerTreePositions) if (Math.hypot(p.x - fx, p.z - fz) < 2.5) { tooClose = true; break; }
+    if (tooClose) continue;
+    innerTreePositions.push({ x: fx, z: fz });
+    const which = Math.random();
+    if (which < 0.45) addTree(fx, fz);
+    else if (which < 0.70) addPineTree(fx, fz);
+    else if (which < 0.85) addDeadTree(fx, fz);
+    else addBush(fx, fz);
   }
 
   for (let i = 0; i < 12; i++) {
@@ -603,9 +627,11 @@ function _placeWorldProps() {
     addMushrooms(t.x + Math.cos(a) * r, t.z + Math.sin(a) * r);
   }
 
-  for (let i = 0; i < 28; i++) {
-    const x = (Math.random() - 0.5) * CFG.ARENA * 1.7;
-    const z = (Math.random() - 0.5) * CFG.ARENA * 1.7;
+  // Scattered medium rocks — extended to ±76 (up from ±68) and 40-count so
+  // the outer arena reads as continuous scenery instead of a barren ring.
+  for (let i = 0; i < 44; i++) {
+    const x = (Math.random() - 0.5) * CFG.ARENA * 1.9;
+    const z = (Math.random() - 0.5) * CFG.ARENA * 1.9;
     if (Math.hypot(x, z) < 6) continue;
     addRock(x, z, 0.4 + Math.random() * 0.7);
   }
