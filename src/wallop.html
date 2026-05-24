@@ -1959,6 +1959,87 @@
   .pause-section .pause-h { color: #b8501c !important; }
   .pause-row .v, .pause-row .k { color: #2a1a05 !important; }
   .pause-weapon { color: #2a1a05 !important; }
+
+  /* =====================================================================
+     PASS 5 — Cleanup after first user-feedback round
+     Targets: text-color readability, frame double-stacking, text-overflow
+     ===================================================================== */
+
+  /* --- 5a. Darken text everywhere it sits on cream --- */
+  /* Character preview side panel */
+  #char-select-subdesc, #char-select-name { color: #2a1a05 !important; }
+  #char-select-name { color: #b8501c !important; }
+  #mob-char-name { color: #b8501c !important; }
+  #mob-char-subdesc { color: #2a1a05 !important; }
+  /* Level-up / chest choice cards */
+  .choice h3 { color: #b8501c !important; }
+  .choice .desc { color: #2a1a05 !important; }
+  /* Pause screen — make sure every label + value is dark on cream */
+  .pause-section *,
+  .pause-row .k,
+  .pause-row .v,
+  .pause-weapon,
+  .pause-weapon .nm { color: #2a1a05 !important; }
+  .pause-h { color: #b8501c !important; }
+  /* Stat-tile labels in pause/game-over were already done; mobile chest text */
+
+  /* --- 5b. Stop double-framing.  When an outer panel wraps inner cards that
+     are each individually framed, the cream-on-cream looks layered/wrong.
+     Strip the outer frame from these wrappers so only the children show. --- */
+  .about-panel, #challenges-screen .about-panel, #run-config-body {
+    background: transparent !important;
+    border: none !important;
+    border-image: none !important;
+    box-shadow: none !important;
+    filter: none !important;
+    padding: 0 !important;
+  }
+  /* Run-config's outer body had a frame; remove it and let the inner
+     .start-run-config / .arena-config-desktop / #mob-arena-select sections
+     carry their own frames cleanly */
+
+  /* --- 5c. Frame trim: narrow wide bars look frame-heavy.
+     Increase internal padding so text isn't crammed against the visible
+     brown border, and reduce the visible border-image width slightly. --- */
+  .panel {
+    padding: 16px 28px !important;
+    border-image-width: 5px !important;
+  }
+  .panel h2 { font-size: 13px; margin-bottom: 10px; }
+  .panel li { line-height: 1.6; }
+  #armory-header {
+    padding: 8px 18px !important;
+    border-image-width: 5px !important;
+  }
+
+  /* --- 5d. Armory cards: fit ALL the description text inside the frame.
+     Cards need slightly more bottom padding + a min-height so the longer
+     descriptions (e.g. Anchovy Archer) don't get cut off. --- */
+  .armory-card {
+    padding: 14px 14px 16px !important;
+    min-height: 200px;
+  }
+  .armory-card .desc { font-size: 13px !important; line-height: 1.25 !important; }
+
+  /* --- 5e. Challenges screen: tighten the per-card spacing + drop the
+     drop-shadow on cards inside the outer panel since the outer is now
+     gone (no more shadow stacking). --- */
+  #challenges-list .challenge-card { filter: drop-shadow(2px 2px 0 #000); }
+  #challenges-screen .about-sub { color: #b8501c !important; font-weight: bold; }
+
+  /* --- 5f. About screen: tighten section spacing + ensure body fits. --- */
+  .about-section { padding: 16px 22px !important; }
+  .about-body { font-size: 18px !important; line-height: 1.4 !important; }
+
+  /* --- 5g. Run-config arena cards: descriptions were getting cut, make
+     them readable. --- */
+  .arena-card, [data-arena] {
+    padding: 10px 12px !important;
+    min-height: 100px;
+  }
+  .arena-card .name, [data-arena] .name { color: #b8501c !important; font-size: 9px !important; }
+  .arena-card .hint, [data-arena] .hint,
+  .arena-card .desc, [data-arena] .desc { color: #2a1a05 !important; font-size: 13px !important; }
   /* ===== end Kenney UI pack overrides ===== */
 </style>
 </head>
