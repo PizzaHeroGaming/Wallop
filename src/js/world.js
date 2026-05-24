@@ -26,26 +26,52 @@ function _applyTintToMesh(mesh, tintHex) {
   mesh.traverse(child => {
     if (!child.isMesh || !child.material) return;
     const apply = (mat) => {
-      // Clone material the first time we tint so we don't mutate the shared
-      // GLB material (would tint EVERY clone of that asset, including future ones).
+      // First time tinting: clone (don't mutate shared GLB material) and, if it's
+      // a textured MeshStandardMaterial from the KayKit GLB (where color×map isn't
+      // multiplying in this Three.js build), swap the material to MeshPhongMaterial
+      // which RELIABLY multiplies color × map. Lambert/Phong are simpler shaders
+      // where `gl_FragColor.rgb = color.rgb * texture.rgb` is straightforward.
       if (!mat.userData._wallop_tintable) {
-        const clone = mat.clone();
+        const baseColor = mat.color ? mat.color.clone() : new THREE.Color(0xffffff);
+        const isTextureBased = !!mat.map && baseColor.r > 0.9 && baseColor.g > 0.9 && baseColor.b > 0.9;
+        let clone;
+        if (isTextureBased && mat.type === 'MeshStandardMaterial') {
+          clone = new THREE.MeshPhongMaterial({
+            map: mat.map,
+            color: 0xffffff,
+            flatShading: false,
+            shininess: 6,
+            transparent: mat.transparent,
+            opacity: mat.opacity,
+            side: mat.side,
+            alphaTest: mat.alphaTest,
+          });
+        } else {
+          clone = mat.clone();
+        }
         clone.userData._wallop_tintable = true;
-        clone.userData._wallop_baseColor = mat.color ? mat.color.clone() : null;
+        clone.userData._wallop_baseColor = baseColor;
+        clone.userData._wallop_textureBased = isTextureBased;
         return clone;
       }
       return mat;
     };
+    const recolor = (m) => {
+      if (!m.userData._wallop_baseColor) return;
+      if (m.userData._wallop_textureBased) {
+        // Texture × tint: set color = tint directly so texture is multiplied by it.
+        m.color.copy(tint);
+      } else {
+        // Procedural-color material: lerp baseColor toward tint.
+        m.color.copy(m.userData._wallop_baseColor).lerp(tint, 0.7);
+      }
+    };
     if (Array.isArray(child.material)) {
       child.material = child.material.map(apply);
-      for (const m of child.material) {
-        if (m.userData._wallop_baseColor) m.color.copy(m.userData._wallop_baseColor).lerp(tint, 0.55);
-      }
+      child.material.forEach(recolor);
     } else {
       child.material = apply(child.material);
-      if (child.material.userData._wallop_baseColor) {
-        child.material.color.copy(child.material.userData._wallop_baseColor).lerp(tint, 0.55);
-      }
+      recolor(child.material);
     }
   });
 }
@@ -54,7 +80,13 @@ function _restoreMeshTint(mesh) {
   mesh.traverse(child => {
     if (!child.isMesh || !child.material) return;
     const restore = (m) => {
-      if (m.userData._wallop_baseColor && m.color) m.color.copy(m.userData._wallop_baseColor);
+      if (!m.userData._wallop_baseColor || !m.color) return;
+      if (m.userData._wallop_textureBased) {
+        // Texture-based: restore color to white so the texture renders untinted
+        m.color.setHex(0xffffff);
+      } else {
+        m.color.copy(m.userData._wallop_baseColor);
+      }
     };
     if (Array.isArray(child.material)) child.material.forEach(restore);
     else restore(child.material);

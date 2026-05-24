@@ -59,7 +59,7 @@ export const ARENAS = {
     lights: { sun: 0xe0eeff, sunIntensity: 0.95, rim: 0xa8c8ee, hemiSky: 0xddeeff, hemiGround: 0xc8d8e0 },
     ground: { base: '#dde8f0', accent1: '#c4d4e0', accent2: '#eef4fa', accent3: '#b8c8d4', flowers: ['#ffffff', '#a8c8ee', '#e0e8f0', '#c8d4e8', '#ffffff'] },
     grass:  0xc8d8e8, fern: 0x9ab0c0, log: 0x5a4a3a, logCap: 0x8a7a6a, mushroomCaps: [0xeef4ff, 0xb8c8e0, 0x8898b0],
-    sceneryTint: 0xeef4ff,                // cool white tint
+    sceneryTint: 0xaecbe6,                // cooler blue-tinted frost (visible against texture green)
     treeWeights: { leafy: 0.10, pine: 0.60, bare: 0.30 },
     distantHillHueRange: [0.55, 0.60], distantHillSat: 0.18, distantHillLig: 0.62,
     // Brutal icy maze — tall narrow ice spires create chokepoints
