@@ -26,7 +26,7 @@ import {
 import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js';
 import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js';
 import { gameState, cam } from './state.js';
-import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js';
+import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES, VERSION } from './config.js';
 import { Profile, CATALOG, ARENAS } from './profile.js';
 import { tmp, tmp2 } from './utils.js';
 
@@ -1618,6 +1618,10 @@ export function initUI() {
     presentChoiceScreen,
     mouseLocked: () => _mouseLocked,
   });
+
+  // Populate the version chip in the About screen header
+  const verEl = document.getElementById('about-version');
+  if (verEl) verEl.textContent = 'v' + VERSION;
 
   syncSliceDisplays();
   initInput();

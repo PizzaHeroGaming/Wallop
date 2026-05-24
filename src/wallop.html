@@ -1688,7 +1688,12 @@
   #about-screen { align-items: flex-start; justify-content: flex-start; padding: 20px 16px 32px; }
   .about-panel { width: 100%; max-width: 640px; margin: 0 auto; }
   .about-title { font-family: 'Press Start 2P', monospace; font-size: 20px; color: var(--accent); text-align: center; margin-bottom: 4px; text-shadow: 3px 3px 0 #000; }
-  .about-sub { font-family: 'VT323', monospace; font-size: 22px; color: var(--ink-dim); text-align: center; margin-bottom: 20px; }
+  .about-sub { font-family: 'VT323', monospace; font-size: 22px; color: var(--ink-dim); text-align: center; margin-bottom: 6px; }
+  .about-version {
+    font-family: 'Press Start 2P', monospace; font-size: 8px;
+    color: var(--accent); text-align: center; letter-spacing: 1px;
+    margin-bottom: 20px; opacity: 0.85;
+  }
   .about-section { background: var(--panel); border: 3px solid #000; box-shadow: 4px 4px 0 #000; padding: 18px 20px; margin-bottom: 14px; }
   .about-heading { font-family: 'Press Start 2P', monospace; font-size: 10px; color: var(--accent); letter-spacing: 1px; margin-bottom: 12px; }
   .about-body { font-family: 'VT323', monospace; font-size: 20px; color: var(--ink); line-height: 1.5; margin: 0 0 10px; }
@@ -1983,6 +1988,7 @@ window.addEventListener('load', () => {
   <div class="about-panel">
     <div class="about-title">WALLOP</div>
     <div class="about-sub">Pizza Hero Gaming</div>
+    <div class="about-version" id="about-version">v0.0.0</div>
 
     <div class="about-section">
       <div class="about-heading">THANK YOU</div>
@@ -2012,6 +2018,23 @@ window.addEventListener('load', () => {
 
     <div class="about-section">
       <div class="about-heading">PATCH LOG</div>
+
+      <div class="patch-entry">
+        <div class="patch-ver">v0.6 — Arenas &amp; Roster</div>
+        <ul class="patch-list">
+          <li>2 new playable characters: Anchovy Archer 🏹 + Stealth Slice 🥷, each with unique weapon + armor (Tomahawk Anchovy / Sniper's Cloak, Shadow Slice / Phantom Hood)</li>
+          <li>2 new unlockable arenas: Sundried Slopes 🍂 (autumn boulders) + Frostbite Glacier 🧊 (ice spires) — each progression-gated behind beating the previous on Normal+</li>
+          <li>2 new tomes implemented: Tome of Echoes 📜 (every Nth projectile duplicates) + Tome of Time ⏳ (slow all enemies when you take damage)</li>
+          <li>Inner-arena obstacles: Sundried gets sandstone boulders, Frostbite gets ice spires — both with real collision for tactical positioning</li>
+          <li>Boost upgrades now cost progressively more slices per level</li>
+          <li>Run-config flow: clicking START RUN now opens a dedicated arena + difficulty picker before the run begins</li>
+          <li>Mobile UI overhaul: 3D char preview replaced with compact selector, landscape layout fits without scrolling, cache-busting on every deploy</li>
+          <li>Dev mode login for testing (About screen → DEV MODE section)</li>
+          <li>Arena scenery tinting now actually works on KayKit GLB trees</li>
+          <li>Distant hills no longer over-bloom into glowing orbs</li>
+          <li>Boss kill on Stage 1 or 2 no longer ends the run as a Stage 3 victory</li>
+        </ul>
+      </div>
 
       <div class="patch-entry">
         <div class="patch-ver">v0.5 — Character Update</div>

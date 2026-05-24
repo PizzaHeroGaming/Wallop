@@ -1,6 +1,10 @@
 // ============================================================
 // CONFIG
 // ============================================================
+// Version: bump on every player-visible release. Displayed in the About
+// screen header; can also be referenced by any module that imports CFG.
+export const VERSION = '0.6.0';
+
 export const CFG = {
   ARENA: 110,
   GAME_TIME: 600, // 10 min
@@ -10,6 +14,7 @@ export const CFG = {
   PICKUP_RANGE: 2.6,
   CAM_DIST: 14,   // pulled back to see over rolling terrain
   CAM_HEIGHT: 9,  // slightly higher for same reason
+  VERSION,        // also exposed via CFG.VERSION for convenience
 };
 
 // Stage scaling: enemy stats, boss stats, slice reward multipliers per stage
