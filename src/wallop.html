@@ -1330,14 +1330,18 @@
     animation: phs-fade-in 0.4s ease-out forwards;
   }
   .phs-splash.phs-out {
-    animation: phs-fade-out 0.55s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+    /* Slower, more cinematic fade-out (matches Athanor's studio bumper). */
+    animation: phs-fade-out 1.1s cubic-bezier(0.65, 0, 0.35, 1) forwards;
   }
   /* Camera shake on the wordmark slam */
   .phs-splash.phs-shake {
     animation: phs-fade-in 0.4s ease-out forwards, phs-shake 0.45s ease-out;
   }
   @keyframes phs-fade-in  { to { opacity: 1; } }
-  @keyframes phs-fade-out { to { opacity: 0; transform: scale(1.06); } }
+  @keyframes phs-fade-out {
+    0%   { opacity: 1; transform: scale(1); }
+    100% { opacity: 0; transform: scale(1.06); }
+  }
   @keyframes phs-shake {
     0%, 100% { transform: translate(0, 0); }
     20% { transform: translate(-6px, 4px); }
@@ -2327,7 +2331,7 @@ const PizzaHeroSplash = (function () {
       setTimeout(() => {
         splash.remove();
         try { onComplete(); } catch (e) { console.error(e); }
-      }, 560);
+      }, 1100);
     }
 
     const onKey   = () => skipOnInput && dismiss();
