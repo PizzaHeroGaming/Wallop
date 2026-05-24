@@ -2212,6 +2212,53 @@
   }
   /* Loadout slots can be slightly darker since their content is a single icon */
   body .loadout-slot { background-color: #e8d8a8 !important; }
+
+  /* =====================================================================
+     PASS 8 — Targeted readability fixes from feedback round 3
+     ===================================================================== */
+
+  /* (1) Character SELECT button when ALREADY equipped — was using .dim
+     style (light grey text on cream) which is unreadable.  Force dark
+     text + give it a proper blue interior to look like a passive state. */
+  body #char-select-btn.dim,
+  body #mob-char-btn.dim {
+    background-color: #5d7798 !important;
+    color: #ffffff !important;
+    text-shadow: 1px 1px 0 #1a2a40 !important;
+  }
+  /* Also: generic .btn.dim should be readable cool/blue, not invisible on cream */
+  body .btn.dim {
+    background-color: #5d7798 !important;
+    color: #ffffff !important;
+    text-shadow: 1px 1px 0 #1a2a40 !important;
+  }
+
+  /* (2) UNSELECTED arena cards (.arena-btn variants) — child .arena-btn-name
+     and .arena-btn-hint had hard-coded light colors that disappear on cream.
+     The active card already gets white-on-red from earlier; here we fix
+     the inactive cards. */
+  body .arena-btn .arena-btn-name { color: #b8501c !important; }
+  body .arena-btn .arena-btn-hint { color: #2a1a05 !important; }
+  body .arena-btn.active .arena-btn-name,
+  body .arena-btn.active .arena-btn-hint { color: #ffffff !important; text-shadow: 1px 1px 0 #5a0010 !important; }
+
+  /* (3) DEV MODE (TESTING) section in About — text was inheriting old
+     light colors meant for the dark theme.  Darken everything on cream. */
+  body #dev-mode-section .about-body,
+  body #dev-mode-section #dev-mode-status {
+    color: #2a1a05 !important;
+  }
+  body #dev-mode-section .about-heading { color: #b8501c !important; }
+  body #dev-mode-section #dev-user,
+  body #dev-mode-section #dev-pass {
+    background: #f5e9c8 !important;
+    color: #2a1a05 !important;
+    border-color: #6a3818 !important;
+  }
+  body #dev-mode-section #dev-user::placeholder,
+  body #dev-mode-section #dev-pass::placeholder {
+    color: #6a3818 !important; opacity: 0.7;
+  }
   /* ===== end Kenney UI pack overrides ===== */
 </style>
 </head>
