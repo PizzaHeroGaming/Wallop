@@ -473,6 +473,11 @@ function _stripHalfItems() {
   player.goldMult      = 1.0;
   player.phoenixRevive = false;
   player.hasRevive     = false;
+  // Tome of Echoes / Tome of Time defaults
+  player.echoInterval  = 0;
+  player._echoCounter  = 0;
+  player.timeSlowDur   = 0;
+  player.timeSlowMult  = 0.5;
   player.turboDash     = 0;
 
   // Re-apply persistent boosts (same as resetGame)
@@ -674,6 +679,11 @@ export function resetGame() {
   player.shield = 0;
   player.shieldRegenDelay = 0;
   player.lifesteal = 0;
+  // Tome of Echoes / Tome of Time defaults
+  player.echoInterval = 0;
+  player._echoCounter = 0;
+  player.timeSlowDur  = 0;
+  player.timeSlowMult = 0.5;
   player.projectilePierce = 0;
   player.aoeMult = 1.0;
   player.durationMult = 1.0;
@@ -924,7 +934,12 @@ function updateEnemies(dt) {
     if (dist > 0.01) tmp.normalize();
 
     let speedMult = 1.0;
-    if (e.slowTimer && e.slowTimer > 0) { e.slowTimer -= dt; speedMult = 0.45; }
+    if (e.slowTimer && e.slowTimer > 0) {
+      e.slowTimer -= dt;
+      // Respect a per-enemy slowMult (set by Frost Shell, Tome of Time, etc.)
+      // Fall back to the legacy default of 0.45 if not set.
+      speedMult = e.slowMult || 0.45;
+    }
 
     if (e.type === 'archer') {
       if (dist < 7) {

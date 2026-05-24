@@ -144,6 +144,15 @@ export function damagePlayer(dmg, attacker) {
     attacker.slowTimer = Math.max(attacker.slowTimer || 0, 1.5 * (player.frostThorns * 0.5));
     attacker.slowMult = Math.min(attacker.slowMult || 1, 0.45);
   }
+  // Tome of Time: slow ALL enemies briefly when you take damage
+  if (player.timeSlowDur > 0) {
+    const dur  = player.timeSlowDur;
+    const mult = player.timeSlowMult || 0.5;
+    for (const e of enemies) {
+      e.slowTimer = Math.max(e.slowTimer || 0, dur);
+      e.slowMult  = Math.min(e.slowMult || 1, mult);
+    }
+  }
   let final = Math.max(1, dmg - player.armor);
   if (player.shield > 0) {
     const absorbed = Math.min(player.shield, final);

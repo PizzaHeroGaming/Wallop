@@ -1045,6 +1045,52 @@ defTome('cursed', {
   describeNext: () => '+1 Curse',
 });
 
+// Tome of Echoes — every Nth projectile fires a free duplicate.
+// Smaller N = more frequent echoes.  N: 10 → 8 → 6 → 4 → 3
+defTome('tome_of_echoes', {
+  name: 'Tome of Echoes', icon: '📜',
+  desc: 'Every Nth projectile fires a free duplicate. More frequent at higher levels.',
+  maxLevel: 5,
+  init: () => ({ }),
+  upgrade: t => {
+    t.level++;
+    const intervals = [10, 8, 6, 4, 3];
+    player.echoInterval = intervals[Math.min(t.level - 1, intervals.length - 1)];
+  },
+  describeNext: t => {
+    const lvl = (t?.level || 0) + 1;
+    const intervals = [10, 8, 6, 4, 3];
+    const n = intervals[Math.min(lvl - 1, intervals.length - 1)];
+    return `Every ${n}th projectile echoes`;
+  },
+});
+
+// Tome of Time — slows ALL enemies briefly when you take damage.
+// Duration and slow strength both improve per level.
+defTome('tome_of_time', {
+  name: 'Tome of Time', icon: '⏳',
+  desc: 'When you take damage, all enemies are slowed briefly.',
+  maxLevel: 5,
+  init: () => ({ }),
+  upgrade: t => {
+    t.level++;
+    // Duration: 1.0 → 1.5 → 2.0 → 2.0 → 2.5 sec
+    // Slow mult: 0.60 → 0.55 → 0.50 → 0.40 → 0.30 (lower = slower)
+    const durs  = [1.0, 1.5, 2.0, 2.0, 2.5];
+    const mults = [0.60, 0.55, 0.50, 0.40, 0.30];
+    player.timeSlowDur  = durs[Math.min(t.level - 1, durs.length - 1)];
+    player.timeSlowMult = mults[Math.min(t.level - 1, mults.length - 1)];
+  },
+  describeNext: t => {
+    const lvl = (t?.level || 0) + 1;
+    const durs  = [1.0, 1.5, 2.0, 2.0, 2.5];
+    const mults = [0.60, 0.55, 0.50, 0.40, 0.30];
+    const d = durs[Math.min(lvl - 1, durs.length - 1)];
+    const m = mults[Math.min(lvl - 1, mults.length - 1)];
+    return `${d.toFixed(1)}s slow at ${Math.round((1 - m) * 100)}%`;
+  },
+});
+
 // ============================================================
 // CHARACTER-UNIQUE WEAPONS
 // ============================================================

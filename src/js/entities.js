@@ -1152,6 +1152,31 @@ export function spawnProjectile(opts) {
   proj.mesh.position.copy(proj.pos);
   scene.add(proj.mesh);
   projectiles.push(proj);
+
+  // ── Tome of Echoes: every Nth projectile fires a free duplicate ──
+  // Guard with opts.isEcho so the duplicate doesn't itself echo (no infinite loop).
+  // Skip explosions and aura ticks (anything without a real velocity).
+  if (!opts.isEcho && player.echoInterval > 0 && proj.vel.lengthSq() > 0.01) {
+    player._echoCounter = (player._echoCounter || 0) + 1;
+    if (player._echoCounter >= player.echoInterval) {
+      player._echoCounter = 0;
+      // Re-fire with a fresh mesh clone, tiny offset so it visually reads as a duplicate
+      const echoMesh = opts.mesh && opts.mesh.clone ? opts.mesh.clone() : null;
+      if (echoMesh) {
+        const offset = new THREE.Vector3(
+          (Math.random() - 0.5) * 0.4, 0,
+          (Math.random() - 0.5) * 0.4
+        );
+        spawnProjectile({
+          ...opts,
+          mesh: echoMesh,
+          pos: opts.pos.clone().add(offset),
+          vel: opts.vel.clone(),
+          isEcho: true,
+        });
+      }
+    }
+  }
   return proj;
 }
 

@@ -161,15 +161,13 @@ export const CATALOG = {
     { slug: 'cursed',   gameRef: 'cursed',   defaultUnlocked: true },
     {
       slug: 'tome_of_echoes',
-      name: 'Tome of Echoes', icon: '📜',
-      desc: 'COMING SOON — Every 10th projectile fires a free duplicate.',
-      placeholder: true, sliceCost: 200,
+      gameRef: 'tome_of_echoes',
+      sliceCost: 200,
     },
     {
       slug: 'tome_of_time',
-      name: 'Tome of Time', icon: '⏳',
-      desc: 'COMING SOON — Slows enemies briefly when you take damage.',
-      placeholder: true, sliceCost: 250,
+      gameRef: 'tome_of_time',
+      sliceCost: 250,
     },
   ],
 
