@@ -1842,9 +1842,9 @@
   #run-config-body,
   #challenges-list .challenge-card,
   .about-panel > .about-section {
-    background: transparent !important;
+    background: #f5e9c8 !important;
     border: none !important;
-    border-image: url('assets/ui/panel_cream.png') 6 fill / 6px / 0 stretch !important;
+    border-image: url('assets/ui/panel_cream.png') 6 / 6px / 0 stretch !important;
     box-shadow: none !important;
     image-rendering: pixelated;
     filter: drop-shadow(3px 3px 0 #000);
@@ -2081,6 +2081,100 @@
   .stat-tile          { padding: 10px 16px !important; }
   /* HP / XP / Boss bar wrappers — the bars themselves sit inside the cream */
   #hp-wrap, #xp-wrap, #boss-wrap { padding: 10px 14px !important; }
+
+  /* =====================================================================
+     PASS 7 — About title visibility + patch-log fill artifact
+     ===================================================================== */
+
+  /* About-screen header text sits on the dark background (no parent
+     frame anymore).  Restore bright colors so it's actually readable. */
+  #about-screen .about-title {
+    color: var(--accent) !important;
+    text-shadow: 3px 3px 0 #000 !important;
+  }
+  #about-screen .about-sub {
+    color: var(--ink-dim) !important;
+    text-shadow: 1px 1px 0 #000 !important;
+  }
+  #about-screen .about-version {
+    color: var(--accent) !important;
+    text-shadow: 1px 1px 0 #000 !important;
+  }
+  /* Same fix for the Challenges screen header (also lives in .about-panel) */
+  #challenges-screen .about-title {
+    color: var(--accent) !important;
+    text-shadow: 3px 3px 0 #000 !important;
+  }
+  #challenges-screen .about-sub {
+    color: var(--ink-dim) !important;
+    text-shadow: 1px 1px 0 #000 !important;
+  }
+
+  /* PATCH-LOG FILL FIX: very tall .about-section (the patch log is ~2500px
+     tall) reveals a border-image-fill artifact where the source tile's
+     20x20 center pixel gradient gets stretched into massive bands.
+     Solution: add a solid cream BACKGROUND-COLOR.  The border-image-fill
+     still paints over it, but on long elements the background-color
+     provides a uniform fallback so any gradient artifact is invisible. */
+  .panel, .about-section, .armory-card, .challenge-card,
+  .choice, .start-run-config, .stage-select-panel,
+  #char-select-panel, #mob-char-select, #mob-arena-select,
+  .pause-section, .stat-tile, #armory-detail, #armory-header,
+  #slice-counter, #armory-slices,
+  .arena-card, [data-arena],
+  #hp-wrap, #xp-wrap, #boss-wrap {
+    background-color: #f5e9c8 !important;
+  }
+  /* Buttons get the parchment-cream as background too, since their tile
+     has the same interior color */
+  .btn, .armory-tab, .diff-btn { background-color: #f5e9c8 !important; }
+  .btn.hot, .armory-tab.active, .diff-btn.active,
+  .arena-card.active, [data-arena].active {
+    background-color: #c84838 !important; /* deep red to match btn_red_v2 interior */
+  }
+
+  /* Drop the `fill` keyword from every border-image-slice + force the
+     uniform background-color to win.  We use doubled-class selectors
+     (e.g. .about-section.about-section) and explicit parent chains
+     to bump specificity above the earlier-pass overrides like
+     `.about-panel > .about-section` which were stealing the styling. */
+  body .panel,
+  body .about-section,
+  body .armory-card,
+  body .challenge-card,
+  body .choice,
+  body .start-run-config,
+  body .stage-select-panel,
+  body #char-select-panel,
+  body #mob-char-select,
+  body #mob-arena-select,
+  body .pause-section,
+  body .stat-tile,
+  body #armory-detail,
+  body #armory-header,
+  body #slice-counter,
+  body #armory-slices,
+  body .arena-card,
+  body [data-arena],
+  body #hp-wrap, body #xp-wrap, body #boss-wrap,
+  body .btn, body .btn.hot, body .btn.dim,
+  body .armory-tab, body .armory-tab.active,
+  body .diff-btn, body .diff-btn.active,
+  body .loadout-slot {
+    border-image-slice: 6 !important;          /* no fill — bg color shows uniformly */
+    background-color: #f5e9c8 !important;     /* solid cream interior */
+    background-image: none !important;
+  }
+  /* Hot/active variants get a solid red interior matching btn_red_v2's tile */
+  body .btn.hot,
+  body .armory-tab.active,
+  body .diff-btn.active,
+  body .arena-card.active,
+  body [data-arena].active {
+    background-color: #c84838 !important;
+  }
+  /* Loadout slots can be slightly darker since their content is a single icon */
+  body .loadout-slot { background-color: #e8d8a8 !important; }
   /* ===== end Kenney UI pack overrides ===== */
 </style>
 </head>
