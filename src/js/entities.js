@@ -1,9 +1,9 @@
-import { CFG, IS_MOBILE_EARLY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=b72487d';
-import { scene, camera, isMobile, tryEnterFullscreen, renderer, acquirePtLight, releasePtLight } from './renderer.js?v=b72487d';
-import { groundHeight, addSolid, resolveSolids, solidProps } from './terrain.js?v=b72487d';
-import { killMesh, clamp, rand, tmp, tmp2, flatPhong, smoothPhong } from './utils.js?v=b72487d';
-import { gameState } from './state.js?v=b72487d';
-import { Profile } from './profile.js?v=b72487d';
+import { CFG, IS_MOBILE_EARLY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=faa3f9d';
+import { scene, camera, isMobile, tryEnterFullscreen, renderer, acquirePtLight, releasePtLight } from './renderer.js?v=faa3f9d';
+import { groundHeight, addSolid, resolveSolids, solidProps } from './terrain.js?v=faa3f9d';
+import { killMesh, clamp, rand, tmp, tmp2, flatPhong, smoothPhong } from './utils.js?v=faa3f9d';
+import { gameState } from './state.js?v=faa3f9d';
+import { Profile } from './profile.js?v=faa3f9d';
 
 // ============================================================
 // PLAYER
@@ -133,6 +133,116 @@ Promise.all([
     }));
   }
 }).catch(err => console.error('[WALLOP] Skeleton animation load failed:', err));
+
+// ============================================================
+// QUATERNIUS ULTIMATE MONSTERS PACK (CC0)
+// Each .gltf embeds its own animations (Idle, Walk, Run, Attack, Death, Jump)
+// and references the shared Atlas_Monsters.png texture in its parent folder.
+// Used for per-arena enemy skins + the 9-boss roster.
+// Folder convention:
+//   Big/    = chunky boss-scale builds
+//   Blob/   = squat chibi mook-scale builds
+//   Flying/ = airborne variants
+// Mook-vs-boss visual gap: bosses use Big/X.gltf where the matching Blob/X.gltf
+// is the mook — players read "oh, this is the giant form of that little guy."
+// ============================================================
+const _QUAT_BASE = 'assets/quaternius_monsters/';
+
+export const QUATERNIUS_MODELS = {
+  // ── Pepperoni Pines (forest) — enemies ──
+  q_orc_enemy:      { file: 'Blob/Orc.gltf',                scale: 0.9 },
+  q_armabee:        { file: 'Flying/Armabee.gltf',          scale: 0.7 },
+  q_goleling:       { file: 'Flying/Goleling.gltf',         scale: 0.95 },
+  q_bunny:          { file: 'Big/Bunny.gltf',               scale: 0.9 },
+  q_glub:           { file: 'Flying/Glub.gltf',             scale: 0.9 },
+  q_monkroose:      { file: 'Big/Monkroose.gltf',           scale: 1.0 },
+  // ── Sundried Slopes (autumn) — enemies ──
+  q_mushnub:        { file: 'Blob/Mushnub.gltf',            scale: 0.95 },
+  q_birb:           { file: 'Blob/Birb.gltf',               scale: 0.7 },
+  q_blue_demon:     { file: 'Big/BlueDemon.gltf',           scale: 1.1 },
+  q_tribal:         { file: 'Big/Tribal.gltf',              scale: 0.95 },
+  q_squidle:        { file: 'Flying/Squidle.gltf',          scale: 0.9 },
+  q_mushnub_evo:    { file: 'Blob/Mushnub_Evolved.gltf',    scale: 1.15 },
+  // ── Frostbite Glacier (snow) — enemies ──
+  q_green_blob:     { file: 'Blob/GreenBlob.gltf',          scale: 0.9 },
+  q_ghost_skull:    { file: 'Flying/Ghost_Skull.gltf',      scale: 0.85 },
+  q_alpaking_evo:   { file: 'Flying/Alpaking_Evolved.gltf', scale: 1.2 },
+  q_hywirl:         { file: 'Flying/Hywirl.gltf',           scale: 0.9 },
+  q_pink_blob:      { file: 'Blob/PinkBlob.gltf',           scale: 0.9 },
+  q_armabee_evo:    { file: 'Flying/Armabee_Evolved.gltf',  scale: 0.85 },
+  // ── Bosses (9) — Big/ for boss-scale silhouette where available ──
+  q_wizard:         { file: 'Blob/Wizard.gltf',             scale: 1.4 },  // forest mini1 (Wizard only ships in Blob)
+  q_orc:            { file: 'Big/Orc.gltf',                 scale: 1.15 }, // forest mini2 — visibly bigger than q_orc_enemy mooks
+  q_demon:          { file: 'Big/Demon.gltf',               scale: 1.25 }, // forest final
+  q_cactoro:        { file: 'Big/Cactoro.gltf',             scale: 1.05 }, // sundried mini1
+  q_goleling_evo:   { file: 'Flying/Goleling_Evolved.gltf', scale: 1.2 },  // sundried mini2 (only ships in Flying)
+  q_mushroom_king:  { file: 'Big/MushroomKing.gltf',        scale: 1.3 },  // sundried final
+  q_ghost:          { file: 'Flying/Ghost.gltf',            scale: 1.05 }, // frostbite mini1
+  q_yeti:           { file: 'Big/Yeti.gltf',                scale: 1.15 }, // frostbite mini2
+  q_dragon_evo:     { file: 'Flying/Dragon_Evolved.gltf',   scale: 1.35 }, // frostbite final
+};
+
+const _quaterniusAssets = {};
+function _loadQuaterniusGLB(slug) {
+  const entry = QUATERNIUS_MODELS[slug];
+  if (!entry) return Promise.reject(new Error(`Unknown Quaternius slug: ${slug}`));
+  if (_quaterniusAssets[slug]) return Promise.resolve(_quaterniusAssets[slug]);
+  // Path segments are clean ASCII — no encoding needed (and encodeURIComponent
+  // would break the '/' separators between subfolder and filename).
+  return _loadGLB(_QUAT_BASE + entry.file).then(gltf => {
+    _quaterniusAssets[slug] = gltf;
+    return gltf;
+  });
+}
+export function hasQuaterniusAsset(slug) { return !!_quaterniusAssets[slug]; }
+export function getQuaterniusClips(slug) {
+  const gltf = _quaterniusAssets[slug];
+  return gltf ? gltf.animations : null;
+}
+export function _cloneQuaterniusMesh(slug) {
+  const gltf = _quaterniusAssets[slug];
+  if (!gltf) return null;
+  const clone = THREE.SkeletonUtils.clone(gltf.scene);
+  clone._isQuaterniusGLB = true;
+  clone._quaterniusSlug = slug;
+  return clone;
+}
+
+// Preload all 27 Quaternius models in background — they're small (~50 KB each)
+Object.keys(QUATERNIUS_MODELS).forEach(slug =>
+  _loadQuaterniusGLB(slug).catch(err =>
+    console.warn(`[WALLOP] Quaternius preload failed for ${slug}:`, err)
+  )
+);
+
+// Per-arena enemy roster — maps gameState.arena + def.body → Quaternius slug.
+// If absent OR asset not yet loaded, falls back to the existing KayKit skeleton path.
+export const ENEMY_VARIANTS = {
+  pepperoni_pines: {
+    goblin:  'q_orc_enemy',
+    bat:     'q_armabee',
+    brute:   'q_goleling',
+    skelly:  'q_bunny',
+    imp:     'q_glub',
+    warlord: 'q_monkroose',
+  },
+  sundried_slopes: {
+    goblin:  'q_mushnub',
+    bat:     'q_birb',
+    brute:   'q_blue_demon',
+    skelly:  'q_tribal',
+    imp:     'q_squidle',
+    warlord: 'q_mushnub_evo',
+  },
+  frostbite_glacier: {
+    goblin:  'q_green_blob',
+    bat:     'q_ghost_skull',
+    brute:   'q_alpaking_evo',
+    skelly:  'q_hywirl',
+    imp:     'q_pink_blob',
+    warlord: 'q_armabee_evo',
+  },
+};
 
 function _bindAnimActions(mixer) {
   const get = name => _animClips && _animClips.find(c => c.name === name);
@@ -1025,6 +1135,17 @@ function makeBossMesh(def) {
 }
 
 export function makeEnemyMesh(def) {
+  // Arena-themed Quaternius variant — try first, fall back to KayKit skeleton if not yet loaded
+  const _arenaMap = ENEMY_VARIANTS[gameState.arena];
+  const _qSlug = _arenaMap && _arenaMap[def.body];
+  if (_qSlug && _quaterniusAssets[_qSlug]) {
+    const qm = _cloneQuaterniusMesh(_qSlug);
+    if (qm) {
+      const baseScale = QUATERNIUS_MODELS[_qSlug].scale * def.scale;
+      qm.scale.setScalar(baseScale);
+      return qm;
+    }
+  }
   switch (def.body) {
     case 'goblin': {
       const c = _cloneEnemyMesh('skeleton_minion');
@@ -1127,7 +1248,19 @@ export function spawnEnemy(typeKey, opts = {}) {
     enemy.mesh.add(halo);
     enemy.eliteHalo = halo;
   }
-  if (enemy.mesh._isSkeletonGLB && _skelAnimClips) {
+  if (enemy.mesh._isQuaterniusGLB) {
+    const _qClips = getQuaterniusClips(enemy.mesh._quaterniusSlug);
+    if (_qClips && _qClips.length) {
+      enemy.mixer = new THREE.AnimationMixer(enemy.mesh);
+      const _qGet = re => _qClips.find(c => re.test(c.name));
+      const _idleClip = _qGet(/idle/i) || _qClips[0];
+      const _walkClip = _qGet(/^walk/i) || _qGet(/run/i) || _idleClip;
+      enemy.idleAction = _idleClip ? enemy.mixer.clipAction(_idleClip) : null;
+      enemy.walkAction = _walkClip ? enemy.mixer.clipAction(_walkClip) : null;
+      if (enemy.idleAction) enemy.idleAction.play();
+      enemy._animState = 'idle';
+    }
+  } else if (enemy.mesh._isSkeletonGLB && _skelAnimClips) {
     enemy.mixer = new THREE.AnimationMixer(enemy.mesh);
     const _getClip = name => _skelAnimClips.find(c => c.name === name);
     enemy.idleAction = _getClip('Idle_A') ? enemy.mixer.clipAction(_getClip('Idle_A')) : null;

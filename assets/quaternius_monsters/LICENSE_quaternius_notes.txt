@@ -1,0 +1,15 @@
+Ultimate Monsters Pack by Quaternius — original distribution.
+Original License.txt sits alongside this file.
+
+License: CC0 1.0 Universal — no attribution required, but credit is appreciated.
+Patreon: https://www.patreon.com/quaternius
+Site:    https://quaternius.com/
+
+Folder layout used by WALLOP:
+  Big/    — chunky boss-scale builds (used for the 9 boss tier)
+  Blob/   — squat chibi mook-scale builds (used for arena enemy mooks)
+  Flying/ — airborne variants (used for bat/imp/ghost-style slots)
+
+Slug → file mapping lives in src/js/entities.js (QUATERNIUS_MODELS).
+Per-arena enemy roster lives in src/js/entities.js (ENEMY_VARIANTS).
+Per-arena boss roster lives in src/js/game.js (BOSS_VARIANTS).

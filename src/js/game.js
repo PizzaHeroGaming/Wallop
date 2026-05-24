@@ -1,12 +1,13 @@
 // game.js — core game logic: damageEnemy, update loop, player movement, spawning
 // Imports (acyclic — game.js is the top of the dep graph among game modules):
-import { scene, camera, renderer, composer, sun, clock, isMobile, tryEnterFullscreen, releasePtLight, setRendererArena } from './renderer.js?v=b72487d';
+import { scene, camera, renderer, composer, sun, clock, isMobile, tryEnterFullscreen, releasePtLight, setRendererArena } from './renderer.js?v=faa3f9d';
 import {
   player,
   playerMixer, playerIdleAction, playerWalkAction, playerRunAction,
   _applyCharacterModel,
   _cloneWeaponMesh, _cloneEnemyMesh,
   hasEnemyAsset, getSkelAnimClips,
+  _cloneQuaterniusMesh, hasQuaterniusAsset, getQuaterniusClips, QUATERNIUS_MODELS,
   enemies, projectiles, enemyProjectiles, orbitals, xpGems, goldCoins,
   auraInstances, chests, particles, smokeClouds,
   _thunderWandMesh, _shieldOrbitMesh, _staffMesh,
@@ -18,16 +19,16 @@ import {
   updateShieldOrbital, updateParticles,
   setDamageEnemyCb, setOnLevelUpReady,
   spawnGold, spawnSmokeCloud, makeEnemyMesh, ENEMY_DEFS,
-} from './entities.js?v=b72487d';
-import { WEAPONS, ARMOR, TOMES, setDamageEnemyForWeapons, rebuildOrbits } from './weapons.js?v=b72487d';
+} from './entities.js?v=faa3f9d';
+import { WEAPONS, ARMOR, TOMES, setDamageEnemyForWeapons, rebuildOrbits } from './weapons.js?v=faa3f9d';
 import {
   gameState, cam,
-} from './state.js?v=b72487d';
-import { CFG, STAGE_MULTS, DIFFICULTIES } from './config.js?v=b72487d';
-import { Profile, ARENAS, CHALLENGES } from './profile.js?v=b72487d';
-import { groundHeight, resolveSolids, setTerrainArena } from './terrain.js?v=b72487d';
-import { setWorldArena } from './world.js?v=b72487d';
-import { killMesh, clamp, rand, tmp, tmp2, flatPhong } from './utils.js?v=b72487d';
+} from './state.js?v=faa3f9d';
+import { CFG, STAGE_MULTS, DIFFICULTIES } from './config.js?v=faa3f9d';
+import { Profile, ARENAS, CHALLENGES } from './profile.js?v=faa3f9d';
+import { groundHeight, resolveSolids, setTerrainArena } from './terrain.js?v=faa3f9d';
+import { setWorldArena } from './world.js?v=faa3f9d';
+import { killMesh, clamp, rand, tmp, tmp2, flatPhong } from './utils.js?v=faa3f9d';
 import {
   showDamage, showAlert, updateBossArrow, updateLoadoutDisplay,
   syncSliceDisplays, triggerGameOver,
@@ -39,7 +40,7 @@ import {
   setDamageEnemyForUI, setResetGameCb, setJumpDashCbs, setCallBossCb,
   initUI,
   addCameraShake,
-} from './ui.js?v=b72487d';
+} from './ui.js?v=faa3f9d';
 
 // Player animation state (module-level so it persists across frames)
 let _animState = 'idle';
@@ -265,6 +266,27 @@ export const BOSS_TIERS = {
   },
 };
 
+// Per-arena boss roster — replaces procedural mesh + provides themed name when
+// the active arena has a variant entry for the tier.
+// Each entry: { slug: Quaternius model slug, name: themed boss name, tint?: hex }
+export const BOSS_VARIANTS = {
+  pepperoni_pines: {
+    mini1: { slug: 'q_wizard', name: 'THE SAUCE SLINGER' },
+    mini2: { slug: 'q_orc',    name: 'THE HAMMER CHEF' },
+    final: { slug: 'q_demon',  name: 'THE WARLORD' },
+  },
+  sundried_slopes: {
+    mini1: { slug: 'q_cactoro',       name: 'PRICKLY PIE PUSHER' },
+    mini2: { slug: 'q_goleling_evo',  name: 'THE BOULDER BAKER' },
+    final: { slug: 'q_mushroom_king', name: 'THE FUNGAL FATHER' },
+  },
+  frostbite_glacier: {
+    mini1: { slug: 'q_ghost',      name: 'THE FROSTBITE WRAITH' },
+    mini2: { slug: 'q_yeti',       name: 'THE AVALANCHE BRUTE' },
+    final: { slug: 'q_dragon_evo', name: 'THE FROZEN WYRM', tint: 0xb8d8ff },
+  },
+};
+
 function spawnBoss(tier = 'final') {
   const cfg = BOSS_TIERS[tier];
   const lvl = player.level;
@@ -273,7 +295,10 @@ function spawnBoss(tier = 'final') {
   const hp  = Math.round((cfg.baseHp  + lvl * cfg.hpPerLvl)  * sm.bossHp  * dm.enemy);
   const dmg = Math.round((cfg.baseDmg + lvl * cfg.dmgPerLvl) * sm.bossDmg * dm.enemy);
   const stageSuffix = { 1: '', 2: ' ELITE', 3: ' SUPREME' };
-  const bossName = cfg.name + (stageSuffix[gameState.stage] || '');
+  // Per-arena themed name overrides the base cfg.name when a variant is defined.
+  const _bossVariant = (BOSS_VARIANTS[gameState.arena] || {})[tier] || null;
+  const _baseName = _bossVariant ? _bossVariant.name : cfg.name;
+  const bossName = _baseName + (stageSuffix[gameState.stage] || '');
   const def = {
     color: cfg.color, name: bossName,
     hp, dmg, speed: cfg.speed, xp: cfg.xp, scale: cfg.scale,
@@ -303,26 +328,70 @@ function spawnBoss(tier = 'final') {
     sliceDrop: cfg.slices || 0,
     mesh: makeEnemyMesh(def),
   };
-  const _bossSkeletonSlug = tier === 'mini1' ? 'skeleton_mage'
-                          : tier === 'final'  ? 'skeleton_warrior'
-                          : null;
-  if (_bossSkeletonSlug) {
-    const _bsc = _cloneEnemyMesh(_bossSkeletonSlug);
-    if (_bsc) {
+  // ── Quaternius boss mesh (preferred) ──
+  let _bossMeshSwapped = false;
+  if (_bossVariant && hasQuaterniusAsset(_bossVariant.slug)) {
+    const _qm = _cloneQuaterniusMesh(_bossVariant.slug);
+    if (_qm) {
       killMesh(enemy.mesh);
-      _bsc.scale.setScalar(cfg.scale * (tier === 'final' ? 1.35 : 1.15));
-      _bsc.traverse(c => { if (c.isMesh) c.castShadow = true; });
-      enemy.mesh = _bsc;
+      const _qScale = QUATERNIUS_MODELS[_bossVariant.slug].scale * cfg.scale * 1.4;
+      _qm.scale.setScalar(_qScale);
+      _qm.traverse(c => { if (c.isMesh) c.castShadow = true; });
+      // Optional tint pass (e.g. Frozen Wyrm pale-blue palette swap)
+      if (_bossVariant.tint != null) {
+        const _tint = new THREE.Color(_bossVariant.tint);
+        _qm.traverse(c => {
+          if (c.isMesh && c.material) {
+            const mats = Array.isArray(c.material) ? c.material : [c.material];
+            mats.forEach(m => {
+              if (m && m.color && !m._wallop_tinted) {
+                m._wallop_tinted = true;
+                m.color = m.color.clone().lerp(_tint, 0.5);
+                if (m.emissive) m.emissive = m.emissive.clone().lerp(_tint, 0.25);
+              }
+            });
+          }
+        });
+      }
+      enemy.mesh = _qm;
+      _bossMeshSwapped = true;
+      // Bind Quaternius animations
+      const _qClips = getQuaterniusClips(_bossVariant.slug);
+      if (_qClips && _qClips.length) {
+        enemy.mixer = new THREE.AnimationMixer(enemy.mesh);
+        const _qGet = re => _qClips.find(c => re.test(c.name));
+        const _idleClip = _qGet(/idle/i) || _qClips[0];
+        const _walkClip = _qGet(/^walk/i) || _qGet(/run/i) || _idleClip;
+        enemy.idleAction = _idleClip ? enemy.mixer.clipAction(_idleClip) : null;
+        enemy.walkAction = _walkClip ? enemy.mixer.clipAction(_walkClip) : null;
+        if (enemy.idleAction) enemy.idleAction.play();
+        enemy._animState = 'idle';
+      }
     }
   }
-  const _skelAnimClips = getSkelAnimClips();
-  if (enemy.mesh._isSkeletonGLB && _skelAnimClips) {
-    enemy.mixer = new THREE.AnimationMixer(enemy.mesh);
-    const _bgc = name => _skelAnimClips.find(c => c.name === name);
-    enemy.idleAction = _bgc('Idle_A')    ? enemy.mixer.clipAction(_bgc('Idle_A'))    : null;
-    enemy.walkAction = _bgc('Walking_A') ? enemy.mixer.clipAction(_bgc('Walking_A')) : null;
-    if (enemy.idleAction) enemy.idleAction.play();
-    enemy._animState = 'idle';
+  // ── Fallback: legacy KayKit skeleton boss mesh ──
+  if (!_bossMeshSwapped) {
+    const _bossSkeletonSlug = tier === 'mini1' ? 'skeleton_mage'
+                            : tier === 'final'  ? 'skeleton_warrior'
+                            : null;
+    if (_bossSkeletonSlug) {
+      const _bsc = _cloneEnemyMesh(_bossSkeletonSlug);
+      if (_bsc) {
+        killMesh(enemy.mesh);
+        _bsc.scale.setScalar(cfg.scale * (tier === 'final' ? 1.35 : 1.15));
+        _bsc.traverse(c => { if (c.isMesh) c.castShadow = true; });
+        enemy.mesh = _bsc;
+      }
+    }
+    const _skelAnimClips = getSkelAnimClips();
+    if (enemy.mesh._isSkeletonGLB && _skelAnimClips) {
+      enemy.mixer = new THREE.AnimationMixer(enemy.mesh);
+      const _bgc = name => _skelAnimClips.find(c => c.name === name);
+      enemy.idleAction = _bgc('Idle_A')    ? enemy.mixer.clipAction(_bgc('Idle_A'))    : null;
+      enemy.walkAction = _bgc('Walking_A') ? enemy.mixer.clipAction(_bgc('Walking_A')) : null;
+      if (enemy.idleAction) enemy.idleAction.play();
+      enemy._animState = 'idle';
+    }
   }
   const a = Math.random() * Math.PI * 2;
   enemy.pos.set(Math.cos(a) * 25, 0, Math.sin(a) * 25);
