@@ -950,8 +950,11 @@
   #dash-btn.cooling { color: rgba(255, 255, 255, 0.55); }
 
   /* Mobile-specific layout. Most phones in landscape are 600-900px wide. */
-  @media (max-width: 900px) {
-    /* Loadout stays top-left but compact; never overlaps the joystick area */
+  @media (max-width: 1024px) {
+    /* Loadout stays top-left but compact; never overlaps the joystick area.
+       Breakpoint widened from 900px → 1024px so Pixel 8 Pro landscape (~915px)
+       and similar large phones get the mobile layout instead of falling back
+       to the desktop center-anchored top-bar that overlapped the HP wrap. */
     #loadout {
       padding: 5px;
       top: calc(56px + env(safe-area-inset-top));
@@ -962,7 +965,14 @@
     .loadout-slot  { width: 24px; height: 24px; font-size: 13px; border-width: 2px; }
     .loadout-slot .lvl { font-size: 6px; padding: 1px 2px; }
 
-    #top-bar { gap: 4px; right: calc(8px + env(safe-area-inset-right)); }
+    /* Clear inherited left:50% + transform from the desktop rule so the
+       right anchor actually takes effect. Without these resets the top-bar
+       was still centered, sliding over the top-left HP wrap on narrow phones. */
+    #top-bar {
+      gap: 4px;
+      left: auto; transform: none;
+      right: calc(8px + env(safe-area-inset-right));
+    }
     .stat-tile { padding: 4px 6px; min-width: 54px; }
     .stat-tile .value { font-size: 11px; }
     .stat-tile .label { font-size: 6px; }

@@ -13,7 +13,7 @@
 //   2. Add an entry to SFX (slug → { file, vol?, throttle?, channel? }).
 //   3. Call Audio.play('your_slug') from wherever the trigger fires.
 
-import { Profile } from './profile.js?v=f7cd26b';
+import { Profile } from './profile.js?v=bdc6c4c';
 
 const _UI_BASE  = 'assets/kenney_ui-audio/Audio/';
 const _RPG_BASE = 'assets/kenney_rpg-audio/Audio/';
@@ -315,6 +315,31 @@ function _attachGestureBootstrap() {
   window.addEventListener('keydown',     boot, { once: false });
   window.addEventListener('touchstart',  boot, { once: false });
 }
+
+// Pause audio whenever the page goes hidden (screen lock, Alt-Tab,
+// tab background). Without this, HTMLAudio music keeps playing after the
+// phone screen locks — drains battery and intrudes on whatever the user
+// switched to. AudioContext suspends so any in-flight SFX freeze too.
+function _onVisibilityChange() {
+  if (document.hidden) {
+    if (_musicEl && !_musicEl.paused) {
+      try { _musicEl.pause(); } catch (e) {}
+    }
+    if (_ctx && _ctx.state === 'running') {
+      _ctx.suspend().catch(() => {});
+    }
+  } else {
+    if (_ctx && _ctx.state === 'suspended') {
+      _ctx.resume().catch(() => {});
+    }
+    // Resume music track if we have one queued and audio isn't muted.
+    if (_musicEl && _musicSlug && !_muted && _musicEl.paused) {
+      const p = _musicEl.play();
+      if (p && p.catch) p.catch(() => {/* autoplay block — first tap re-arms */});
+    }
+  }
+}
+document.addEventListener('visibilitychange', _onVisibilityChange);
 
 _initFromProfile();
 _attachGestureBootstrap();
