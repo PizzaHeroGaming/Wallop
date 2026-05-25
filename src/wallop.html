@@ -2332,7 +2332,7 @@ const PizzaHeroSplash = (function () {
       <h1 class="phs-title" aria-label="Pizza Hero">${buildLetters(TITLE)}</h1>
       <p class="phs-tagline">${tagline.split('').join(' ')}</p>
       <div class="phs-loader" aria-hidden="true"><div class="phs-loader-fill"></div></div>
-      <div class="phs-prompt">${skipOnInput ? 'Click or Press Any Key' : 'Loading…'}</div>
+      <div class="phs-prompt">${(skipOnInput && duration === 0) ? 'Click or Press Any Key' : ''}</div>
     `;
     document.body.appendChild(splash);
 
@@ -2381,9 +2381,12 @@ const PizzaHeroSplash = (function () {
 // onDismiss fires the moment the splash begins its 1.1s fade-out; we reveal
 // the start screen at the same instant and let its own opacity transition
 // fade it IN while the splash fades OUT — matches Athanor's bumper exit.
+// duration: 3800ms auto-advances after the full cinematic plays (letters
+// slam in over ~1.5s, settle for ~2.3s, then fade-out kicks in). Skip-on-
+// input still works for impatient returning players.
 window.addEventListener('load', () => {
   PizzaHeroSplash.show({
-    duration: 0,
+    duration: 3800,
     skipOnInput: true,
     tagline: 'GAMING',
     onDismiss: () => {

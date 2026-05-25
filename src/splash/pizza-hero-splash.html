@@ -351,7 +351,7 @@ const PizzaHeroSplash = (function () {
       <h1 class="phs-title" aria-label="Pizza Hero">${buildLetters(TITLE)}</h1>
       <p class="phs-tagline">${tagline.split('').join(' ')}</p>
       <div class="phs-loader" aria-hidden="true"><div class="phs-loader-fill"></div></div>
-      <div class="phs-prompt">${skipOnInput ? 'Click or Press Any Key' : 'Loading…'}</div>
+      <div class="phs-prompt">${(skipOnInput && duration === 0) ? 'Click or Press Any Key' : ''}</div>
     `;
     document.body.appendChild(splash);
 
