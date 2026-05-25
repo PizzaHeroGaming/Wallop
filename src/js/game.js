@@ -1,6 +1,6 @@
 // game.js — core game logic: damageEnemy, update loop, player movement, spawning
 // Imports (acyclic — game.js is the top of the dep graph among game modules):
-import { scene, camera, renderer, composer, sun, clock, isMobile, tryEnterFullscreen, releasePtLight, setRendererArena } from './renderer.js?v=01c0e04';
+import { scene, camera, renderer, composer, sun, clock, isMobile, tryEnterFullscreen, releasePtLight, setRendererArena } from './renderer.js?v=08c16c6';
 import {
   player,
   playerMixer, playerIdleAction, playerWalkAction, playerRunAction,
@@ -19,17 +19,17 @@ import {
   updateShieldOrbital, updateParticles,
   setDamageEnemyCb, setOnLevelUpReady,
   spawnGold, spawnSmokeCloud, makeEnemyMesh, ENEMY_DEFS,
-} from './entities.js?v=01c0e04';
-import { WEAPONS, ARMOR, TOMES, setDamageEnemyForWeapons, rebuildOrbits } from './weapons.js?v=01c0e04';
+} from './entities.js?v=08c16c6';
+import { WEAPONS, ARMOR, TOMES, setDamageEnemyForWeapons, rebuildOrbits } from './weapons.js?v=08c16c6';
 import {
   gameState, cam,
-} from './state.js?v=01c0e04';
-import { CFG, STAGE_MULTS, DIFFICULTIES } from './config.js?v=01c0e04';
-import { Profile, ARENAS, CHALLENGES } from './profile.js?v=01c0e04';
-import { groundHeight, resolveSolids, setTerrainArena } from './terrain.js?v=01c0e04';
-import { setWorldArena } from './world.js?v=01c0e04';
-import { killMesh, clamp, rand, tmp, tmp2, flatPhong } from './utils.js?v=01c0e04';
-import { Audio } from './audio.js?v=01c0e04';
+} from './state.js?v=08c16c6';
+import { CFG, STAGE_MULTS, DIFFICULTIES } from './config.js?v=08c16c6';
+import { Profile, ARENAS, CHALLENGES } from './profile.js?v=08c16c6';
+import { groundHeight, resolveSolids, setTerrainArena } from './terrain.js?v=08c16c6';
+import { setWorldArena } from './world.js?v=08c16c6';
+import { killMesh, clamp, rand, tmp, tmp2, flatPhong } from './utils.js?v=08c16c6';
+import { Audio } from './audio.js?v=08c16c6';
 import {
   showDamage, showAlert, updateBossArrow, updateLoadoutDisplay,
   syncSliceDisplays, triggerGameOver,
@@ -42,7 +42,7 @@ import {
   showStageClearScreen, setAdvanceStageCb, clearPendingStageClear,
   initUI,
   addCameraShake,
-} from './ui.js?v=01c0e04';
+} from './ui.js?v=08c16c6';
 
 // Player animation state (module-level so it persists across frames)
 let _animState = 'idle';
@@ -208,8 +208,9 @@ export function killEnemy(e, srcWeaponId = null) {
       }
       // Stage 3 final kill — win condition in update() will fire triggerGameOver(true)
     }
-    const bannerText = e.bossTier === 'final' ? 'BOSS DOWN — YOU WIN!' : `${e.def.name} DEFEATED`;
-    setTimeout(() => showAlert(bannerText, '#42f5a1'), e.sliceDrop ? 800 : 0);
+    // Boss spawn + defeat banners removed per request — the synth stinger,
+    // bigger HP bar, slice-reward chime, and music transitions already
+    // communicate the moment without a red text shout on top.
   } else if (e.isElite) {
     spawnGem(e.pos.clone().setY(0), 5);
     for (let i = 0; i < 3; i++) {
@@ -291,7 +292,7 @@ export function callBossNow() {
   gameState.miniboss2Spawned = true;
   gameState.bossSpawned = true;
   spawnBoss('final');
-  showAlert('THE BOSS APPROACHES!', '#ff3864');
+  // Spawn banner removed — synth stinger + boss HP bar handle the announcement.
 }
 
 export function tryJump() {
@@ -598,18 +599,16 @@ function updateSpawning(dt) {
   if (t >= 180 && !gameState.miniboss1Spawned) {
     gameState.miniboss1Spawned = true;
     spawnBoss('mini1');
-    showAlert('THE SAUCE SLINGER', '#ff5e1a');
   }
   if (t >= 360 && !gameState.miniboss2Spawned) {
     gameState.miniboss2Spawned = true;
     spawnBoss('mini2');
-    showAlert('THE HAMMER CHEF', '#ff3864');
   }
   if (t >= CFG.GAME_TIME && !gameState.bossSpawned) {
     gameState.bossSpawned = true;
     spawnBoss('final');
-    showAlert('THE WARLORD APPROACHES', '#ffd23f');
   }
+  // Boss spawn banners removed — synth stinger + HP bar appearing = the announcement.
 }
 
 // ============================================================
@@ -784,10 +783,11 @@ function advanceStage() {
   if (_staffMesh)       { killMesh(_staffMesh);       set_staffMesh(null); }
   set_thunderWandAngle(0); set_shieldOrbitAngle(0); set_staffAngle(0);
 
-  // Strip ~half the player's loadout and rebuild stats from remaining items
-  _stripHalfItems();
+  // Loadout strip removed — players keep their full loadout across stages.
+  // _stripHalfItems() is intentionally NOT called here; the function is kept
+  // around in case we want to bring it back as a challenge modifier later.
 
-  // Heal player 50% max HP as a stage-clear bonus (after strip, so cap is correct)
+  // Heal player 50% max HP as a stage-clear bonus
   player.hp = Math.min(player.maxHp, player.hp + Math.round(player.maxHp * 0.5));
   player.invuln = 0;
   player.dashCd = 0;
