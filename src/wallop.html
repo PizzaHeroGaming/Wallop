@@ -969,8 +969,10 @@
     #hp-wrap { width: 180px; left: calc(12px + env(safe-area-inset-left)); }
     #xp-wrap { left: calc(8px + env(safe-area-inset-left)); right: calc(8px + env(safe-area-inset-right)); }
     #lvl-badge { font-size: 9px; }
-    /* Mobile: stat tiles are smaller (~28px tall) so boss bar sits at ~52px below the top inset. */
-    #boss-wrap { width: min(420px, 80vw); top: calc(52px + env(safe-area-inset-top)); }
+    /* Mobile: stat tiles are smaller (~28px tall) so boss bar sits at ~52px below the top inset.
+       Width capped at 320px so loadout (140px at left edge, right=148px) stays uncovered when
+       boss bars are centered on the smallest landscape phones (640px wide -> bar at 160-480px). */
+    #boss-wrap { width: min(320px, 60vw); top: calc(52px + env(safe-area-inset-top)); }
 
     #title { font-size: 44px; }
 
@@ -1107,6 +1109,60 @@
     /* Pause body uses 2 columns horizontally on landscape so we can fit it all */
     #pause-body { flex-direction: row; gap: 8px; }
     .pause-col { flex: 1; min-width: 0; gap: 8px; }
+  }
+
+  /* Ultra-short landscape (360px-tall Androids). Compress harder — every
+     pixel matters here. Targets 640x360 and similar. */
+  @media (max-height: 400px) {
+    /* Start screen: hide the slice counter (visible inside Armory anyway),
+       shrink padding everywhere, tighten char selector */
+    #start-screen { gap: 4px; padding: 4px 8px; }
+    #title { font-size: clamp(18px, 5vw, 26px); margin: 0; }
+    #subtitle { font-size: 8px; }
+    /* Slice counter: shrink to a tiny chip (icon + number, no "SLICES" label)
+       so it still gives the meta readout without eating 56px of vertical space.
+       Hidden entirely at ≤370px where every pixel matters more. */
+    #slice-counter { padding: 4px 10px !important; font-size: 11px !important; gap: 6px !important; }
+    #slice-counter .slice-label { display: none !important; }
+    #slice-counter .slice-icon { font-size: 14px !important; }
+  }
+
+  @media (max-height: 370px) {
+    #slice-counter { display: none !important; }
+    /* Shrink mobile char selector hard — it's 167px tall at default sizing */
+    #mob-char-select { padding: 4px 8px !important; }
+    .mob-char-row { padding: 4px 6px !important; gap: 6px !important; }
+    .mob-char-name { font-size: 10px !important; }
+    .mob-char-arrow { padding: 4px 8px !important; font-size: 12px !important; }
+    .mob-char-status { font-size: 7px !important; padding: 3px 6px !important; }
+    .mob-char-dots { gap: 4px !important; padding-top: 2px !important; }
+    .start-actions .btn { padding: 5px 8px; font-size: 7px !important; min-height: 28px; }
+
+    /* Pause screen: cut every padding, drop body section padding */
+    #pause-screen { gap: 4px; padding: 4px 8px; }
+    #pause-title { font-size: 16px; margin: 0; }
+    .pause-section { padding: 4px 7px; }
+    .pause-h { font-size: 7px; margin-bottom: 2px; }
+    .pause-row { font-size: 11px; padding: 0; }
+    .pause-row .v { font-size: 7px; }
+    #pause-audio-row { padding: 4px 10px !important; margin: 2px auto !important; gap: 8px !important; }
+    #pause-audio-row label { font-size: 13px !important; }
+    #pause-buttons .btn { padding: 5px 10px !important; font-size: 7px !important; min-height: 26px; }
+    #pause-hint { font-size: 9px; margin: 2px 0 0; }
+
+    /* Level-up: compress card padding so the row fits */
+    #levelup-screen { padding: 4px 8px; }
+    #levelup-title { font-size: 16px; margin: 2px 0; }
+    .choice-card { padding: 6px 8px !important; }
+    .choice-card .choice-icon { font-size: 22px !important; }
+    .choice-card .choice-name { font-size: 10px !important; }
+    .choice-card .choice-desc { font-size: 11px !important; line-height: 1.15 !important; }
+    .choice-card .choice-tag  { font-size: 7px !important; padding: 2px 4px !important; }
+
+    /* Stage-clear: same body compression as pause */
+    #stage-clear-screen { gap: 4px; padding: 4px 8px; }
+    #stage-clear-screen #pause-title { font-size: 14px; margin: 0; }
+    #stage-clear-subtitle { font-size: 14px !important; margin-bottom: 4px !important; letter-spacing: 1px !important; }
   }
 
   /* Landscape orientation hint for portrait-locked play */
