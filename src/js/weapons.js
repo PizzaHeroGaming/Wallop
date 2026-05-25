@@ -1,4 +1,4 @@
-import { scene, acquirePtLight, releasePtLight } from './renderer.js?v=02bc490';
+import { scene, acquirePtLight, releasePtLight } from './renderer.js?v=1c8e38a';
 import { player, enemies, projectiles, orbitals, auraInstances,
          spawnProjectile, spawnParticle, spawnSmokeCloud,
          makeSparkMesh, makeFireballMesh, makeBoomerangMesh,
@@ -6,9 +6,9 @@ import { player, enemies, projectiles, orbitals, auraInstances,
          _cloneWeaponMesh,
          _thunderWandMesh, _thunderWandAngle, set_thunderWandMesh, set_thunderWandAngle,
          _staffMesh, _staffAngle, set_staffMesh, set_staffAngle,
-       } from './entities.js?v=02bc490';
-import { clamp, rand } from './utils.js?v=02bc490';
-import { cam } from './state.js?v=02bc490';
+       } from './entities.js?v=1c8e38a';
+import { clamp, rand } from './utils.js?v=1c8e38a';
+import { cam } from './state.js?v=1c8e38a';
 
 // damageEnemy is injected from game.js (circular dep breaker)
 let _damageEnemy = null;
@@ -1446,12 +1446,10 @@ defWeapon('cheese_whip', {
     w.cd = 1.7 * player.cooldownMult;
     const range = 5.5 * (w.arcMult || 1) * player.aoeMult;
     const dmg = Math.round(45 * (w.dmgMult || 1) * player.damageMult);
-    // Get player facing direction from camera
-    const fwd = new THREE.Vector3();
-    // Use cam yaw from state since we have access to cam
-    fwd.set(-Math.sin(cam.yaw), 0, -Math.cos(cam.yaw)).normalize();
+    // Player forward from camera yaw
+    const fwd = new THREE.Vector3(-Math.sin(cam.yaw), 0, -Math.cos(cam.yaw)).normalize();
     const r2 = range * range;
-    spawnParticle(player.pos.clone().add(fwd.clone().multiplyScalar(range * 0.5)).setY(1), 0xffee00, 12, range * 0.6);
+    // ── Damage pass (240° cone in front) ──
     for (const e of enemies) {
       const dx = e.pos.x - player.pos.x, dz = e.pos.z - player.pos.z;
       const d2 = dx*dx + dz*dz;
@@ -1459,9 +1457,49 @@ defWeapon('cheese_whip', {
       const dist = Math.sqrt(d2) || 1;
       const ex = dx / dist, ez = dz / dist;
       const dot = ex * fwd.x + ez * fwd.z;
-      if (dot > -0.5) { // ~240-degree arc (front + sides)
+      if (dot > -0.5) { // ~240° cone
         damageEnemy(e, dmg, Math.random() < player.critChance, w.id);
+        // Little splash on the hit so you SEE the whip connect with each enemy
+        spawnParticle(e.pos.clone().setY(e.height * 0.5), 0xffd23f, 4, 1.6);
       }
+    }
+    // ── Visual: ground-painted cheese arc that expands + fades ──
+    // Container is positioned at player and rotated to face the player's forward
+    // direction via lookAt; the ring child is laid flat with thetaStart/Length
+    // covering the same 240° cone the damage pass uses.
+    const container = new THREE.Group();
+    container.position.set(player.pos.x, 0.12, player.pos.z);
+    container.lookAt(player.pos.x + fwd.x, 0.12, player.pos.z + fwd.z);
+    const arcLen = 4 * Math.PI / 3;                       // 240°
+    const arcStart = Math.PI / 2 - 2 * Math.PI / 3;       // centered on forward
+    const cheeseMat = new THREE.MeshBasicMaterial({
+      color: 0xffcc1a, transparent: true, opacity: 0.85,
+      side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false,
+    });
+    const ring = new THREE.Mesh(
+      new THREE.RingGeometry(range * 0.18, range, 36, 1, arcStart, arcLen),
+      cheeseMat
+    );
+    ring.rotation.x = -Math.PI / 2;
+    container.add(ring);
+    // Initial pre-expand scale; updateAuras lerps to full over the lifetime
+    container.scale.setScalar(0.15);
+    scene.add(container);
+    auraInstances.push({
+      mesh: container,
+      life: 0.22, maxLife: 0.22,
+      cheeseWhip: true,
+      cheeseMaterial: cheeseMat,
+    });
+    // Yellow cheese strands flying outward in the cone
+    for (let i = 0; i < 6; i++) {
+      const ang = (Math.atan2(fwd.x, fwd.z)) + (Math.random() - 0.5) * (4 * Math.PI / 3) * 0.9;
+      const tip = new THREE.Vector3(
+        player.pos.x + Math.sin(ang) * range * (0.55 + Math.random() * 0.45),
+        1.0 + Math.random() * 0.5,
+        player.pos.z + Math.cos(ang) * range * (0.55 + Math.random() * 0.45)
+      );
+      spawnParticle(tip, 0xffcc1a, 3, 1.4);
     }
   },
 });

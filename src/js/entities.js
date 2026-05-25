@@ -1,9 +1,9 @@
-import { CFG, IS_MOBILE_EARLY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=02bc490';
-import { scene, camera, isMobile, tryEnterFullscreen, renderer, acquirePtLight, releasePtLight } from './renderer.js?v=02bc490';
-import { groundHeight, addSolid, resolveSolids, solidProps } from './terrain.js?v=02bc490';
-import { killMesh, clamp, rand, tmp, tmp2, flatPhong, smoothPhong } from './utils.js?v=02bc490';
-import { gameState } from './state.js?v=02bc490';
-import { Profile } from './profile.js?v=02bc490';
+import { CFG, IS_MOBILE_EARLY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=1c8e38a';
+import { scene, camera, isMobile, tryEnterFullscreen, renderer, acquirePtLight, releasePtLight } from './renderer.js?v=1c8e38a';
+import { groundHeight, addSolid, resolveSolids, solidProps } from './terrain.js?v=1c8e38a';
+import { killMesh, clamp, rand, tmp, tmp2, flatPhong, smoothPhong } from './utils.js?v=1c8e38a';
+import { gameState } from './state.js?v=1c8e38a';
+import { Profile } from './profile.js?v=1c8e38a';
 
 // ============================================================
 // PLAYER
@@ -2004,6 +2004,22 @@ export function updateAuras(dt) {
   for (let i = auraInstances.length - 1; i >= 0; i--) {
     const a = auraInstances[i];
     a.life -= dt;
+    // ── Cheese Whip: container-based arc that scales up while fading out ──
+    // Container has no .material so the regular `a.mesh.material.opacity` path
+    // would throw. Drive scale + opacity off the dedicated tracked material.
+    if (a.cheeseWhip) {
+      const progress = 1 - (a.life / a.maxLife);            // 0 → 1
+      // Snappy ease-out so the whip "flicks" rather than slow-expands
+      const eased = 1 - Math.pow(1 - progress, 2.2);
+      const scale = 0.15 + (1.0 - 0.15) * eased;
+      a.mesh.scale.setScalar(scale);
+      if (a.cheeseMaterial) a.cheeseMaterial.opacity = (1 - progress) * 0.85;
+      if (a.life <= 0) {
+        killMesh(a.mesh);
+        auraInstances.splice(i, 1);
+      }
+      continue;
+    }
     const t = a.life / a.maxLife;
     if (a.expandTo) {
       const r = a.expandTo * (1 - t);
