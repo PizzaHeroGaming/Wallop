@@ -15,7 +15,7 @@
 //   keyboard/mobile → tryJump, tryDash (game.js): use _jumpFn/_dashFn, set via setJumpDashCbs()
 //   openChest → presentChoiceScreen (this file): setOpenChestDeps is called in initUI()
 
-import { camera, renderer, isMobile, tryEnterFullscreen } from './renderer.js?v=88bd8a7';
+import { camera, renderer, isMobile, tryEnterFullscreen } from './renderer.js?v=fde18b9';
 import {
   player, enemies,
   tryInteract, setOpenChestDeps,
@@ -23,17 +23,17 @@ import {
   spawnParticle,
   CHARACTER_MODELS, _animClips, loadCharAsset,
   _applyCharacterModel,
-} from './entities.js?v=88bd8a7';
-import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=88bd8a7';
-import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=88bd8a7';
-import { gameState, cam } from './state.js?v=88bd8a7';
-import { Audio } from './audio.js?v=88bd8a7';
-import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=88bd8a7';
+} from './entities.js?v=fde18b9';
+import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=fde18b9';
+import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=fde18b9';
+import { gameState, cam } from './state.js?v=fde18b9';
+import { Audio } from './audio.js?v=fde18b9';
+import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=fde18b9';
 // VERSION lives on CFG.VERSION too — reading via property access doesn't
 // blow up if a cached older config.js is loaded without the named export
 const VERSION = CFG.VERSION || '0.0.0';
-import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=88bd8a7';
-import { tmp, tmp2 } from './utils.js?v=88bd8a7';
+import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=fde18b9';
+import { tmp, tmp2 } from './utils.js?v=fde18b9';
 
 // ============================================================
 // INJECTION CALLBACKS (break circular deps)
@@ -1121,12 +1121,23 @@ export function openPauseMenu() {
   document.getElementById('interact-prompt').classList.add('hidden');
 }
 
+// Window (ms) after closePauseMenu during which pointer-lock loss must NOT
+// trigger the auto-pause-on-unlock path. Esc is the same key that closes the
+// pause menu AND tells the browser to release pointer lock, and Chrome has a
+// ~1.25s cooldown before re-acquire is allowed — without this grace window
+// the next pointerlockchange (lock=false) re-opens the pause menu immediately,
+// trapping the player.
+let _pauseAutoSuppressUntil = 0;
+
 export function closePauseMenu() {
   if (gameState.state !== 'paused') return;
   document.getElementById('pause-screen').classList.add('hidden');
   gameState.state = 'playing';
   if (isMobile()) tryEnterFullscreen();
   if (!isMobile()) renderer.domElement.requestPointerLock();
+  // Suppress the auto-pause for 1.4s — covers Chrome's pointer-lock cooldown
+  // window. After that, a real focus loss can still trigger the auto-pause.
+  _pauseAutoSuppressUntil = Date.now() + 1400;
 }
 
 function refreshPauseMenu() {
@@ -1223,7 +1234,11 @@ export function initInput() {
   document.addEventListener('pointerlockchange', () => {
     _mouseLocked = document.pointerLockElement === renderer.domElement;
     document.getElementById('cursor').style.display = _mouseLocked ? 'block' : 'none';
-    if (!_mouseLocked && gameState.state === 'playing' && !isMobile()) {
+    // Auto-pause on pointer-lock loss is for Alt-Tab style focus exits.
+    // Suppress it for ~1.4s after closePauseMenu so the Esc-to-close path
+    // doesn't immediately re-pause due to Chrome's lock-acquire cooldown.
+    if (!_mouseLocked && gameState.state === 'playing' && !isMobile()
+        && Date.now() > _pauseAutoSuppressUntil) {
       openPauseMenu();
     }
   });
