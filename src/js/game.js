@@ -1,6 +1,6 @@
 // game.js — core game logic: damageEnemy, update loop, player movement, spawning
 // Imports (acyclic — game.js is the top of the dep graph among game modules):
-import { scene, camera, renderer, composer, sun, clock, isMobile, tryEnterFullscreen, releasePtLight, setRendererArena } from './renderer.js?v=00ef827';
+import { scene, camera, renderer, composer, sun, clock, isMobile, tryEnterFullscreen, releasePtLight, setRendererArena } from './renderer.js?v=afde0b8';
 import {
   player,
   playerMixer, playerIdleAction, playerWalkAction, playerRunAction,
@@ -19,17 +19,17 @@ import {
   updateShieldOrbital, updateParticles,
   setDamageEnemyCb, setOnLevelUpReady,
   spawnGold, spawnSmokeCloud, makeEnemyMesh, ENEMY_DEFS,
-} from './entities.js?v=00ef827';
-import { WEAPONS, ARMOR, TOMES, setDamageEnemyForWeapons, rebuildOrbits } from './weapons.js?v=00ef827';
+} from './entities.js?v=afde0b8';
+import { WEAPONS, ARMOR, TOMES, setDamageEnemyForWeapons, rebuildOrbits } from './weapons.js?v=afde0b8';
 import {
   gameState, cam,
-} from './state.js?v=00ef827';
-import { CFG, STAGE_MULTS, DIFFICULTIES } from './config.js?v=00ef827';
-import { Profile, ARENAS, CHALLENGES } from './profile.js?v=00ef827';
-import { groundHeight, resolveSolids, setTerrainArena } from './terrain.js?v=00ef827';
-import { setWorldArena } from './world.js?v=00ef827';
-import { killMesh, clamp, rand, tmp, tmp2, flatPhong } from './utils.js?v=00ef827';
-import { Audio } from './audio.js?v=00ef827';
+} from './state.js?v=afde0b8';
+import { CFG, STAGE_MULTS, DIFFICULTIES } from './config.js?v=afde0b8';
+import { Profile, ARENAS, CHALLENGES } from './profile.js?v=afde0b8';
+import { groundHeight, resolveSolids, setTerrainArena } from './terrain.js?v=afde0b8';
+import { setWorldArena } from './world.js?v=afde0b8';
+import { killMesh, clamp, rand, tmp, tmp2, flatPhong } from './utils.js?v=afde0b8';
+import { Audio } from './audio.js?v=afde0b8';
 import {
   showDamage, showAlert, updateBossArrow, updateLoadoutDisplay,
   syncSliceDisplays, triggerGameOver,
@@ -41,7 +41,7 @@ import {
   setDamageEnemyForUI, setResetGameCb, setJumpDashCbs, setCallBossCb,
   initUI,
   addCameraShake,
-} from './ui.js?v=00ef827';
+} from './ui.js?v=afde0b8';
 
 // Player animation state (module-level so it persists across frames)
 let _animState = 'idle';
@@ -632,6 +632,9 @@ function _stripHalfItems() {
 // ADVANCE STAGE — carry player over to the next stage
 // ============================================================
 function advanceStage() {
+  // Stage already bumped by caller (killEnemy boss-final branch) — fire the
+  // matching stage track. Cross-fades over 800ms via Audio.playMusic.
+  Audio.playMusic('stage_' + gameState.stage);
   // Clear world entities but keep player intact
   for (const e of enemies) killMesh(e.mesh);
   enemies.length = 0;
@@ -845,6 +848,8 @@ export function resetGame() {
   gameState.state         = 'playing';
   gameState.gameTime      = 0;
   gameState.stage         = 1;
+  // New run always starts on the stage-1 track.
+  Audio.playMusic('stage_1');
   gameState.spawnTimer    = 0;
   gameState.spawnInterval = 1.4;
   gameState.kills         = 0;

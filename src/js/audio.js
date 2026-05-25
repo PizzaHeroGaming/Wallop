@@ -13,7 +13,7 @@
 //   2. Add an entry to SFX (slug → { file, vol?, throttle?, channel? }).
 //   3. Call Audio.play('your_slug') from wherever the trigger fires.
 
-import { Profile } from './profile.js?v=00ef827';
+import { Profile } from './profile.js?v=afde0b8';
 
 const _UI_BASE  = 'assets/kenney_ui-audio/Audio/';
 const _RPG_BASE = 'assets/kenney_rpg-audio/Audio/';
@@ -52,12 +52,14 @@ const SFX = {
   victory:         { file: _UI_BASE + 'switch4.ogg',         vol: 0.95, throttle: 0  },
 };
 
-// ── Music registry — per-arena looping background tracks ──
-// Files are .ogg, loopable. Missing files fail silently (see _playMusicTrack).
+// ── Music registry — per-stage looping background tracks ──
+// All 3 arenas share the same 3-stage music progression (stage 1, 2, 3).
+// When per-arena tracks land, swap these out for an { arena: { stage_N }} map.
+// Files are .ogg, loopable. Missing files fail silently.
 const MUSIC = {
-  pepperoni_pines:   { file: 'assets/music/pepperoni_pines.ogg',   vol: 0.55 },
-  sundried_slopes:   { file: 'assets/music/sundried_slopes.ogg',   vol: 0.55 },
-  frostbite_glacier: { file: 'assets/music/frostbite_glacier.ogg', vol: 0.55 },
+  stage_1: { file: 'assets/music/stage_1.ogg', vol: 0.55 },
+  stage_2: { file: 'assets/music/stage_2.ogg', vol: 0.55 },
+  stage_3: { file: 'assets/music/stage_3.ogg', vol: 0.55 },
 };
 const MUSIC_FADE_MS = 800;       // cross-fade duration when swapping tracks
 
