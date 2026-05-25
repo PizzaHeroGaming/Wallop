@@ -15,7 +15,7 @@
 //   keyboard/mobile → tryJump, tryDash (game.js): use _jumpFn/_dashFn, set via setJumpDashCbs()
 //   openChest → presentChoiceScreen (this file): setOpenChestDeps is called in initUI()
 
-import { camera, renderer, isMobile, tryEnterFullscreen } from './renderer.js?v=8cdf354';
+import { camera, renderer, isMobile, tryEnterFullscreen } from './renderer.js?v=f7cd26b';
 import {
   player, enemies,
   tryInteract, setOpenChestDeps,
@@ -23,17 +23,17 @@ import {
   spawnParticle,
   CHARACTER_MODELS, _animClips, loadCharAsset,
   _applyCharacterModel,
-} from './entities.js?v=8cdf354';
-import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=8cdf354';
-import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=8cdf354';
-import { gameState, cam } from './state.js?v=8cdf354';
-import { Audio } from './audio.js?v=8cdf354';
-import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=8cdf354';
+} from './entities.js?v=f7cd26b';
+import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=f7cd26b';
+import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=f7cd26b';
+import { gameState, cam } from './state.js?v=f7cd26b';
+import { Audio } from './audio.js?v=f7cd26b';
+import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=f7cd26b';
 // VERSION lives on CFG.VERSION too — reading via property access doesn't
 // blow up if a cached older config.js is loaded without the named export
 const VERSION = CFG.VERSION || '0.0.0';
-import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=8cdf354';
-import { tmp, tmp2 } from './utils.js?v=8cdf354';
+import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=f7cd26b';
+import { tmp, tmp2 } from './utils.js?v=f7cd26b';
 
 // ============================================================
 // INJECTION CALLBACKS (break circular deps)
@@ -417,10 +417,16 @@ export function pickRarity() {
 export function generateOffers() {
   const candidates = [];
 
-  // Helper: check if a weapon/armor id is accessible to the current character
+  // Helper: check if a weapon/armor/tome id is accessible to the current character.
+  // Uses the same gating rules as the Armory:
+  //   - defaultUnlocked entries are always offered
+  //   - characterUnique entries are free for the equipped character, gated by
+  //     unlock state for everyone else (kill threshold + slice purchase)
+  //   - all other entries are slice-unlockable and only offered once purchased
   const _charSlug = Profile.get().equippedCharacter || 'pizza_hero';
   const _allWeaponEntries = CATALOG.weapons || [];
   const _allArmorEntries  = CATALOG.armor   || [];
+  const _allTomeEntries   = CATALOG.tomes   || [];
   function _itemAccessible(gameRefId, entryList) {
     const entry = entryList.find(e => e.gameRef === gameRefId || e.slug === gameRefId);
     if (!entry) return true; // no catalog entry = always accessible (base items)
@@ -457,6 +463,10 @@ export function generateOffers() {
   }
 
   for (const tId of Object.keys(TOMES)) {
+    // BUG FIX: tomes were previously skipping the unlock gate entirely, so
+    // slice-locked tomes (tome_of_echoes / tome_of_time) appeared in the
+    // offer pool for free. Apply the same accessibility check as weapons/armor.
+    if (!_itemAccessible(tId, _allTomeEntries)) continue;
     const owned = player.tomes.find(t => t.id === tId);
     const def   = TOMES[tId];
     if (owned) {
