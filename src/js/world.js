@@ -1,8 +1,9 @@
-import { CFG, IS_MOBILE_EARLY } from './config.js?v=b0d47f0';
-import { scene } from './renderer.js?v=b0d47f0';
-import { groundHeight, addSolid, obstacles, solidProps } from './terrain.js?v=b0d47f0';
-import { ARENAS } from './profile.js?v=b0d47f0';
-import { killMesh } from './utils.js?v=b0d47f0';
+import { CFG, IS_MOBILE_EARLY } from './config.js?v=f241b00';
+import { scene } from './renderer.js?v=f241b00';
+import { groundHeight, addSolid, obstacles, solidProps } from './terrain.js?v=f241b00';
+import { ARENAS } from './profile.js?v=f241b00';
+import { killMesh } from './utils.js?v=f241b00';
+import { Audio } from './audio.js?v=f241b00';
 
 // ── Arena theming ──
 // Currently-applied arena slug. Used by add* functions to color procedural
@@ -206,6 +207,9 @@ export function setWorldArena(arenaSlug) {
   // Swap in arena-specific obstacles
   _clearArenaObstacles();
   _placeArenaObstacles(a);
+  // Swap background music for the new arena (cross-fades over ~800ms).
+  // If the music file isn't present yet, audio.js silently no-ops.
+  Audio.playMusic(arenaSlug);
 }
 
 // ============================================================

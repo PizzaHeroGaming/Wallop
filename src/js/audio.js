@@ -13,7 +13,7 @@
 //   2. Add an entry to SFX (slug → { file, vol?, throttle?, channel? }).
 //   3. Call Audio.play('your_slug') from wherever the trigger fires.
 
-import { Profile } from './profile.js?v=b0d47f0';
+import { Profile } from './profile.js?v=f241b00';
 
 const _UI_BASE  = 'assets/kenney_ui-audio/Audio/';
 const _RPG_BASE = 'assets/kenney_rpg-audio/Audio/';
@@ -50,6 +50,15 @@ const SFX = {
   victory:         { file: _UI_BASE + 'switch4.ogg',         vol: 0.95, throttle: 0  },
 };
 
+// ── Music registry — per-arena looping background tracks ──
+// Files are .ogg, loopable. Missing files fail silently (see _playMusicTrack).
+const MUSIC = {
+  pepperoni_pines:   { file: 'assets/music/pepperoni_pines.ogg',   vol: 0.55 },
+  sundried_slopes:   { file: 'assets/music/sundried_slopes.ogg',   vol: 0.55 },
+  frostbite_glacier: { file: 'assets/music/frostbite_glacier.ogg', vol: 0.55 },
+};
+const MUSIC_FADE_MS = 800;       // cross-fade duration when swapping tracks
+
 // ── Internal state ──
 let _ctx        = null;          // AudioContext, created lazily on first user gesture
 let _masterGain = null;
@@ -59,6 +68,10 @@ const _lastChan = {};            // channel → epoch ms of last play (cross-cli
 let _muted      = false;
 let _volume     = 0.4;           // 0..1, master multiplier on top of per-clip vol
 let _ready      = false;         // true once context is created + resumed
+// Music state
+let _musicEl    = null;          // currently-playing <audio> element (HTMLAudio for streaming)
+let _musicSlug  = null;          // current arena slug or null
+let _musicFadeTimer = null;      // raf-based fade scheduler
 
 function _initFromProfile() {
   try {
@@ -151,6 +164,80 @@ function setVolume(v) {
 function isMuted() { return _muted; }
 function getVolume() { return _volume; }
 
+// ── Music: looping background track keyed off arena slug ──
+// Uses HTMLAudioElement (not Web Audio) so the browser can stream from disk
+// rather than fully decode upfront — music files are large (~1-3 MB each).
+// Volume is multiplied by master _volume so the About menu slider controls both.
+function _stopMusicNow() {
+  if (_musicFadeTimer) { cancelAnimationFrame(_musicFadeTimer); _musicFadeTimer = null; }
+  if (_musicEl) { try { _musicEl.pause(); } catch (e) {} _musicEl = null; }
+  _musicSlug = null;
+}
+function _crossfade(from, to, toTargetVol) {
+  // Linear fade over MUSIC_FADE_MS. If a previous fade is mid-flight, override.
+  if (_musicFadeTimer) cancelAnimationFrame(_musicFadeTimer);
+  const start = performance.now();
+  const fromStartVol = from ? from.volume : 0;
+  const tick = () => {
+    const t = Math.min(1, (performance.now() - start) / MUSIC_FADE_MS);
+    if (from) from.volume = fromStartVol * (1 - t);
+    if (to)   to.volume   = toTargetVol * t;
+    if (t < 1) {
+      _musicFadeTimer = requestAnimationFrame(tick);
+    } else {
+      _musicFadeTimer = null;
+      if (from) { try { from.pause(); } catch (e) {} }
+    }
+  };
+  _musicFadeTimer = requestAnimationFrame(tick);
+}
+function playMusic(slug) {
+  const entry = MUSIC[slug];
+  if (!entry) return;
+  if (_musicSlug === slug && _musicEl && !_musicEl.paused) return; // already playing
+  if (_muted) { _musicSlug = slug; return; } // remember intent; unmute will pick it up
+  const next = new window.Audio(entry.file);
+  next.loop   = true;
+  next.volume = 0; // fade in via crossfade
+  // Catch HTTP 404 / decode errors silently so a missing music file doesn't
+  // break the game — log once for debugging.
+  next.addEventListener('error', () => {
+    console.warn(`[WALLOP audio] music file missing or undecodable: ${entry.file}`);
+    if (_musicEl === next) _musicEl = null;
+  }, { once: true });
+  const playPromise = next.play();
+  if (playPromise && playPromise.catch) playPromise.catch(() => {/* autoplay block — first gesture will retry */});
+  const targetVol = entry.vol * _volume;
+  _crossfade(_musicEl, next, targetVol);
+  _musicEl = next;
+  _musicSlug = slug;
+}
+function stopMusic() {
+  if (!_musicEl) return;
+  _crossfade(_musicEl, null, 0);
+  _musicSlug = null;
+  // _musicEl is nulled by the fade's final pause via callback
+  setTimeout(() => { _musicEl = null; }, MUSIC_FADE_MS + 100);
+}
+
+// Override setMuted/setVolume to also retarget the music element.
+const _setMutedBase = setMuted;
+function _setMutedMusicAware(m) {
+  _setMutedBase(m);
+  if (_musicEl) _musicEl.volume = _muted ? 0 : (MUSIC[_musicSlug]?.vol || 0.5) * _volume;
+  // If unmuting and there was a pending track from before, kick it off
+  if (!_muted && _musicSlug && (!_musicEl || _musicEl.paused)) {
+    const slug = _musicSlug; _musicSlug = null; playMusic(slug);
+  }
+}
+const _setVolumeBase = setVolume;
+function _setVolumeMusicAware(v) {
+  _setVolumeBase(v);
+  if (_musicEl && !_muted && _musicSlug) {
+    _musicEl.volume = (MUSIC[_musicSlug]?.vol || 0.5) * _volume;
+  }
+}
+
 // Attach a one-time gesture handler that boots the audio context.
 // Many browsers require this — calling AudioContext() before any user
 // interaction either errors or creates a permanently suspended context.
@@ -169,4 +256,10 @@ function _attachGestureBootstrap() {
 _initFromProfile();
 _attachGestureBootstrap();
 
-export const Audio = { play, setMuted, setVolume, isMuted, getVolume };
+export const Audio = {
+  play,
+  setMuted: _setMutedMusicAware,
+  setVolume: _setVolumeMusicAware,
+  isMuted, getVolume,
+  playMusic, stopMusic,
+};

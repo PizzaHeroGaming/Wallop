@@ -15,7 +15,7 @@
 //   keyboard/mobile → tryJump, tryDash (game.js): use _jumpFn/_dashFn, set via setJumpDashCbs()
 //   openChest → presentChoiceScreen (this file): setOpenChestDeps is called in initUI()
 
-import { camera, renderer, isMobile, tryEnterFullscreen } from './renderer.js?v=b0d47f0';
+import { camera, renderer, isMobile, tryEnterFullscreen } from './renderer.js?v=f241b00';
 import {
   player, enemies,
   tryInteract, setOpenChestDeps,
@@ -23,17 +23,17 @@ import {
   spawnParticle,
   CHARACTER_MODELS, _animClips, loadCharAsset,
   _applyCharacterModel,
-} from './entities.js?v=b0d47f0';
-import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=b0d47f0';
-import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=b0d47f0';
-import { gameState, cam } from './state.js?v=b0d47f0';
-import { Audio } from './audio.js?v=b0d47f0';
-import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=b0d47f0';
+} from './entities.js?v=f241b00';
+import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=f241b00';
+import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=f241b00';
+import { gameState, cam } from './state.js?v=f241b00';
+import { Audio } from './audio.js?v=f241b00';
+import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=f241b00';
 // VERSION lives on CFG.VERSION too — reading via property access doesn't
 // blow up if a cached older config.js is loaded without the named export
 const VERSION = CFG.VERSION || '0.0.0';
-import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=b0d47f0';
-import { tmp, tmp2 } from './utils.js?v=b0d47f0';
+import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=f241b00';
+import { tmp, tmp2 } from './utils.js?v=f241b00';
 
 // ============================================================
 // INJECTION CALLBACKS (break circular deps)
@@ -728,6 +728,7 @@ export function triggerGameOver(victory) {
   _bossArrowEl.style.display = 'none';
   gameState.state = victory ? 'victory' : 'gameover';
   Audio.play(victory ? 'victory' : 'player_death');
+  Audio.stopMusic();
   const ov    = document.getElementById('gameover-screen');
   const title = document.getElementById('gameover-title');
   const diffLabel  = (DIFFICULTIES[gameState.difficulty] || DIFFICULTIES.normal).label;
