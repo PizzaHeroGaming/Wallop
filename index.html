@@ -171,9 +171,11 @@
   @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.08); } }
 
   /* Weapon icons */
-  /* Boss HP bar */
+  /* Boss HP bar — sits below the TIME/KILLS/GOLD stat tiles.
+     Stat-tile column lands at ~16px (top) + ~38px (tile height) + ~4px (shadow)
+     = ends around 58px. Adding a 16px breathing gap puts the boss bar at 76px. */
   #boss-wrap {
-    position: absolute; top: 16px; left: 50%; transform: translateX(-50%);
+    position: absolute; top: 76px; left: 50%; transform: translateX(-50%);
     width: min(560px, 80vw);
     background: var(--panel); border: 3px solid #000;
     box-shadow: 5px 5px 0 #000; padding: 8px 10px;
@@ -966,7 +968,8 @@
     #hp-wrap { width: 180px; left: calc(12px + env(safe-area-inset-left)); }
     #xp-wrap { left: calc(8px + env(safe-area-inset-left)); right: calc(8px + env(safe-area-inset-right)); }
     #lvl-badge { font-size: 9px; }
-    #boss-wrap { width: min(420px, 80vw); top: calc(8px + env(safe-area-inset-top)); }
+    /* Mobile: stat tiles are smaller (~28px tall) so boss bar sits at ~52px below the top inset. */
+    #boss-wrap { width: min(420px, 80vw); top: calc(52px + env(safe-area-inset-top)); }
 
     #title { font-size: 44px; }
 
@@ -2883,6 +2886,6 @@ window.addEventListener('load', () => {
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
-<script type="module" src="src/js/main.js?v=52bec8b"></script>
+<script type="module" src="src/js/main.js?v=a01d46c"></script>
 </body>
 </html>
