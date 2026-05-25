@@ -13,7 +13,7 @@
 //   2. Add an entry to SFX (slug → { file, vol?, throttle?, channel? }).
 //   3. Call Audio.play('your_slug') from wherever the trigger fires.
 
-import { Profile } from './profile.js?v=f2f1a0b';
+import { Profile } from './profile.js?v=00ef827';
 
 const _UI_BASE  = 'assets/kenney_ui-audio/Audio/';
 const _RPG_BASE = 'assets/kenney_rpg-audio/Audio/';
@@ -37,8 +37,10 @@ const SFX = {
   chest_open:      { file: _RPG_BASE + 'bookOpen.ogg',       vol: 0.75, throttle: 0  },
   chest_reveal:    { file: _UI_BASE + 'switch15.ogg',        vol: 0.65, throttle: 0  },
   // ── Boss ──
-  boss_spawn_mini: { file: _RPG_BASE + 'creak2.ogg',         vol: 0.85, throttle: 0  },
-  boss_spawn_big:  { file: _RPG_BASE + 'creak1.ogg',         vol: 0.95, throttle: 0  },
+  // Deep metal-pot thuds for boss arrival — replaces the squeaky-door creaks
+  // (kept around in case we want them back: creak1 / creak2 / creak3).
+  boss_spawn_mini: { file: _RPG_BASE + 'metalPot1.ogg',      vol: 0.85, throttle: 0  },
+  boss_spawn_big:  { file: _RPG_BASE + 'metalPot3.ogg',      vol: 0.95, throttle: 0  },
   boss_hit:        { file: _RPG_BASE + 'chop.ogg',           vol: 0.50, channel: 'enemy_hit', throttle: 110 },
   // ── Combat ──
   enemy_hit:       { file: _RPG_BASE + 'knifeSlice.ogg',     vol: 0.20, channel: 'enemy_hit', throttle: 140 },
