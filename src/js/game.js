@@ -1,6 +1,6 @@
 // game.js — core game logic: damageEnemy, update loop, player movement, spawning
 // Imports (acyclic — game.js is the top of the dep graph among game modules):
-import { scene, camera, renderer, composer, sun, clock, isMobile, tryEnterFullscreen, releasePtLight, setRendererArena } from './renderer.js?v=e5fc7fa';
+import { scene, camera, renderer, composer, sun, clock, isMobile, tryEnterFullscreen, releasePtLight, setRendererArena } from './renderer.js?v=6008aec';
 import {
   player,
   playerMixer, playerIdleAction, playerWalkAction, playerRunAction,
@@ -19,17 +19,17 @@ import {
   updateShieldOrbital, updateParticles,
   setDamageEnemyCb, setOnLevelUpReady,
   spawnGold, spawnSmokeCloud, makeEnemyMesh, ENEMY_DEFS,
-} from './entities.js?v=e5fc7fa';
-import { WEAPONS, ARMOR, TOMES, setDamageEnemyForWeapons, rebuildOrbits } from './weapons.js?v=e5fc7fa';
+} from './entities.js?v=6008aec';
+import { WEAPONS, ARMOR, TOMES, setDamageEnemyForWeapons, rebuildOrbits } from './weapons.js?v=6008aec';
 import {
   gameState, cam,
-} from './state.js?v=e5fc7fa';
-import { CFG, STAGE_MULTS, DIFFICULTIES } from './config.js?v=e5fc7fa';
-import { Profile, ARENAS, CHALLENGES } from './profile.js?v=e5fc7fa';
-import { groundHeight, resolveSolids, setTerrainArena } from './terrain.js?v=e5fc7fa';
-import { setWorldArena } from './world.js?v=e5fc7fa';
-import { killMesh, clamp, rand, tmp, tmp2, flatPhong } from './utils.js?v=e5fc7fa';
-import { Audio } from './audio.js?v=e5fc7fa';
+} from './state.js?v=6008aec';
+import { CFG, STAGE_MULTS, DIFFICULTIES } from './config.js?v=6008aec';
+import { Profile, ARENAS, CHALLENGES } from './profile.js?v=6008aec';
+import { groundHeight, resolveSolids, setTerrainArena } from './terrain.js?v=6008aec';
+import { setWorldArena } from './world.js?v=6008aec';
+import { killMesh, clamp, rand, tmp, tmp2, flatPhong } from './utils.js?v=6008aec';
+import { Audio } from './audio.js?v=6008aec';
 import {
   showDamage, showAlert, updateBossArrow, updateLoadoutDisplay,
   syncSliceDisplays, triggerGameOver,
@@ -39,10 +39,10 @@ import {
   keys, joystickInput, camJoystickInput,
   applyCameraJoystick, tickHUD,
   setDamageEnemyForUI, setResetGameCb, setJumpDashCbs, setCallBossCb, setPauseTimerCbs,
-  showStageClearScreen, setAdvanceStageCb,
+  showStageClearScreen, setAdvanceStageCb, clearPendingStageClear,
   initUI,
   addCameraShake,
-} from './ui.js?v=e5fc7fa';
+} from './ui.js?v=6008aec';
 
 // Player animation state (module-level so it persists across frames)
 let _animState = 'idle';
@@ -830,6 +830,10 @@ export function resetGame() {
   // queued boss shockwave or pending stage-advance could fire into the fresh
   // run and cause untelegraphed damage / a phantom stage skip.
   clearPausableTimers();
+  // Also drop any deferred stage-clear waiting on a level-up that the player
+  // never finished before restarting — otherwise the NEW run's first level-up
+  // would close into a stale STAGE-1-COMPLETE overlay.
+  clearPendingStageClear();
   // Apply the player's chosen arena theme (sky, fog, lights, ground texture,
   // scenery tints).  Must happen before any new scenery is placed.
   const arenaSlug = gameState.arena || Profile.getEquippedArena() || 'pepperoni_pines';

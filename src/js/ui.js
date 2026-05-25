@@ -15,7 +15,7 @@
 //   keyboard/mobile → tryJump, tryDash (game.js): use _jumpFn/_dashFn, set via setJumpDashCbs()
 //   openChest → presentChoiceScreen (this file): setOpenChestDeps is called in initUI()
 
-import { camera, renderer, isMobile, tryEnterFullscreen } from './renderer.js?v=e5fc7fa';
+import { camera, renderer, isMobile, tryEnterFullscreen } from './renderer.js?v=6008aec';
 import {
   player, enemies,
   tryInteract, setOpenChestDeps,
@@ -23,17 +23,17 @@ import {
   spawnParticle,
   CHARACTER_MODELS, _animClips, loadCharAsset,
   _applyCharacterModel,
-} from './entities.js?v=e5fc7fa';
-import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=e5fc7fa';
-import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=e5fc7fa';
-import { gameState, cam } from './state.js?v=e5fc7fa';
-import { Audio } from './audio.js?v=e5fc7fa';
-import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=e5fc7fa';
+} from './entities.js?v=6008aec';
+import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=6008aec';
+import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=6008aec';
+import { gameState, cam } from './state.js?v=6008aec';
+import { Audio } from './audio.js?v=6008aec';
+import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=6008aec';
 // VERSION lives on CFG.VERSION too — reading via property access doesn't
 // blow up if a cached older config.js is loaded without the named export
 const VERSION = CFG.VERSION || '0.0.0';
-import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=e5fc7fa';
-import { tmp, tmp2 } from './utils.js?v=e5fc7fa';
+import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=6008aec';
+import { tmp, tmp2 } from './utils.js?v=6008aec';
 
 // ============================================================
 // INJECTION CALLBACKS (break circular deps)
@@ -744,17 +744,26 @@ export function onLevelUpDone() {
   document.getElementById('levelup-screen').classList.add('hidden');
   if (player.xp >= player.xpToNext) {
     setTimeout(processPendingLevelUp, 50);
-  } else {
-    gameState.state = 'playing';
-    if (isMobile()) tryEnterFullscreen();
-    // Re-engage pointer lock after a short delay so the card-click event fully
-    // unwinds before we capture the mouse. Without the delay the lock can be
-    // acquired while the overlay is still in the event stack, which previously
-    // caused the "cursor trapped / disappears" symptom on some browsers.
-    if (!isMobile()) setTimeout(() => {
-      if (gameState.state === 'playing') renderer.domElement.requestPointerLock();
-    }, 80);
+    return;
   }
+  // All pending level-ups exhausted. If a stage-clear was deferred while
+  // the level-up sequence was running, fire it now BEFORE handing control
+  // back to the gameplay loop — player gets the rest break they earned.
+  if (_pendingStageClearStage != null) {
+    const stage = _pendingStageClearStage;
+    _pendingStageClearStage = null;
+    _doShowStageClearScreen(stage); // bypass the gate (state is still 'levelup')
+    return;
+  }
+  gameState.state = 'playing';
+  if (isMobile()) tryEnterFullscreen();
+  // Re-engage pointer lock after a short delay so the card-click event fully
+  // unwinds before we capture the mouse. Without the delay the lock can be
+  // acquired while the overlay is still in the event stack, which previously
+  // caused the "cursor trapped / disappears" symptom on some browsers.
+  if (!isMobile()) setTimeout(() => {
+    if (gameState.state === 'playing') renderer.domElement.requestPointerLock();
+  }, 80);
 }
 
 export function processPendingLevelUp() {
@@ -1189,7 +1198,28 @@ let _advanceStageFn = null;
 /** Called by game.js: setAdvanceStageCb(advanceStage) */
 export function setAdvanceStageCb(fn) { _advanceStageFn = fn; }
 
+// Holds a deferred stage number when boss death overlaps with pending XP /
+// active level-up. onLevelUpDone's terminal branch fires the deferred
+// showStageClearScreen once all level-ups have been chosen.
+let _pendingStageClearStage = null;
+
+/** Called by game.js → resetGame so a deferred stage-clear from a previous
+ * run can't fire during the new run's first level-up. */
+export function clearPendingStageClear() { _pendingStageClearStage = null; }
+
 export function showStageClearScreen(completedStage) {
+  // If a level-up is showing right now OR pending (XP overflowed but the
+  // gem→callback chain hasn't fired yet), defer the intermission so the
+  // player gets to pick their upgrade FIRST — otherwise the stage-clear
+  // overlay would steal focus from / hide behind the level-up cards.
+  if (gameState.state === 'levelup' || player.xp >= player.xpToNext) {
+    _pendingStageClearStage = completedStage;
+    return;
+  }
+  _doShowStageClearScreen(completedStage);
+}
+
+function _doShowStageClearScreen(completedStage) {
   // Use 'paused' as the gameplay-frozen state so the existing update loop
   // gate works without changes. The visual overlay distinguishes it.
   gameState.state = 'paused';
