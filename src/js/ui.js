@@ -15,7 +15,7 @@
 //   keyboard/mobile → tryJump, tryDash (game.js): use _jumpFn/_dashFn, set via setJumpDashCbs()
 //   openChest → presentChoiceScreen (this file): setOpenChestDeps is called in initUI()
 
-import { camera, renderer, isMobile, tryEnterFullscreen } from './renderer.js?v=85f8cea';
+import { camera, renderer, isMobile, tryEnterFullscreen } from './renderer.js?v=cecb6ff';
 import {
   player, enemies,
   tryInteract, setOpenChestDeps,
@@ -23,17 +23,17 @@ import {
   spawnParticle,
   CHARACTER_MODELS, _animClips, loadCharAsset,
   _applyCharacterModel,
-} from './entities.js?v=85f8cea';
-import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=85f8cea';
-import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=85f8cea';
-import { gameState, cam } from './state.js?v=85f8cea';
-import { Audio } from './audio.js?v=85f8cea';
-import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=85f8cea';
+} from './entities.js?v=cecb6ff';
+import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=cecb6ff';
+import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=cecb6ff';
+import { gameState, cam } from './state.js?v=cecb6ff';
+import { Audio } from './audio.js?v=cecb6ff';
+import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=cecb6ff';
 // VERSION lives on CFG.VERSION too — reading via property access doesn't
 // blow up if a cached older config.js is loaded without the named export
 const VERSION = CFG.VERSION || '0.0.0';
-import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=85f8cea';
-import { tmp, tmp2 } from './utils.js?v=85f8cea';
+import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=cecb6ff';
+import { tmp, tmp2 } from './utils.js?v=cecb6ff';
 
 // ============================================================
 // INJECTION CALLBACKS (break circular deps)
@@ -1116,6 +1116,7 @@ export function openPauseMenu() {
   _bossArrowEl.style.display = 'none';
   if (_mouseLocked) document.exitPointerLock();
   refreshPauseMenu();
+  _syncAllAudioControlUIs(); // pull latest mute/volume into the pause UI
   document.getElementById('pause-screen').classList.remove('hidden');
   document.getElementById('interact-prompt').classList.add('hidden');
 }
@@ -1701,27 +1702,52 @@ export function initUI() {
   window._wallopRenderStageSelect = renderDiffSelect;
 }
 
-// ── Audio settings: wire the About menu toggle + slider to Audio module ──
+// ── Audio settings: wire toggle + slider to Audio module ──
+// Used by the About panel AND the pause menu. Both UIs read/write the same
+// Audio module state so changes in one are reflected in the other on next open.
 function initAudioControls() {
-  const muteBox = document.getElementById('audio-muted-toggle');
-  const slider  = document.getElementById('audio-volume-slider');
-  const readout = document.getElementById('audio-volume-readout');
+  _bindAudioControlSet({ muteId: 'audio-muted-toggle', sliderId: 'audio-volume-slider', readoutId: 'audio-volume-readout' });
+  _bindAudioControlSet({ muteId: 'pause-audio-muted', sliderId: 'pause-audio-volume',  readoutId: 'pause-audio-readout' });
+}
+
+function _bindAudioControlSet({ muteId, sliderId, readoutId }) {
+  const muteBox = document.getElementById(muteId);
+  const slider  = document.getElementById(sliderId);
+  const readout = document.getElementById(readoutId);
   if (!muteBox || !slider || !readout) return;
-  // Initial UI state from Profile
+  // Initial UI state from current Audio module values
   muteBox.checked = Audio.isMuted();
   slider.value    = Math.round(Audio.getVolume() * 100);
   readout.textContent = slider.value + '%';
   muteBox.addEventListener('change', () => {
     Audio.setMuted(muteBox.checked);
-    if (!muteBox.checked) Audio.play('ui_click'); // feedback so they hear unmute happen
+    _syncAllAudioControlUIs(); // mirror change to the other set
+    if (!muteBox.checked) Audio.play('ui_click');
   });
   slider.addEventListener('input', () => {
     const v = parseInt(slider.value, 10) / 100;
     Audio.setVolume(v);
     readout.textContent = slider.value + '%';
+    _syncAllAudioControlUIs();
   });
-  // Audible test when slider released — gives the player a sample at the new volume
   slider.addEventListener('change', () => { if (!Audio.isMuted()) Audio.play('ui_click'); });
+}
+
+// Re-read state from Audio and push it into every audio-control UI on the page
+// so the About panel + pause menu never drift apart.
+function _syncAllAudioControlUIs() {
+  const sets = [
+    { muteId: 'audio-muted-toggle', sliderId: 'audio-volume-slider', readoutId: 'audio-volume-readout' },
+    { muteId: 'pause-audio-muted', sliderId: 'pause-audio-volume',  readoutId: 'pause-audio-readout' },
+  ];
+  for (const s of sets) {
+    const muteBox = document.getElementById(s.muteId);
+    const slider  = document.getElementById(s.sliderId);
+    const readout = document.getElementById(s.readoutId);
+    if (muteBox) muteBox.checked = Audio.isMuted();
+    if (slider)  slider.value    = Math.round(Audio.getVolume() * 100);
+    if (readout) readout.textContent = (slider ? slider.value : Math.round(Audio.getVolume() * 100)) + '%';
+  }
 }
 
 // ============================================================
