@@ -1,6 +1,6 @@
 // game.js — core game logic: damageEnemy, update loop, player movement, spawning
 // Imports (acyclic — game.js is the top of the dep graph among game modules):
-import { scene, camera, renderer, composer, sun, clock, isMobile, tryEnterFullscreen, releasePtLight, setRendererArena } from './renderer.js?v=fde18b9';
+import { scene, camera, renderer, composer, sun, clock, isMobile, tryEnterFullscreen, releasePtLight, setRendererArena } from './renderer.js?v=cb29a27';
 import {
   player,
   playerMixer, playerIdleAction, playerWalkAction, playerRunAction,
@@ -19,17 +19,17 @@ import {
   updateShieldOrbital, updateParticles,
   setDamageEnemyCb, setOnLevelUpReady,
   spawnGold, spawnSmokeCloud, makeEnemyMesh, ENEMY_DEFS,
-} from './entities.js?v=fde18b9';
-import { WEAPONS, ARMOR, TOMES, setDamageEnemyForWeapons, rebuildOrbits } from './weapons.js?v=fde18b9';
+} from './entities.js?v=cb29a27';
+import { WEAPONS, ARMOR, TOMES, setDamageEnemyForWeapons, rebuildOrbits } from './weapons.js?v=cb29a27';
 import {
   gameState, cam,
-} from './state.js?v=fde18b9';
-import { CFG, STAGE_MULTS, DIFFICULTIES } from './config.js?v=fde18b9';
-import { Profile, ARENAS, CHALLENGES } from './profile.js?v=fde18b9';
-import { groundHeight, resolveSolids, setTerrainArena } from './terrain.js?v=fde18b9';
-import { setWorldArena } from './world.js?v=fde18b9';
-import { killMesh, clamp, rand, tmp, tmp2, flatPhong } from './utils.js?v=fde18b9';
-import { Audio } from './audio.js?v=fde18b9';
+} from './state.js?v=cb29a27';
+import { CFG, STAGE_MULTS, DIFFICULTIES } from './config.js?v=cb29a27';
+import { Profile, ARENAS, CHALLENGES } from './profile.js?v=cb29a27';
+import { groundHeight, resolveSolids, setTerrainArena } from './terrain.js?v=cb29a27';
+import { setWorldArena } from './world.js?v=cb29a27';
+import { killMesh, clamp, rand, tmp, tmp2, flatPhong } from './utils.js?v=cb29a27';
+import { Audio } from './audio.js?v=cb29a27';
 import {
   showDamage, showAlert, updateBossArrow, updateLoadoutDisplay,
   syncSliceDisplays, triggerGameOver,
@@ -38,13 +38,74 @@ import {
   openPauseMenu, closePauseMenu,
   keys, joystickInput, camJoystickInput,
   applyCameraJoystick, tickHUD,
-  setDamageEnemyForUI, setResetGameCb, setJumpDashCbs, setCallBossCb,
+  setDamageEnemyForUI, setResetGameCb, setJumpDashCbs, setCallBossCb, setPauseTimerCbs,
   initUI,
   addCameraShake,
-} from './ui.js?v=fde18b9';
+} from './ui.js?v=cb29a27';
 
 // Player animation state (module-level so it persists across frames)
 let _animState = 'idle';
+
+// ============================================================
+// PAUSE-AWARE TIMERS
+// ============================================================
+// Any gameplay-affecting setTimeout (boss follow-up shots, stage transitions,
+// the victory transition) MUST go through pausableTimeout instead of bare
+// setTimeout. When the player pauses, all active pausable timers are frozen
+// with their remaining time captured; on resume they re-fire from where they
+// left off. Cosmetic UI banners (showAlert, particle fades, flash classes)
+// can keep using vanilla setTimeout — they don't affect enemies.
+const _pausableActive = new Set();   // { handle, fn, dueAt }
+const _pausableFrozen = [];          // { fn, remaining }
+
+export function pausableTimeout(fn, ms) {
+  const t = { fn, dueAt: Date.now() + ms, handle: null };
+  if (gameState.state === 'paused') {
+    // Pause is currently active — record as frozen immediately
+    _pausableFrozen.push({ fn, remaining: ms });
+    return t;
+  }
+  t.handle = setTimeout(() => {
+    _pausableActive.delete(t);
+    fn();
+  }, ms);
+  _pausableActive.add(t);
+  return t;
+}
+
+// Called from ui.js openPauseMenu — freezes all active pausable timers.
+export function suspendPausableTimers() {
+  const now = Date.now();
+  for (const t of _pausableActive) {
+    if (t.handle) clearTimeout(t.handle);
+    _pausableFrozen.push({ fn: t.fn, remaining: Math.max(0, t.dueAt - now) });
+  }
+  _pausableActive.clear();
+}
+
+// Called from ui.js closePauseMenu — re-schedules frozen timers with the
+// remaining time they had when paused.
+export function resumePausableTimers() {
+  const drain = _pausableFrozen.splice(0);
+  for (const frozen of drain) {
+    const t = { fn: frozen.fn, dueAt: Date.now() + frozen.remaining, handle: null };
+    t.handle = setTimeout(() => {
+      _pausableActive.delete(t);
+      frozen.fn();
+    }, frozen.remaining);
+    _pausableActive.add(t);
+  }
+}
+
+// Called from resetGame so a previous run's pending timers don't fire after
+// the player restarts (would cause e.g. a leftover boss shockwave to appear).
+export function clearPausableTimers() {
+  for (const t of _pausableActive) {
+    if (t.handle) clearTimeout(t.handle);
+  }
+  _pausableActive.clear();
+  _pausableFrozen.length = 0;
+}
 
 // ============================================================
 // DAMAGE / KILL
@@ -131,7 +192,9 @@ export function killEnemy(e, srcWeaponId = null) {
         gameState.stage = nextStage;
         setTimeout(() => { showAlert(`STAGE ${completedStage} COMPLETE! 🏆`, '#ffd23f'); Audio.play('stage_clear'); }, 800);
         setTimeout(() => showAlert(`ADVANCING TO STAGE ${nextStage}…`, '#42f5a1'), 1900);
-        setTimeout(() => advanceStage(), 3200);
+        // advanceStage IS gameplay-critical — use pausable timer so a player
+        // who pauses during the stage-clear window doesn't auto-skip past it.
+        pausableTimeout(() => advanceStage(), 3200);
         // Clean up boss mesh + array entry NOW (before return)
         if (e.mixer) { e.mixer.stopAllAction(); e.mixer = null; }
         killMesh(e.mesh);
@@ -734,6 +797,10 @@ function advanceStage() {
 // RESET GAME
 // ============================================================
 export function resetGame() {
+  // Drop any leftover pausable timers from the previous run — without this a
+  // queued boss shockwave or pending stage-advance could fire into the fresh
+  // run and cause untelegraphed damage / a phantom stage skip.
+  clearPausableTimers();
   // Apply the player's chosen arena theme (sky, fog, lights, ground texture,
   // scenery tints).  Must happen before any new scenery is placed.
   const arenaSlug = gameState.arena || Profile.getEquippedArena() || 'pepperoni_pines';
@@ -1561,7 +1628,9 @@ function bossRangedAttack(boss) {
     const speed = 16;
     spawnGroundTelegraph(new THREE.Vector3(px, 0, pz), 2.4, 0xff3864, 0.9);
     spawnEnemyProjectile({ pos: start, vel: dir.clone().multiplyScalar(speed), damage: boss.dmg * 0.6, lifetime: 2.5, mesh: makeShockwaveMesh(), radius: 0.85 });
-    setTimeout(() => {
+    // Pausable follow-up shot — boss action, must freeze with pause so the
+    // player isn't ambushed by a delayed projectile when they unpause.
+    pausableTimeout(() => {
       if (!enemies.includes(boss)) return;
       const dir2 = new THREE.Vector3(player.pos.x - boss.pos.x, 0, player.pos.z - boss.pos.z).normalize();
       spawnEnemyProjectile({ pos: new THREE.Vector3(boss.pos.x, boss.pos.y + boss.height * 0.5, boss.pos.z), vel: dir2.multiplyScalar(speed * 0.85), damage: boss.dmg * 0.4, lifetime: 2.5, mesh: makeShockwaveMesh(), radius: 0.85 });
@@ -1737,7 +1806,9 @@ function _completeActiveChallenge() {
     showAlert(`${def.icon} ${def.name.toUpperCase()} — REPEAT (no reward)`, '#42f5a1');
   }
   gameState.activeChallenge = null;
-  setTimeout(() => triggerGameOver(true), 1800);
+  // Pausable so a player who pauses during the challenge banner doesn't
+  // get yanked to the game-over screen behind the pause overlay.
+  pausableTimeout(() => triggerGameOver(true), 1800);
 }
 
 const CHALLENGE_LOGIC = {
@@ -1827,6 +1898,10 @@ export function initGame() {
 
   // Inject callBossNow so pause menu can trigger it
   setCallBossCb(callBossNow);
+
+  // Inject pausable-timer suspend/resume so openPauseMenu / closePauseMenu
+  // can freeze gameplay-critical timers (boss follow-ups, stage transitions)
+  setPauseTimerCbs(suspendPausableTimers, resumePausableTimers);
 
   // processPendingLevelUp is called by updateGems in entities.js
   setOnLevelUpReady(processPendingLevelUp);

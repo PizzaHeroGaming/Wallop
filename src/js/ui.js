@@ -15,7 +15,7 @@
 //   keyboard/mobile → tryJump, tryDash (game.js): use _jumpFn/_dashFn, set via setJumpDashCbs()
 //   openChest → presentChoiceScreen (this file): setOpenChestDeps is called in initUI()
 
-import { camera, renderer, isMobile, tryEnterFullscreen } from './renderer.js?v=fde18b9';
+import { camera, renderer, isMobile, tryEnterFullscreen } from './renderer.js?v=cb29a27';
 import {
   player, enemies,
   tryInteract, setOpenChestDeps,
@@ -23,17 +23,17 @@ import {
   spawnParticle,
   CHARACTER_MODELS, _animClips, loadCharAsset,
   _applyCharacterModel,
-} from './entities.js?v=fde18b9';
-import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=fde18b9';
-import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=fde18b9';
-import { gameState, cam } from './state.js?v=fde18b9';
-import { Audio } from './audio.js?v=fde18b9';
-import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=fde18b9';
+} from './entities.js?v=cb29a27';
+import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=cb29a27';
+import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=cb29a27';
+import { gameState, cam } from './state.js?v=cb29a27';
+import { Audio } from './audio.js?v=cb29a27';
+import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=cb29a27';
 // VERSION lives on CFG.VERSION too — reading via property access doesn't
 // blow up if a cached older config.js is loaded without the named export
 const VERSION = CFG.VERSION || '0.0.0';
-import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=fde18b9';
-import { tmp, tmp2 } from './utils.js?v=fde18b9';
+import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=cb29a27';
+import { tmp, tmp2 } from './utils.js?v=cb29a27';
 
 // ============================================================
 // INJECTION CALLBACKS (break circular deps)
@@ -54,6 +54,11 @@ export function setJumpDashCbs(jFn, dFn) { _jumpFn = jFn; _dashFn = dFn; }
 let _callBossFn = null;
 /** Called by game.js: setCallBossCb(callBossNow) */
 export function setCallBossCb(fn) { _callBossFn = fn; }
+
+let _suspendTimersFn = null;
+let _resumeTimersFn  = null;
+/** Called by game.js: setPauseTimerCbs(suspendPausableTimers, resumePausableTimers) */
+export function setPauseTimerCbs(sFn, rFn) { _suspendTimersFn = sFn; _resumeTimersFn = rFn; }
 
 // ============================================================
 // INPUT STATE (exported so game.js can read them)
@@ -1117,6 +1122,9 @@ export function openPauseMenu() {
   if (_mouseLocked) document.exitPointerLock();
   refreshPauseMenu();
   _syncAllAudioControlUIs(); // pull latest mute/volume into the pause UI
+  // Freeze gameplay-critical timers (boss follow-up shots, stage transitions,
+  // victory transition). They re-fire from where they left off on close.
+  if (_suspendTimersFn) _suspendTimersFn();
   document.getElementById('pause-screen').classList.remove('hidden');
   document.getElementById('interact-prompt').classList.add('hidden');
 }
@@ -1138,6 +1146,9 @@ export function closePauseMenu() {
   // Suppress the auto-pause for 1.4s — covers Chrome's pointer-lock cooldown
   // window. After that, a real focus loss can still trigger the auto-pause.
   _pauseAutoSuppressUntil = Date.now() + 1400;
+  // Re-fire any timers that were frozen by openPauseMenu, with the
+  // remaining time they had at pause moment.
+  if (_resumeTimersFn) _resumeTimersFn();
 }
 
 function refreshPauseMenu() {
