@@ -1,6 +1,6 @@
 // game.js — core game logic: damageEnemy, update loop, player movement, spawning
 // Imports (acyclic — game.js is the top of the dep graph among game modules):
-import { scene, camera, renderer, composer, sun, clock, isMobile, tryEnterFullscreen, releasePtLight, setRendererArena } from './renderer.js?v=33e1017';
+import { scene, camera, renderer, composer, sun, clock, isMobile, tryEnterFullscreen, releasePtLight, setRendererArena } from './renderer.js?v=8fe0223';
 import {
   player,
   playerMixer, playerIdleAction, playerWalkAction, playerRunAction,
@@ -19,17 +19,17 @@ import {
   updateShieldOrbital, updateParticles,
   setDamageEnemyCb, setOnLevelUpReady,
   spawnGold, spawnSmokeCloud, makeEnemyMesh, ENEMY_DEFS,
-} from './entities.js?v=33e1017';
-import { WEAPONS, ARMOR, TOMES, setDamageEnemyForWeapons, rebuildOrbits } from './weapons.js?v=33e1017';
+} from './entities.js?v=8fe0223';
+import { WEAPONS, ARMOR, TOMES, setDamageEnemyForWeapons, rebuildOrbits } from './weapons.js?v=8fe0223';
 import {
   gameState, cam,
-} from './state.js?v=33e1017';
-import { CFG, STAGE_MULTS, DIFFICULTIES } from './config.js?v=33e1017';
-import { Profile, ARENAS, CHALLENGES } from './profile.js?v=33e1017';
-import { groundHeight, resolveSolids, setTerrainArena } from './terrain.js?v=33e1017';
-import { setWorldArena } from './world.js?v=33e1017';
-import { killMesh, clamp, rand, tmp, tmp2, flatPhong } from './utils.js?v=33e1017';
-import { Audio } from './audio.js?v=33e1017';
+} from './state.js?v=8fe0223';
+import { CFG, STAGE_MULTS, DIFFICULTIES } from './config.js?v=8fe0223';
+import { Profile, ARENAS, CHALLENGES } from './profile.js?v=8fe0223';
+import { groundHeight, resolveSolids, setTerrainArena } from './terrain.js?v=8fe0223';
+import { setWorldArena } from './world.js?v=8fe0223';
+import { killMesh, clamp, rand, tmp, tmp2, flatPhong } from './utils.js?v=8fe0223';
+import { Audio } from './audio.js?v=8fe0223';
 import {
   showDamage, showAlert, updateBossArrow, updateLoadoutDisplay,
   syncSliceDisplays, triggerGameOver,
@@ -41,7 +41,7 @@ import {
   setDamageEnemyForUI, setResetGameCb, setJumpDashCbs, setCallBossCb,
   initUI,
   addCameraShake,
-} from './ui.js?v=33e1017';
+} from './ui.js?v=8fe0223';
 
 // Player animation state (module-level so it persists across frames)
 let _animState = 'idle';
@@ -51,6 +51,8 @@ let _animState = 'idle';
 // ============================================================
 export function damageEnemy(e, dmg, crit = false, srcWeaponId = null) {
   let final = dmg;
+  // Iron Hide (Oven Knight) berserker — +50% outgoing damage below 30% HP
+  if (player.hasBerserker && player.hp / player.maxHp < 0.30) final *= 1.5;
   if (e.isBoss && final > 80) final = 80 + (final - 80) * 0.55;
   e.hp -= final;
   e.hurtFlash = 0.12;
@@ -218,6 +220,27 @@ export function tryDash() {
   player.dashCd = 1.5 * (player.dashCdMult || 1);
   player.dashTimer = 0.18;
   player.invuln = Math.max(player.invuln, 0.18);
+  // Turbo Soles (Crust Runner armor) — dash damages nearby enemies + heals.
+  // Scales with stack count: each level adds 40 dmg + 2 HP and slightly grows radius.
+  const td = player.turboDash || 0;
+  if (td > 0) {
+    const dashDmg    = 40 * td * (player.damageMult || 1);
+    const dashHeal   = 2 * td;
+    const dashRadius = 2.4 + td * 0.4;
+    const r2 = dashRadius * dashRadius;
+    let hits = 0;
+    for (const e of enemies) {
+      const dx = e.pos.x - player.pos.x, dz = e.pos.z - player.pos.z;
+      if (dx*dx + dz*dz < r2) {
+        damageEnemy(e, dashDmg, false, 'turbo_soles');
+        hits++;
+      }
+    }
+    if (hits > 0) {
+      player.hp = Math.min(player.maxHp, player.hp + dashHeal);
+      spawnParticle(player.pos.clone().setY(0.4), 0xffd23f, 12, dashRadius);
+    }
+  }
 }
 
 // ============================================================

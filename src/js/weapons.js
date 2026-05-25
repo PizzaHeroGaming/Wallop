@@ -1,4 +1,4 @@
-import { scene, acquirePtLight, releasePtLight } from './renderer.js?v=33e1017';
+import { scene, acquirePtLight, releasePtLight } from './renderer.js?v=8fe0223';
 import { player, enemies, projectiles, orbitals, auraInstances,
          spawnProjectile, spawnParticle, spawnSmokeCloud,
          makeSparkMesh, makeFireballMesh, makeBoomerangMesh,
@@ -6,9 +6,9 @@ import { player, enemies, projectiles, orbitals, auraInstances,
          _cloneWeaponMesh,
          _thunderWandMesh, _thunderWandAngle, set_thunderWandMesh, set_thunderWandAngle,
          _staffMesh, _staffAngle, set_staffMesh, set_staffAngle,
-       } from './entities.js?v=33e1017';
-import { clamp, rand } from './utils.js?v=33e1017';
-import { cam } from './state.js?v=33e1017';
+       } from './entities.js?v=8fe0223';
+import { clamp, rand } from './utils.js?v=8fe0223';
+import { cam } from './state.js?v=8fe0223';
 
 // damageEnemy is injected from game.js (circular dep breaker)
 let _damageEnemy = null;
@@ -1556,10 +1556,12 @@ defWeapon('olive_railgun', {
 // CHARACTER-UNIQUE ARMORS
 // ============================================================
 
-// Pizza Hero unique: XP range + knockback resist
+// Pizza Hero unique: XP range + post-kill HP regen
+// (Original "knockback resist" claim removed — the player doesn't take
+// knockback in this game, so that effect would never fire.)
 defArmor('delivery_bag', {
   name: 'Delivery Bag', icon: '🎒',
-  desc: 'Pizza Hero exclusive. Boosts XP pickup range and reduces knockback taken.',
+  desc: 'Pizza Hero exclusive. Wider pickup range and a steady HP trickle from every delivery.',
   maxLevel: 4,
   init: () => ({ }),
   upgrade: a => {
@@ -1568,11 +1570,11 @@ defArmor('delivery_bag', {
     if (a.level === 2) player.pickupRange += 0.7;
     if (a.level === 3) player.pickupRange += 0.7;
     if (a.level === 4) player.pickupRange += 1.0;
-    player.knockResist = Math.min(0.7, (player.knockResist || 0) + 0.18);
+    player.hpRegen += 0.4; // small steady regen — feels like delivery resilience
   },
   describeNext: a => {
     const n = (a?.level || 0) + 1;
-    return { 1:'+XP range, +18% knock resist', 2:'+XP range, +18%', 3:'+XP range, +18%', 4:'+XP range, +16%' }[n] || 'maxed';
+    return { 1:'+XP range, +0.4 HP/s', 2:'+XP range, +0.4 HP/s', 3:'+XP range, +0.4 HP/s', 4:'+XP range, +0.4 HP/s' }[n] || 'maxed';
   },
 });
 
@@ -1594,20 +1596,22 @@ defArmor('frost_shell', {
   },
 });
 
-// Oven Knight unique: heavy flat armor + berserker trigger
+// Oven Knight unique: heavy flat armor + berserker damage below 30% HP.
+// Knockback-immune wording dropped — player doesn't take knockback in this game.
+// Berserker is read in game.js → damageEnemy() and multiplies outgoing damage.
 defArmor('iron_hide', {
   name: 'Iron Hide', icon: '🪨',
-  desc: 'Oven Knight exclusive. Massive flat armor. Below 30% HP: +50% damage, knockback immune.',
+  desc: 'Oven Knight exclusive. Massive flat armor. Below 30% HP, deal +50% damage.',
   maxLevel: 4,
   init: () => ({ }),
   upgrade: a => {
     a.level = (a.level || 0) + 1;
     player.armor += 3;
-    player.hasBerserker = true;
+    player.hasBerserker = true; // read by damageEnemy() in game.js
   },
   describeNext: a => {
     const n = (a?.level || 0) + 1;
-    return n <= 4 ? '+3 armor, berserker rage below 30% HP' : 'maxed';
+    return n <= 4 ? '+3 armor, +50% dmg below 30% HP' : 'maxed';
   },
 });
 
