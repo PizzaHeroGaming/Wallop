@@ -1,6 +1,6 @@
 // game.js — core game logic: damageEnemy, update loop, player movement, spawning
 // Imports (acyclic — game.js is the top of the dep graph among game modules):
-import { scene, camera, renderer, composer, sun, clock, isMobile, tryEnterFullscreen, releasePtLight, setRendererArena } from './renderer.js?v=1e8bc6f';
+import { scene, camera, renderer, composer, sun, clock, isMobile, tryEnterFullscreen, releasePtLight, setRendererArena } from './renderer.js?v=42d6295';
 import {
   player,
   playerMixer, playerIdleAction, playerWalkAction, playerRunAction,
@@ -19,16 +19,17 @@ import {
   updateShieldOrbital, updateParticles,
   setDamageEnemyCb, setOnLevelUpReady,
   spawnGold, spawnSmokeCloud, makeEnemyMesh, ENEMY_DEFS,
-} from './entities.js?v=1e8bc6f';
-import { WEAPONS, ARMOR, TOMES, setDamageEnemyForWeapons, rebuildOrbits } from './weapons.js?v=1e8bc6f';
+} from './entities.js?v=42d6295';
+import { WEAPONS, ARMOR, TOMES, setDamageEnemyForWeapons, rebuildOrbits } from './weapons.js?v=42d6295';
 import {
   gameState, cam,
-} from './state.js?v=1e8bc6f';
-import { CFG, STAGE_MULTS, DIFFICULTIES } from './config.js?v=1e8bc6f';
-import { Profile, ARENAS, CHALLENGES } from './profile.js?v=1e8bc6f';
-import { groundHeight, resolveSolids, setTerrainArena } from './terrain.js?v=1e8bc6f';
-import { setWorldArena } from './world.js?v=1e8bc6f';
-import { killMesh, clamp, rand, tmp, tmp2, flatPhong } from './utils.js?v=1e8bc6f';
+} from './state.js?v=42d6295';
+import { CFG, STAGE_MULTS, DIFFICULTIES } from './config.js?v=42d6295';
+import { Profile, ARENAS, CHALLENGES } from './profile.js?v=42d6295';
+import { groundHeight, resolveSolids, setTerrainArena } from './terrain.js?v=42d6295';
+import { setWorldArena } from './world.js?v=42d6295';
+import { killMesh, clamp, rand, tmp, tmp2, flatPhong } from './utils.js?v=42d6295';
+import { Audio } from './audio.js?v=42d6295';
 import {
   showDamage, showAlert, updateBossArrow, updateLoadoutDisplay,
   syncSliceDisplays, triggerGameOver,
@@ -40,7 +41,7 @@ import {
   setDamageEnemyForUI, setResetGameCb, setJumpDashCbs, setCallBossCb,
   initUI,
   addCameraShake,
-} from './ui.js?v=1e8bc6f';
+} from './ui.js?v=42d6295';
 
 // Player animation state (module-level so it persists across frames)
 let _animState = 'idle';
@@ -94,6 +95,7 @@ export function killEnemy(e, srcWeaponId = null) {
       const rawMult = Math.min(sm.sliceBonus * dm.sliceBonus, 4.0); // cap at 4× to keep economy sane
       const totalSlices = Math.round(e.sliceDrop * rawMult);
       Profile.addSlices(totalSlices);
+      Audio.play('pickup_slice');
       gameState.slicesEarned = (gameState.slicesEarned || 0) + totalSlices;
       const bonusNote = totalSlices !== e.sliceDrop ? ` (×${rawMult.toFixed(1)})` : '';
       showAlert(`+${totalSlices} 🍕 SLICES${bonusNote}`, '#ffd23f');
@@ -114,7 +116,7 @@ export function killEnemy(e, srcWeaponId = null) {
         const newlyUnlocked = Profile.recordArenaClear(gameState.arena, gameState.difficulty);
         if (newlyUnlocked) {
           const nextDef = ARENAS[newlyUnlocked];
-          setTimeout(() => showAlert(`🔓 ${(nextDef?.name || newlyUnlocked).toUpperCase()} UNLOCKED!`, '#ffd23f'), 4400);
+          setTimeout(() => { showAlert(`🔓 ${(nextDef?.name || newlyUnlocked).toUpperCase()} UNLOCKED!`, '#ffd23f'); Audio.play('ui_unlock'); }, 4400);
         }
       }
       if (gameState.stage < 3) {
@@ -125,7 +127,7 @@ export function killEnemy(e, srcWeaponId = null) {
         const completedStage = gameState.stage;
         const nextStage = gameState.stage + 1;
         gameState.stage = nextStage;
-        setTimeout(() => showAlert(`STAGE ${completedStage} COMPLETE! 🏆`, '#ffd23f'), 800);
+        setTimeout(() => { showAlert(`STAGE ${completedStage} COMPLETE! 🏆`, '#ffd23f'); Audio.play('stage_clear'); }, 800);
         setTimeout(() => showAlert(`ADVANCING TO STAGE ${nextStage}…`, '#42f5a1'), 1900);
         setTimeout(() => advanceStage(), 3200);
         // Clean up boss mesh + array entry NOW (before return)
@@ -405,6 +407,7 @@ function spawnBoss(tier = 'final') {
   enemies.push(enemy);
   spawnParticle(enemy.pos.clone().setY(2), cfg.color, 24, 11);
   spawnParticle(enemy.pos.clone().setY(0.5), 0xffd23f, 16, 8);
+  Audio.play(tier === 'final' ? 'boss_spawn_big' : 'boss_spawn_mini');
 }
 
 // ============================================================

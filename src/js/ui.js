@@ -15,7 +15,7 @@
 //   keyboard/mobile → tryJump, tryDash (game.js): use _jumpFn/_dashFn, set via setJumpDashCbs()
 //   openChest → presentChoiceScreen (this file): setOpenChestDeps is called in initUI()
 
-import { camera, renderer, isMobile, tryEnterFullscreen } from './renderer.js?v=1e8bc6f';
+import { camera, renderer, isMobile, tryEnterFullscreen } from './renderer.js?v=42d6295';
 import {
   player, enemies,
   tryInteract, setOpenChestDeps,
@@ -23,16 +23,17 @@ import {
   spawnParticle,
   CHARACTER_MODELS, _animClips, loadCharAsset,
   _applyCharacterModel,
-} from './entities.js?v=1e8bc6f';
-import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=1e8bc6f';
-import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=1e8bc6f';
-import { gameState, cam } from './state.js?v=1e8bc6f';
-import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=1e8bc6f';
+} from './entities.js?v=42d6295';
+import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=42d6295';
+import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=42d6295';
+import { gameState, cam } from './state.js?v=42d6295';
+import { Audio } from './audio.js?v=42d6295';
+import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=42d6295';
 // VERSION lives on CFG.VERSION too — reading via property access doesn't
 // blow up if a cached older config.js is loaded without the named export
 const VERSION = CFG.VERSION || '0.0.0';
-import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=1e8bc6f';
-import { tmp, tmp2 } from './utils.js?v=1e8bc6f';
+import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=42d6295';
+import { tmp, tmp2 } from './utils.js?v=42d6295';
 
 // ============================================================
 // INJECTION CALLBACKS (break circular deps)
@@ -139,6 +140,7 @@ export function damagePlayer(dmg, attacker) {
     player.invuln = 0.25;
     return;
   }
+  Audio.play('player_hurt');
   // Thorn reflection
   if (attacker && player.thorns > 0 && !attacker.isBoss && _damageEnemyFn) {
     _damageEnemyFn(attacker, player.thorns, false);
@@ -671,6 +673,7 @@ function hideChoiceActions() {
 export function showLevelUp() {
   gameState.state = 'levelup';
   if (_mouseLocked) document.exitPointerLock();
+  Audio.play('ui_levelup');
   const offers = generateOffers();
   if (offers.length === 0) {
     player.hp = Math.min(player.maxHp, player.hp + 30);
@@ -724,6 +727,7 @@ let __runsPlayed = 0;
 export function triggerGameOver(victory) {
   _bossArrowEl.style.display = 'none';
   gameState.state = victory ? 'victory' : 'gameover';
+  Audio.play(victory ? 'victory' : 'player_death');
   const ov    = document.getElementById('gameover-screen');
   const title = document.getElementById('gameover-title');
   const diffLabel  = (DIFFICULTIES[gameState.difficulty] || DIFFICULTIES.normal).label;
@@ -1689,10 +1693,34 @@ export function initUI() {
   initMobile();
   initButtons();
   initCharSelect();
+  initAudioControls();
 
   // Expose renderStageSelect globally so wallop.html's splash onComplete
   // can call it after the start screen becomes visible (belt-and-suspenders).
   window._wallopRenderStageSelect = renderDiffSelect;
+}
+
+// ── Audio settings: wire the About menu toggle + slider to Audio module ──
+function initAudioControls() {
+  const muteBox = document.getElementById('audio-muted-toggle');
+  const slider  = document.getElementById('audio-volume-slider');
+  const readout = document.getElementById('audio-volume-readout');
+  if (!muteBox || !slider || !readout) return;
+  // Initial UI state from Profile
+  muteBox.checked = Audio.isMuted();
+  slider.value    = Math.round(Audio.getVolume() * 100);
+  readout.textContent = slider.value + '%';
+  muteBox.addEventListener('change', () => {
+    Audio.setMuted(muteBox.checked);
+    if (!muteBox.checked) Audio.play('ui_click'); // feedback so they hear unmute happen
+  });
+  slider.addEventListener('input', () => {
+    const v = parseInt(slider.value, 10) / 100;
+    Audio.setVolume(v);
+    readout.textContent = slider.value + '%';
+  });
+  // Audible test when slider released — gives the player a sample at the new volume
+  slider.addEventListener('change', () => { if (!Audio.isMuted()) Audio.play('ui_click'); });
 }
 
 // ============================================================

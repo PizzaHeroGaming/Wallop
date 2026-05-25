@@ -1,9 +1,10 @@
-import { CFG, IS_MOBILE_EARLY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=1e8bc6f';
-import { scene, camera, isMobile, tryEnterFullscreen, renderer, acquirePtLight, releasePtLight } from './renderer.js?v=1e8bc6f';
-import { groundHeight, addSolid, resolveSolids, solidProps } from './terrain.js?v=1e8bc6f';
-import { killMesh, clamp, rand, tmp, tmp2, flatPhong, smoothPhong } from './utils.js?v=1e8bc6f';
-import { gameState } from './state.js?v=1e8bc6f';
-import { Profile } from './profile.js?v=1e8bc6f';
+import { CFG, IS_MOBILE_EARLY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=42d6295';
+import { scene, camera, isMobile, tryEnterFullscreen, renderer, acquirePtLight, releasePtLight } from './renderer.js?v=42d6295';
+import { groundHeight, addSolid, resolveSolids, solidProps } from './terrain.js?v=42d6295';
+import { killMesh, clamp, rand, tmp, tmp2, flatPhong, smoothPhong } from './utils.js?v=42d6295';
+import { gameState } from './state.js?v=42d6295';
+import { Profile } from './profile.js?v=42d6295';
+import { Audio } from './audio.js?v=42d6295';
 
 // ============================================================
 // PLAYER
@@ -1742,6 +1743,7 @@ export function setOpenChestDeps(deps) {
 export function openChest(c) {
   if (c.opened) return;
   c.opened = true;
+  Audio.play('chest_open');
   c.beam.visible = false;
   c.ring.visible = false;
 
@@ -1873,6 +1875,7 @@ export function updateGems(dt) {
     g.mesh.rotation.y += dt * 3;
     if (dist < 0.8) {
       player.xp += g.value * player.xpGain;
+      Audio.play('pickup_xp');
       killMesh(g.mesh);
       xpGems.splice(i, 1);
       if (gameState.state === 'playing' && player.xp >= player.xpToNext) {
@@ -1903,6 +1906,7 @@ export function updateGold(dt) {
     c.mesh.rotation.z += dt * 4;
     if (dist < 0.8) {
       player.gold += 1;
+      Audio.play('pickup_gold');
       killMesh(c.mesh);
       goldCoins.splice(i, 1);
     }

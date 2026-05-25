@@ -293,6 +293,9 @@ export const Profile = (function () {
       unlockedArenas: { pepperoni_pines: true },
       itemKills: {},
       completedChallenges: {},
+      // Audio prefs — persisted across sessions, defaults match "low + on"
+      audioMuted: false,
+      audioVolume: 0.4,
     };
   }
   function migrate(saved) {
