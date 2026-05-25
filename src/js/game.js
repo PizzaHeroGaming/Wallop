@@ -1,6 +1,6 @@
 // game.js — core game logic: damageEnemy, update loop, player movement, spawning
 // Imports (acyclic — game.js is the top of the dep graph among game modules):
-import { scene, camera, renderer, composer, sun, clock, isMobile, tryEnterFullscreen, releasePtLight, setRendererArena } from './renderer.js?v=cb29a27';
+import { scene, camera, renderer, composer, sun, clock, isMobile, tryEnterFullscreen, releasePtLight, setRendererArena } from './renderer.js?v=52bec8b';
 import {
   player,
   playerMixer, playerIdleAction, playerWalkAction, playerRunAction,
@@ -19,17 +19,17 @@ import {
   updateShieldOrbital, updateParticles,
   setDamageEnemyCb, setOnLevelUpReady,
   spawnGold, spawnSmokeCloud, makeEnemyMesh, ENEMY_DEFS,
-} from './entities.js?v=cb29a27';
-import { WEAPONS, ARMOR, TOMES, setDamageEnemyForWeapons, rebuildOrbits } from './weapons.js?v=cb29a27';
+} from './entities.js?v=52bec8b';
+import { WEAPONS, ARMOR, TOMES, setDamageEnemyForWeapons, rebuildOrbits } from './weapons.js?v=52bec8b';
 import {
   gameState, cam,
-} from './state.js?v=cb29a27';
-import { CFG, STAGE_MULTS, DIFFICULTIES } from './config.js?v=cb29a27';
-import { Profile, ARENAS, CHALLENGES } from './profile.js?v=cb29a27';
-import { groundHeight, resolveSolids, setTerrainArena } from './terrain.js?v=cb29a27';
-import { setWorldArena } from './world.js?v=cb29a27';
-import { killMesh, clamp, rand, tmp, tmp2, flatPhong } from './utils.js?v=cb29a27';
-import { Audio } from './audio.js?v=cb29a27';
+} from './state.js?v=52bec8b';
+import { CFG, STAGE_MULTS, DIFFICULTIES } from './config.js?v=52bec8b';
+import { Profile, ARENAS, CHALLENGES } from './profile.js?v=52bec8b';
+import { groundHeight, resolveSolids, setTerrainArena } from './terrain.js?v=52bec8b';
+import { setWorldArena } from './world.js?v=52bec8b';
+import { killMesh, clamp, rand, tmp, tmp2, flatPhong } from './utils.js?v=52bec8b';
+import { Audio } from './audio.js?v=52bec8b';
 import {
   showDamage, showAlert, updateBossArrow, updateLoadoutDisplay,
   syncSliceDisplays, triggerGameOver,
@@ -39,9 +39,10 @@ import {
   keys, joystickInput, camJoystickInput,
   applyCameraJoystick, tickHUD,
   setDamageEnemyForUI, setResetGameCb, setJumpDashCbs, setCallBossCb, setPauseTimerCbs,
+  showStageClearScreen, setAdvanceStageCb,
   initUI,
   addCameraShake,
-} from './ui.js?v=cb29a27';
+} from './ui.js?v=52bec8b';
 
 // Player animation state (module-level so it persists across frames)
 let _animState = 'idle';
@@ -191,10 +192,9 @@ export function killEnemy(e, srcWeaponId = null) {
         const nextStage = gameState.stage + 1;
         gameState.stage = nextStage;
         setTimeout(() => { showAlert(`STAGE ${completedStage} COMPLETE! 🏆`, '#ffd23f'); Audio.play('stage_clear'); }, 800);
-        setTimeout(() => showAlert(`ADVANCING TO STAGE ${nextStage}…`, '#42f5a1'), 1900);
-        // advanceStage IS gameplay-critical — use pausable timer so a player
-        // who pauses during the stage-clear window doesn't auto-skip past it.
-        pausableTimeout(() => advanceStage(), 3200);
+        // Show the stage-clear intermission after a short banner pause —
+        // player presses Continue when ready (no more auto-skip into stage 2).
+        pausableTimeout(() => showStageClearScreen(completedStage), 1800);
         // Clean up boss mesh + array entry NOW (before return)
         if (e.mixer) { e.mixer.stopAllAction(); e.mixer = null; }
         killMesh(e.mesh);
@@ -1902,6 +1902,9 @@ export function initGame() {
   // Inject pausable-timer suspend/resume so openPauseMenu / closePauseMenu
   // can freeze gameplay-critical timers (boss follow-ups, stage transitions)
   setPauseTimerCbs(suspendPausableTimers, resumePausableTimers);
+
+  // Inject advanceStage so the stage-clear screen's Continue button can fire it
+  setAdvanceStageCb(advanceStage);
 
   // processPendingLevelUp is called by updateGems in entities.js
   setOnLevelUpReady(processPendingLevelUp);

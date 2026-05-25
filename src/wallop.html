@@ -2835,6 +2835,34 @@ window.addEventListener('load', () => {
   <div id="pause-hint">[ESC] resume</div>
 </div>
 
+<!-- Stage clear intermission — shown between stages so the player can breathe + check stats before advancing -->
+<div id="stage-clear-screen" class="overlay hidden">
+  <div id="pause-title" style="color:#42f5a1;">STAGE <span id="stage-clear-num">1</span> CLEARED!</div>
+  <div id="stage-clear-subtitle" style="text-align:center;font-family:'VT323',monospace;color:var(--ink-dim);font-size:20px;margin-bottom:12px;letter-spacing:2px;"></div>
+  <div id="pause-body">
+    <div class="pause-col">
+      <div class="pause-section">
+        <div class="pause-h">RUN STATS</div>
+        <div id="stage-clear-stats"></div>
+      </div>
+    </div>
+    <div class="pause-col">
+      <div class="pause-section">
+        <div class="pause-h">CHARACTER</div>
+        <div id="stage-clear-character"></div>
+      </div>
+    </div>
+  </div>
+  <div style="text-align:center;padding:10px 16px;margin:6px auto 0;max-width:520px;color:var(--hot);font-family:'VT323',monospace;font-size:18px;letter-spacing:1px;">
+    ⚠️ Half your weapons / armor / tomes will be stripped on advance
+  </div>
+  <div id="pause-buttons">
+    <button class="btn" id="stage-continue-btn">CONTINUE TO STAGE <span id="stage-continue-num">2</span> →</button>
+    <button class="btn hot" id="stage-quit-btn">QUIT TO MAIN MENU</button>
+  </div>
+  <div id="pause-hint">Take your time. The game is paused.</div>
+</div>
+
 <!-- Interact prompt -->
 <div id="interact-prompt" class="hidden">
   <div class="key">E</div><div class="label">OPEN</div>

@@ -15,7 +15,7 @@
 //   keyboard/mobile → tryJump, tryDash (game.js): use _jumpFn/_dashFn, set via setJumpDashCbs()
 //   openChest → presentChoiceScreen (this file): setOpenChestDeps is called in initUI()
 
-import { camera, renderer, isMobile, tryEnterFullscreen } from './renderer.js?v=cb29a27';
+import { camera, renderer, isMobile, tryEnterFullscreen } from './renderer.js?v=52bec8b';
 import {
   player, enemies,
   tryInteract, setOpenChestDeps,
@@ -23,17 +23,17 @@ import {
   spawnParticle,
   CHARACTER_MODELS, _animClips, loadCharAsset,
   _applyCharacterModel,
-} from './entities.js?v=cb29a27';
-import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=cb29a27';
-import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=cb29a27';
-import { gameState, cam } from './state.js?v=cb29a27';
-import { Audio } from './audio.js?v=cb29a27';
-import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=cb29a27';
+} from './entities.js?v=52bec8b';
+import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=52bec8b';
+import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=52bec8b';
+import { gameState, cam } from './state.js?v=52bec8b';
+import { Audio } from './audio.js?v=52bec8b';
+import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=52bec8b';
 // VERSION lives on CFG.VERSION too — reading via property access doesn't
 // blow up if a cached older config.js is loaded without the named export
 const VERSION = CFG.VERSION || '0.0.0';
-import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=cb29a27';
-import { tmp, tmp2 } from './utils.js?v=cb29a27';
+import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=52bec8b';
+import { tmp, tmp2 } from './utils.js?v=52bec8b';
 
 // ============================================================
 // INJECTION CALLBACKS (break circular deps)
@@ -1137,6 +1137,57 @@ export function openPauseMenu() {
 // trapping the player.
 let _pauseAutoSuppressUntil = 0;
 
+// ── Stage-clear intermission ──
+// Replaces the old auto-advance setTimeout. Shows a stats panel + Continue
+// button so the player can rest, look at the run, and confirm the half-loadout-
+// strip warning before pressing on to the next stage.
+let _advanceStageFn = null;
+/** Called by game.js: setAdvanceStageCb(advanceStage) */
+export function setAdvanceStageCb(fn) { _advanceStageFn = fn; }
+
+export function showStageClearScreen(completedStage) {
+  // Use 'paused' as the gameplay-frozen state so the existing update loop
+  // gate works without changes. The visual overlay distinguishes it.
+  gameState.state = 'paused';
+  _bossArrowEl.style.display = 'none';
+  if (_mouseLocked) document.exitPointerLock();
+  if (_suspendTimersFn) _suspendTimersFn(); // freeze any pending boss follow-up etc.
+
+  const overlay = document.getElementById('stage-clear-screen');
+  if (!overlay) return;
+
+  // Stage labels in title + continue button
+  document.getElementById('stage-clear-num').textContent      = completedStage;
+  document.getElementById('stage-continue-num').textContent   = completedStage + 1;
+  const arenaName = (ARENAS[gameState.arena] || ARENAS.pepperoni_pines).name;
+  const diffLabel = (DIFFICULTIES[gameState.difficulty] || DIFFICULTIES.normal).label;
+  document.getElementById('stage-clear-subtitle').textContent = `${arenaName.toUpperCase()} · ${diffLabel}`;
+
+  // Render the same stats panels as the pause menu uses, but framed as
+  // "what you achieved this stage" rather than mid-run snapshot.
+  const m  = Math.floor(gameState.gameTime / 60).toString().padStart(2, '0');
+  const s  = Math.floor(gameState.gameTime % 60).toString().padStart(2, '0');
+  document.getElementById('stage-clear-stats').innerHTML = `
+    <div class="pause-row"><span>Stage time</span><span class="v">${m}:${s}</span></div>
+    <div class="pause-row"><span>Kills</span><span class="v">${gameState.kills}</span></div>
+    <div class="pause-row"><span>Gold</span><span class="v">${player.gold}</span></div>
+    <div class="pause-row"><span>Level</span><span class="v">${player.level}</span></div>
+    <div class="pause-row"><span>Slices earned</span><span class="v">${gameState.slicesEarned || 0} 🍕</span></div>
+  `;
+  const dmgPct = Math.round((player.damageMult - 1) * 100);
+  const cdPct  = Math.round((1 - player.cooldownMult) * 100);
+  const spdPct = Math.round((player.baseSpeed / CFG.PLAYER_SPEED - 1) * 100);
+  document.getElementById('stage-clear-character').innerHTML = `
+    <div class="pause-row"><span>HP</span><span class="v">${Math.ceil(player.hp)}/${player.maxHp}</span></div>
+    <div class="pause-row"><span>Damage</span><span class="v">${dmgPct >= 0 ? '+' : ''}${dmgPct}%</span></div>
+    <div class="pause-row"><span>Cooldown</span><span class="v">-${cdPct}%</span></div>
+    <div class="pause-row"><span>Speed</span><span class="v">${spdPct >= 0 ? '+' : ''}${spdPct}%</span></div>
+    <div class="pause-row"><span>Crit</span><span class="v">${Math.round(player.critChance * 100)}% / x${player.critMult.toFixed(1)}</span></div>
+    <div class="pause-row"><span>Armor</span><span class="v">${player.armor}</span></div>
+  `;
+  overlay.classList.remove('hidden');
+}
+
 export function closePauseMenu() {
   if (gameState.state !== 'paused') return;
   document.getElementById('pause-screen').classList.add('hidden');
@@ -1605,6 +1656,24 @@ export function initButtons() {
 
   document.getElementById('menu-pause-btn').addEventListener('click', () => {
     document.getElementById('pause-screen').classList.add('hidden');
+    document.getElementById('hud').style.display = 'none';
+    document.getElementById('start-screen').classList.remove('hidden');
+    gameState.state = 'start';
+    if (document.pointerLockElement) document.exitPointerLock();
+    syncSliceDisplays();
+  });
+
+  // Stage-clear intermission: continue advances, quit goes to main menu.
+  document.getElementById('stage-continue-btn').addEventListener('click', () => {
+    document.getElementById('stage-clear-screen').classList.add('hidden');
+    gameState.state = 'playing';
+    if (_resumeTimersFn) _resumeTimersFn(); // re-arm any boss timers we paused
+    if (isMobile()) tryEnterFullscreen();
+    if (!isMobile()) renderer.domElement.requestPointerLock();
+    if (_advanceStageFn) _advanceStageFn();
+  });
+  document.getElementById('stage-quit-btn').addEventListener('click', () => {
+    document.getElementById('stage-clear-screen').classList.add('hidden');
     document.getElementById('hud').style.display = 'none';
     document.getElementById('start-screen').classList.remove('hidden');
     gameState.state = 'start';
