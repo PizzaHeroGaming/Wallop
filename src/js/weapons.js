@@ -1,4 +1,4 @@
-import { scene, acquirePtLight, releasePtLight } from './renderer.js?v=f036d5b';
+import { scene, acquirePtLight, releasePtLight } from './renderer.js?v=02bc490';
 import { player, enemies, projectiles, orbitals, auraInstances,
          spawnProjectile, spawnParticle, spawnSmokeCloud,
          makeSparkMesh, makeFireballMesh, makeBoomerangMesh,
@@ -6,9 +6,9 @@ import { player, enemies, projectiles, orbitals, auraInstances,
          _cloneWeaponMesh,
          _thunderWandMesh, _thunderWandAngle, set_thunderWandMesh, set_thunderWandAngle,
          _staffMesh, _staffAngle, set_staffMesh, set_staffAngle,
-       } from './entities.js?v=f036d5b';
-import { clamp, rand } from './utils.js?v=f036d5b';
-import { cam } from './state.js?v=f036d5b';
+       } from './entities.js?v=02bc490';
+import { clamp, rand } from './utils.js?v=02bc490';
+import { cam } from './state.js?v=02bc490';
 
 // damageEnemy is injected from game.js (circular dep breaker)
 let _damageEnemy = null;
@@ -1367,6 +1367,10 @@ defWeapon('shadow_slice', {
 // ============================================================
 
 // Rapid-fire meatball spray
+// Shared meatball assets — re-used across every burst shot so we don't allocate
+// fresh geometry/material 8+ times per second.
+const _MEATBALL_GEO = new THREE.SphereGeometry(0.22, 8, 6);
+const _MEATBALL_MAT = new THREE.MeshPhongMaterial({ color: 0x7a3a14, flatShading: true, shininess: 8 });
 defWeapon('meatball_minigun', {
   name: 'Meatball Minigun', icon: '🍝',
   desc: 'Rapid-fire meatballs that pierce one enemy. Low damage, very high rate of fire.',
@@ -1397,9 +1401,10 @@ defWeapon('meatball_minigun', {
           const dx = t.pos.x - player.pos.x, dz = t.pos.z - player.pos.z;
           const d = Math.hypot(dx, dz) || 1;
           const spread = (Math.random() - 0.5) * 0.25;
-          const mesh = makeBoneMesh(); mesh.scale.setScalar(0.28);
-          mesh.material = mesh.material.clone();
-          mesh.material.color.setHex(0xcc4400);
+          // NOTE: previous build used makeBoneMesh()/makePizzaMesh() which returns
+          // a THREE.Group (no .material) — calling .material.clone() threw and the
+          // entire weapon silently no-op'd. Use a real sphere meatball mesh.
+          const mesh = new THREE.Mesh(_MEATBALL_GEO, _MEATBALL_MAT);
           spawnProjectile({ pos: player.pos.clone().add(new THREE.Vector3(0, 1.0, 0)),
             vel: new THREE.Vector3((dx/d + spread)*18, 0.1, (dz/d + spread)*18),
             damage: dmg, radius: 0.22,
