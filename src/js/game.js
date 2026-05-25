@@ -1,6 +1,6 @@
 // game.js — core game logic: damageEnemy, update loop, player movement, spawning
 // Imports (acyclic — game.js is the top of the dep graph among game modules):
-import { scene, camera, renderer, composer, sun, clock, isMobile, tryEnterFullscreen, releasePtLight, setRendererArena } from './renderer.js?v=bdc6c4c';
+import { scene, camera, renderer, composer, sun, clock, isMobile, tryEnterFullscreen, releasePtLight, setRendererArena } from './renderer.js?v=01c0e04';
 import {
   player,
   playerMixer, playerIdleAction, playerWalkAction, playerRunAction,
@@ -19,17 +19,17 @@ import {
   updateShieldOrbital, updateParticles,
   setDamageEnemyCb, setOnLevelUpReady,
   spawnGold, spawnSmokeCloud, makeEnemyMesh, ENEMY_DEFS,
-} from './entities.js?v=bdc6c4c';
-import { WEAPONS, ARMOR, TOMES, setDamageEnemyForWeapons, rebuildOrbits } from './weapons.js?v=bdc6c4c';
+} from './entities.js?v=01c0e04';
+import { WEAPONS, ARMOR, TOMES, setDamageEnemyForWeapons, rebuildOrbits } from './weapons.js?v=01c0e04';
 import {
   gameState, cam,
-} from './state.js?v=bdc6c4c';
-import { CFG, STAGE_MULTS, DIFFICULTIES } from './config.js?v=bdc6c4c';
-import { Profile, ARENAS, CHALLENGES } from './profile.js?v=bdc6c4c';
-import { groundHeight, resolveSolids, setTerrainArena } from './terrain.js?v=bdc6c4c';
-import { setWorldArena } from './world.js?v=bdc6c4c';
-import { killMesh, clamp, rand, tmp, tmp2, flatPhong } from './utils.js?v=bdc6c4c';
-import { Audio } from './audio.js?v=bdc6c4c';
+} from './state.js?v=01c0e04';
+import { CFG, STAGE_MULTS, DIFFICULTIES } from './config.js?v=01c0e04';
+import { Profile, ARENAS, CHALLENGES } from './profile.js?v=01c0e04';
+import { groundHeight, resolveSolids, setTerrainArena } from './terrain.js?v=01c0e04';
+import { setWorldArena } from './world.js?v=01c0e04';
+import { killMesh, clamp, rand, tmp, tmp2, flatPhong } from './utils.js?v=01c0e04';
+import { Audio } from './audio.js?v=01c0e04';
 import {
   showDamage, showAlert, updateBossArrow, updateLoadoutDisplay,
   syncSliceDisplays, triggerGameOver,
@@ -42,7 +42,7 @@ import {
   showStageClearScreen, setAdvanceStageCb, clearPendingStageClear,
   initUI,
   addCameraShake,
-} from './ui.js?v=bdc6c4c';
+} from './ui.js?v=01c0e04';
 
 // Player animation state (module-level so it persists across frames)
 let _animState = 'idle';

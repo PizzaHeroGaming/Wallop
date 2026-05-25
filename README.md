@@ -144,11 +144,15 @@ Tome of Time ⏳ (slows ALL enemies briefly when you take damage).
 | Arena | Unlock | Theme | Inner-arena obstacles |
 |---|---|---|---|
 | 🌲 Pepperoni Pines | default | Lush green forest | None (beginner-friendly) |
-| 🍂 Sundried Slopes | beat Pepperoni stage 3 on Normal+ | Warm dry autumn earth | 16 sandstone boulders scattered for cover |
-| 🧊 Frostbite Glacier | beat Sundried stage 3 on Normal+ | Icy mid-tone blue snow | 22 tall ice spires forming chokepoints |
+| 🍂 Sundried Slopes | beat Pepperoni stage 3 on Normal+ | Warm dry autumn earth | 26 sandstone boulders scattered to the arena edge |
+| 🧊 Frostbite Glacier | beat Sundried stage 3 on Normal+ | Icy mid-tone blue snow | 34 tall ice spires forming chokepoints |
 
 Each arena swaps the sky, fog, sun/hemisphere lighting, ground texture, scenery
 tint, tree-type weights, distant-hill palette, AND inner-arena terrain.
+Each arena also ships its own **6-enemy roster + 3-boss lineup** from the
+Quaternius CC0 monster pack — 27 unique models, no shared meshes between
+arenas. Bosses use the Big/ size variant while their rank-and-file mooks use
+Blob/ — same creature, very different silhouette.
 
 ---
 
@@ -222,14 +226,46 @@ Slice rewards are capped at ×4.0 total (stage × difficulty combined).
 
 ## Bosses
 
-| Boss | Appears | HP | Gold | Slices | Special |
-|---|---|---|---|---|---|
-| The Sauce Slinger | 3:00 | 480 base | 25 | 5 | Arc sauce lobs with ground-ring telegraphs |
-| The Hammer Chef | 6:00 | 1,200 base | 50 | 10 | Fan of 5 flying cleavers |
-| The Warlord | 10:00 | 2,400 base | 100 | 15 | Homing shockwave + follow-up shot |
+Each arena has its own 3-boss lineup. Damage / HP / loot scales the same across all 3 arenas — only the model and themed name change:
 
-All bosses phase-shift at 50% HP (Enraged) and 25% HP (Desperate).
-**Call the Boss**: spend 50 gold from the pause menu to skip to the Warlord immediately.
+| Tier | Spawn | HP | Gold | Slices | Pepperoni Pines 🌲 | Sundried Slopes 🍂 | Frostbite Glacier 🧊 |
+|---|---|---|---|---|---|---|---|
+| mini1 | 3:00 | 480 | 25 | 5 | Sauce Slinger (Wizard) | Prickly Pie Pusher (Cactoro) | Frostbite Wraith (Ghost) |
+| mini2 | 6:00 | 1,200 | 50 | 10 | Hammer Chef (Big Orc) | Boulder Baker (Goleling) | Avalanche Brute (Big Yeti) |
+| final | 10:00 | 2,400 | 100 | 15 | The Warlord (Big Demon) | Fungal Father (Mushroom King) | Frozen Wyrm (pale-blue Dragon) |
+
+**Phase mechanics** (real, not just visual flair):
+- **ENRAGED** (≤50% HP) — speed ×1.25, ranged fire rate ×1.43 faster, minion summon ×1.25 faster
+- **DESPERATE** (≤25% HP) — speed ×1.55, ranged ×2.0, minion ×1.67. Bigger camera shake.
+
+**Stage-clear intermission**: defeating the stage 1 or 2 boss shows a stats panel (time, kills, gold, level, slices earned this stage) with a Continue button. No more auto-advance — players take their time. If a level-up overlaps with the boss kill, the level-up screen shows first, intermission defers until reward is picked.
+
+**Call the Boss**: spend 50 gold from the pause menu to skip to the final boss immediately.
+
+---
+
+## Audio
+
+`src/js/audio.js` — Web Audio API, lazy AudioContext bootstrap on first user
+gesture (mobile-safe), per-clip + per-channel throttle so a swarm of 50
+pickups doesn't sound like a slot machine.
+
+**SFX** (~15 clips from Kenney UI + RPG packs, both CC0):
+- Pickups (gem / gold / slice — shared rate-limit channel)
+- Chest open, level-up chime, arena-unlock chime
+- Boss spawn (synthesized "danger incoming" stinger: sub-bass impact + rising
+  sawtooth menace tone + 3 siren chirps for the final boss)
+- Player hurt, player death, stage clear, victory
+
+**Music** (`assets/music/stage_{1,2,3}.ogg`):
+- 3 looping tracks keyed off stage, cross-fades 800ms on stage transition
+- HTMLAudioElement (streams from disk — files are 1-3MB)
+- Pauses on screen lock + tab-hide via `visibilitychange`
+
+**Controls** (About menu AND pause menu, synced both ways):
+- Mute toggle + 0–100% volume slider
+- Both persist via `Profile.audioMuted` / `Profile.audioVolume`
+- Default: unmuted at 40% master
 
 ---
 

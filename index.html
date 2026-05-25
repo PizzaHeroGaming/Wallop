@@ -2708,6 +2708,32 @@ window.addEventListener('load', () => {
       <div class="about-heading">PATCH LOG</div>
 
       <details class="patch-entry" open>
+        <summary class="patch-ver">v0.7 — Bosses, Audio &amp; Polish Pass</summary>
+        <ul class="patch-list">
+          <li><strong>9 unique boss models</strong> via Quaternius CC0 pack — each arena now has its own Sauce Slinger / Hammer Chef / Warlord. Pepperoni Pines: Wizard → Big Orc → Big Demon. Sundried Slopes: Big Cactoro → Goleling Evo → Mushroom King. Frostbite Glacier: Ghost → Big Yeti → Frozen Wyrm (pale-blue dragon).</li>
+          <li><strong>18 themed enemy variants</strong> (6 enemy slots × 3 arenas). Mook-vs-boss visual gap: Blob/Orc mooks vs Big/Orc boss feels like "the giant version of those guys I've been killing." 27 models total, 32 MB.</li>
+          <li><strong>Boss phases actually matter:</strong> ENRAGED (50% HP) bumps speed 1.25× + ranged 1.43× faster. DESPERATE (25% HP) bumps to 1.55× speed + 2× ranged + faster minion summons. Pending cooldowns clamp so the change feels immediate, not "boss politely waits 3s before the new faster attack."</li>
+          <li><strong>Multi-boss HP bars</strong> stack when multiple bosses are alive (e.g. Call the Boss while a mini-boss is up). Boss bar moved below the TIME/KILLS/GOLD stat tiles so it doesn't crowd the top.</li>
+          <li><strong>Audio system:</strong> ~15 SFX (level-up, boss spawn, slice pickup, chest open, player hurt, victory, stage clear) via Kenney CC0 packs. 3-stage looping music with 800ms cross-fades between stages. Mute toggle + volume slider in About AND pause menu, persisted to profile.</li>
+          <li><strong>Synth boss-warning stinger</strong> on boss spawn — sub-bass impact + rising sawtooth menace tone, plus 3 siren chirps for the final boss. Pure Web Audio, no asset file.</li>
+          <li><strong>Stage-clear intermission screen:</strong> Killing a stage 1/2 boss no longer auto-advances — players see a stats panel (time, kills, gold, level, slices earned) with a Continue button. Defers if a level-up is pending so reward picking happens first.</li>
+          <li><strong>Pause-aware timers:</strong> Boss shockwave follow-up shots, stage transitions, and the challenge-victory transition all freeze with the pause menu now. No more "I paused right after the boss telegraph and got ambushed by a delayed projectile on resume."</li>
+          <li><strong>7 silently-broken synergies implemented:</strong> Dervish (+60% orbit spin), Saw Blades (orbit hits 2× faster), Lightning Rod (thunder chains for 50%), Eye of the Storm (every 4th bolt = 3× dmg), Aftershock (second shockwave), Ignition (fireball leaves burning ground), Pyromaniac (fireball splits into 4 minis).</li>
+          <li><strong>3 character armors finally do what they advertise:</strong> Iron Hide's +50% damage below 30% HP actually fires. Turbo Soles' dash now damages enemies + heals. Delivery Bag's fake "knockback resist" (player doesn't take knockback in this game) replaced with +0.4 HP/s regen per level.</li>
+          <li><strong>Outer-arena scenery</strong> filled in — the empty 30-unit band between inner groves and the forest wall is gone. Trees, rocks, boulders, and ice spires all extend to within a few units of the arena edge.</li>
+          <li><strong>Cheese Whip animation overhaul:</strong> 240° ground arc with ease-out scale + 6 cheese strands flying outward + per-hit splash. Was previously a single tiny particle puff at the half-range point.</li>
+          <li><strong>PHG splash</strong> now auto-advances after the cinematic settles (3.8s) and cross-fades into the start screen — no tap required. Skip-on-click still works for impatient returning players.</li>
+          <li>Mobile layout audit at 640×360 / 844×390 / 926×428 — start/pause/level-up/stage-clear all fit cleanly on the smallest Android landscape phones. Boss bar capped to clear the loadout.</li>
+          <li>Pixel 8 Pro top-bar bug: TIME/KILLS/GOLD tiles overlapped the HP wrap. Mobile breakpoint bumped 900px → 1024px and left/transform explicitly cleared so the right-anchor actually applies.</li>
+          <li>Music now pauses when the phone screen locks (AudioContext suspends + HTMLAudio element pauses on visibilitychange) — no more battery drain or audio bleed.</li>
+          <li>Bug: Meatball Minigun was silently producing zero projectiles for weeks — <code>makeBoneMesh()</code> returns a Group, and <code>mesh.material.clone()</code> on a Group threw inside the tick loop. Fixed with a proper sphere meatball mesh.</li>
+          <li>Bug: Tome of Echoes (200 slices) and Tome of Time (250 slices) appeared in level-up offers for free — tomes were skipping the unlock-gate check that weapons and armor already had. Now properly slice-locked.</li>
+          <li>Bug: Pressing Esc to close the pause menu sometimes re-opened it instantly — Chrome's pointer-lock cooldown collided with the auto-pause-on-lock-loss path. 1.4s grace window after closePauseMenu now suppresses the spurious re-trigger.</li>
+          <li>Bug: Flying enemies (bees, ghosts, dragons) appeared frozen mid-air when chasing the player — Quaternius Flying/ models use <code>Fast_Flying</code> not <code>Walk</code>, and the regex missed it. Walk-clip lookup now handles all 3 clip-naming conventions.</li>
+        </ul>
+      </details>
+
+      <details class="patch-entry">
         <summary class="patch-ver">v0.6 — Arenas, Roster &amp; UI Overhaul</summary>
         <ul class="patch-list">
           <li><strong>Roster:</strong> 2 new playable characters — Anchovy Archer 🏹 + Stealth Slice 🥷, each with unique weapon + armor (Tomahawk Anchovy / Sniper's Cloak, Shadow Slice / Phantom Hood)</li>
@@ -2955,6 +2981,6 @@ window.addEventListener('load', () => {
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
-<script type="module" src="src/js/main.js?v=bdc6c4c"></script>
+<script type="module" src="src/js/main.js?v=01c0e04"></script>
 </body>
 </html>
