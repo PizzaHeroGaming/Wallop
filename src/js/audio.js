@@ -13,7 +13,7 @@
 //   2. Add an entry to SFX (slug → { file, vol?, throttle?, channel? }).
 //   3. Call Audio.play('your_slug') from wherever the trigger fires.
 
-import { Profile } from './profile.js?v=cecb6ff';
+import { Profile } from './profile.js?v=33e1017';
 
 const _UI_BASE  = 'assets/kenney_ui-audio/Audio/';
 const _RPG_BASE = 'assets/kenney_rpg-audio/Audio/';
@@ -168,6 +168,65 @@ function setVolume(v) {
 function isMuted() { return _muted; }
 function getVolume() { return _volume; }
 
+// ── Synthesized boss-warning stinger ──────────────────────────────────────
+// Web Audio oscillators, no asset file. Three layers blended:
+//   1. Sub-bass impact (sine, 90 → 38 Hz, ~0.3s) — gut-punch kick
+//   2. Rising menace tone (sawtooth + lowpass sweep) — tension
+//   3. (final boss only) three siren chirps (square pulses, rising pitch)
+// Caller picks 'mini' or 'final' tier. Respects mute + master volume.
+function playBossWarning(tier = 'mini') {
+  if (_muted || !_ready || !_ctx) return;
+  const isFinal  = tier === 'final';
+  const t0       = _ctx.currentTime;
+  const duration = isFinal ? 1.8 : 1.2;
+  const peakVol  = (isFinal ? 0.85 : 0.65) * _volume;
+
+  // Layer 1: deep sub-bass impact at t=0
+  const sub = _ctx.createOscillator();
+  sub.type = 'sine';
+  sub.frequency.setValueAtTime(90, t0);
+  sub.frequency.exponentialRampToValueAtTime(38, t0 + 0.30);
+  const subGain = _ctx.createGain();
+  subGain.gain.setValueAtTime(peakVol * 0.95, t0);
+  subGain.gain.exponentialRampToValueAtTime(0.001, t0 + 0.32);
+  sub.connect(subGain).connect(_ctx.destination);
+  sub.start(t0); sub.stop(t0 + 0.35);
+
+  // Layer 2: rising menace tone, filter-swept sawtooth
+  const menace = _ctx.createOscillator();
+  menace.type = 'sawtooth';
+  menace.frequency.setValueAtTime(110, t0 + 0.15);
+  menace.frequency.exponentialRampToValueAtTime(isFinal ? 260 : 200, t0 + duration);
+  const menaceFilt = _ctx.createBiquadFilter();
+  menaceFilt.type = 'lowpass';
+  menaceFilt.frequency.setValueAtTime(350, t0 + 0.15);
+  menaceFilt.frequency.linearRampToValueAtTime(900, t0 + duration);
+  menaceFilt.Q.value = 7;
+  const menaceGain = _ctx.createGain();
+  menaceGain.gain.setValueAtTime(0.001, t0 + 0.15);
+  menaceGain.gain.linearRampToValueAtTime(peakVol * 0.55, t0 + duration - 0.15);
+  menaceGain.gain.exponentialRampToValueAtTime(0.001, t0 + duration);
+  menace.connect(menaceFilt).connect(menaceGain).connect(_ctx.destination);
+  menace.start(t0 + 0.15); menace.stop(t0 + duration + 0.05);
+
+  // Layer 3 (final only): three rising siren chirps
+  if (isFinal) {
+    const chirpFreqs = [440, 520, 620];
+    for (let i = 0; i < chirpFreqs.length; i++) {
+      const beat = _ctx.createOscillator();
+      beat.type = 'square';
+      const beatT = t0 + 0.35 + i * 0.22;
+      beat.frequency.setValueAtTime(chirpFreqs[i], beatT);
+      const beatGain = _ctx.createGain();
+      beatGain.gain.setValueAtTime(0.0, beatT);
+      beatGain.gain.linearRampToValueAtTime(peakVol * 0.35, beatT + 0.025);
+      beatGain.gain.exponentialRampToValueAtTime(0.001, beatT + 0.16);
+      beat.connect(beatGain).connect(_ctx.destination);
+      beat.start(beatT); beat.stop(beatT + 0.18);
+    }
+  }
+}
+
 // ── Music: looping background track keyed off arena slug ──
 // Uses HTMLAudioElement (not Web Audio) so the browser can stream from disk
 // rather than fully decode upfront — music files are large (~1-3 MB each).
@@ -266,4 +325,5 @@ export const Audio = {
   setVolume: _setVolumeMusicAware,
   isMuted, getVolume,
   playMusic, stopMusic,
+  playBossWarning,
 };

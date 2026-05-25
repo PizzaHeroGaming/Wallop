@@ -1,6 +1,6 @@
 // game.js — core game logic: damageEnemy, update loop, player movement, spawning
 // Imports (acyclic — game.js is the top of the dep graph among game modules):
-import { scene, camera, renderer, composer, sun, clock, isMobile, tryEnterFullscreen, releasePtLight, setRendererArena } from './renderer.js?v=cecb6ff';
+import { scene, camera, renderer, composer, sun, clock, isMobile, tryEnterFullscreen, releasePtLight, setRendererArena } from './renderer.js?v=33e1017';
 import {
   player,
   playerMixer, playerIdleAction, playerWalkAction, playerRunAction,
@@ -19,17 +19,17 @@ import {
   updateShieldOrbital, updateParticles,
   setDamageEnemyCb, setOnLevelUpReady,
   spawnGold, spawnSmokeCloud, makeEnemyMesh, ENEMY_DEFS,
-} from './entities.js?v=cecb6ff';
-import { WEAPONS, ARMOR, TOMES, setDamageEnemyForWeapons, rebuildOrbits } from './weapons.js?v=cecb6ff';
+} from './entities.js?v=33e1017';
+import { WEAPONS, ARMOR, TOMES, setDamageEnemyForWeapons, rebuildOrbits } from './weapons.js?v=33e1017';
 import {
   gameState, cam,
-} from './state.js?v=cecb6ff';
-import { CFG, STAGE_MULTS, DIFFICULTIES } from './config.js?v=cecb6ff';
-import { Profile, ARENAS, CHALLENGES } from './profile.js?v=cecb6ff';
-import { groundHeight, resolveSolids, setTerrainArena } from './terrain.js?v=cecb6ff';
-import { setWorldArena } from './world.js?v=cecb6ff';
-import { killMesh, clamp, rand, tmp, tmp2, flatPhong } from './utils.js?v=cecb6ff';
-import { Audio } from './audio.js?v=cecb6ff';
+} from './state.js?v=33e1017';
+import { CFG, STAGE_MULTS, DIFFICULTIES } from './config.js?v=33e1017';
+import { Profile, ARENAS, CHALLENGES } from './profile.js?v=33e1017';
+import { groundHeight, resolveSolids, setTerrainArena } from './terrain.js?v=33e1017';
+import { setWorldArena } from './world.js?v=33e1017';
+import { killMesh, clamp, rand, tmp, tmp2, flatPhong } from './utils.js?v=33e1017';
+import { Audio } from './audio.js?v=33e1017';
 import {
   showDamage, showAlert, updateBossArrow, updateLoadoutDisplay,
   syncSliceDisplays, triggerGameOver,
@@ -41,7 +41,7 @@ import {
   setDamageEnemyForUI, setResetGameCb, setJumpDashCbs, setCallBossCb,
   initUI,
   addCameraShake,
-} from './ui.js?v=cecb6ff';
+} from './ui.js?v=33e1017';
 
 // Player animation state (module-level so it persists across frames)
 let _animState = 'idle';
@@ -407,7 +407,9 @@ function spawnBoss(tier = 'final') {
   enemies.push(enemy);
   spawnParticle(enemy.pos.clone().setY(2), cfg.color, 24, 11);
   spawnParticle(enemy.pos.clone().setY(0.5), 0xffd23f, 16, 8);
-  Audio.play(tier === 'final' ? 'boss_spawn_big' : 'boss_spawn_mini');
+  // Synthesized "danger incoming" stinger — sub-bass + rising menace tone,
+  // plus siren chirps for the final boss. Lives in audio.js, no asset file.
+  Audio.playBossWarning(tier === 'final' ? 'final' : 'mini');
 }
 
 // ============================================================
