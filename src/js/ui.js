@@ -15,7 +15,7 @@
 //   keyboard/mobile → tryJump, tryDash (game.js): use _jumpFn/_dashFn, set via setJumpDashCbs()
 //   openChest → presentChoiceScreen (this file): setOpenChestDeps is called in initUI()
 
-import { camera, renderer, isMobile, tryEnterFullscreen } from './renderer.js?v=52bec8b';
+import { camera, renderer, isMobile, tryEnterFullscreen } from './renderer.js?v=9afab13';
 import {
   player, enemies,
   tryInteract, setOpenChestDeps,
@@ -23,17 +23,17 @@ import {
   spawnParticle,
   CHARACTER_MODELS, _animClips, loadCharAsset,
   _applyCharacterModel,
-} from './entities.js?v=52bec8b';
-import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=52bec8b';
-import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=52bec8b';
-import { gameState, cam } from './state.js?v=52bec8b';
-import { Audio } from './audio.js?v=52bec8b';
-import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=52bec8b';
+} from './entities.js?v=9afab13';
+import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=9afab13';
+import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=9afab13';
+import { gameState, cam } from './state.js?v=9afab13';
+import { Audio } from './audio.js?v=9afab13';
+import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=9afab13';
 // VERSION lives on CFG.VERSION too — reading via property access doesn't
 // blow up if a cached older config.js is loaded without the named export
 const VERSION = CFG.VERSION || '0.0.0';
-import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=52bec8b';
-import { tmp, tmp2 } from './utils.js?v=52bec8b';
+import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=9afab13';
+import { tmp, tmp2 } from './utils.js?v=9afab13';
 
 // ============================================================
 // INJECTION CALLBACKS (break circular deps)
@@ -87,9 +87,8 @@ const hudEls = {
   killsVal:   document.getElementById('kills-val'),
   dashBtn:    document.getElementById('dash-btn'),
   bossWrap:   document.getElementById('boss-wrap'),
-  bossName:   document.getElementById('boss-name'),
-  bossFill:   document.getElementById('boss-fill'),
-  bossText:   document.getElementById('boss-text'),
+  // bossName/bossFill/bossText IDs are gone — we render one .boss-row per
+  // alive boss inside #boss-wrap (see _bossRows below).
 };
 let _hudTimer = 0;
 
@@ -241,15 +240,60 @@ export function updateHUD() {
   hudEls.goldVal.textContent  = player.gold;
   hudEls.killsVal.textContent = gameState.kills;
 
-  const boss = enemies.find(e => e.isBoss);
-  if (boss) {
-    hudEls.bossWrap.classList.remove('hidden');
-    hudEls.bossName.textContent = boss.def.name;
-    const bpct = Math.max(0, (boss.hp / boss.maxHp) * 100);
-    hudEls.bossFill.style.width = bpct + '%';
-    hudEls.bossText.textContent = `${Math.ceil(boss.hp)} / ${Math.ceil(boss.maxHp)}`;
-  } else {
+  _reconcileBossBars();
+}
+
+// ── Multi-boss HP bars ──────────────────────────────────────────────────────
+// Stacks one row per alive boss so callBossNow + an existing mini-boss
+// (or any other simultaneous-boss state) both get their own visible bar.
+// Map keys are boss entity references — DOM elements are stable per boss so
+// the CSS width transition stays smooth between frames.
+const _bossRows = new Map(); // boss -> { row, name, fill, text }
+
+function _createBossRow(boss) {
+  const row  = document.createElement('div');
+  row.className = 'boss-row';
+  const name = document.createElement('div');
+  name.className = 'boss-name';
+  const bar  = document.createElement('div');
+  bar.className = 'boss-bar';
+  const fill = document.createElement('div');
+  fill.className = 'boss-fill';
+  const text = document.createElement('div');
+  text.className = 'boss-text';
+  bar.appendChild(fill);
+  bar.appendChild(text);
+  row.appendChild(name);
+  row.appendChild(bar);
+  hudEls.bossWrap.appendChild(row);
+  return { row, name, fill, text };
+}
+
+function _reconcileBossBars() {
+  const alive = enemies.filter(e => e.isBoss);
+  // Remove rows whose boss is no longer alive
+  for (const [boss, els] of _bossRows) {
+    if (!alive.includes(boss)) {
+      els.row.remove();
+      _bossRows.delete(boss);
+    }
+  }
+  if (alive.length === 0) {
     hudEls.bossWrap.classList.add('hidden');
+    return;
+  }
+  hudEls.bossWrap.classList.remove('hidden');
+  // Ensure each alive boss has a row + update its bar
+  for (const boss of alive) {
+    let els = _bossRows.get(boss);
+    if (!els) {
+      els = _createBossRow(boss);
+      _bossRows.set(boss, els);
+    }
+    els.name.textContent = boss.def.name;
+    const pct = Math.max(0, (boss.hp / boss.maxHp) * 100);
+    els.fill.style.width = pct + '%';
+    els.text.textContent = `${Math.ceil(boss.hp)} / ${Math.ceil(boss.maxHp)}`;
   }
 }
 

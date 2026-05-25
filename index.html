@@ -182,22 +182,26 @@
     z-index: 11;
   }
   #boss-wrap.hidden { display: none; }
-  #boss-name {
+  /* Each boss gets its own row inside #boss-wrap. Rows stack vertically
+     with a gap between them when multiple bosses are alive at once. */
+  .boss-row { margin-bottom: 10px; }
+  .boss-row:last-child { margin-bottom: 0; }
+  .boss-name {
     font-family: 'Press Start 2P', monospace; font-size: 11px;
     color: var(--hot); text-align: center;
     text-shadow: 2px 2px 0 #000;
     letter-spacing: 2px; margin-bottom: 6px;
   }
-  #boss-bar {
+  .boss-bar {
     position: relative; height: 18px; background: #000;
     border: 2px solid #000; overflow: hidden;
   }
-  #boss-fill {
+  .boss-fill {
     position: absolute; inset: 0; width: 100%;
     background: linear-gradient(180deg, #ff6b8a 0%, var(--hot) 50%, #560818 100%);
     transition: width 0.18s ease-out;
   }
-  #boss-text {
+  .boss-text {
     position: absolute; inset: 0; text-align: center; line-height: 18px;
     font-family: 'Press Start 2P', monospace; font-size: 9px; color: white;
     text-shadow: 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000;
@@ -2418,11 +2422,10 @@ window.addEventListener('load', () => {
 
 <!-- HUD -->
 <div id="hud">
-  <!-- Boss HP bar (only visible during boss fight) -->
-  <div id="boss-wrap" class="hidden">
-    <div id="boss-name">THE WARLORD</div>
-    <div id="boss-bar"><div id="boss-fill"></div><div id="boss-text"></div></div>
-  </div>
+  <!-- Boss HP bars — one row per alive boss, stacked vertically.
+       Children injected by ui.js updateHUD; structure inside the wrap is
+       managed by JS so multiple simultaneous bosses each get their own bar. -->
+  <div id="boss-wrap" class="hidden"></div>
   <div id="hp-wrap" class="hud-bar-wrap">
     <div id="hp-bar"><div id="hp-fill"></div><div id="shield-fill"></div><div id="hp-text">100 / 100</div></div>
   </div>
@@ -2886,6 +2889,6 @@ window.addEventListener('load', () => {
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
-<script type="module" src="src/js/main.js?v=a01d46c"></script>
+<script type="module" src="src/js/main.js?v=9afab13"></script>
 </body>
 </html>
