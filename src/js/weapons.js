@@ -1,4 +1,4 @@
-import { scene, acquirePtLight, releasePtLight } from './renderer.js?v=8fe0223';
+import { scene, acquirePtLight, releasePtLight } from './renderer.js?v=88bd8a7';
 import { player, enemies, projectiles, orbitals, auraInstances,
          spawnProjectile, spawnParticle, spawnSmokeCloud,
          makeSparkMesh, makeFireballMesh, makeBoomerangMesh,
@@ -6,9 +6,9 @@ import { player, enemies, projectiles, orbitals, auraInstances,
          _cloneWeaponMesh,
          _thunderWandMesh, _thunderWandAngle, set_thunderWandMesh, set_thunderWandAngle,
          _staffMesh, _staffAngle, set_staffMesh, set_staffAngle,
-       } from './entities.js?v=8fe0223';
-import { clamp, rand } from './utils.js?v=8fe0223';
-import { cam } from './state.js?v=8fe0223';
+       } from './entities.js?v=88bd8a7';
+import { clamp, rand } from './utils.js?v=88bd8a7';
+import { cam } from './state.js?v=88bd8a7';
 
 // damageEnemy is injected from game.js (circular dep breaker)
 let _damageEnemy = null;
@@ -292,24 +292,49 @@ defWeapon('thunder', {
     w.cd = 1.6 * (w.cdMod || 1) * player.cooldownMult;
     const bolts = w.bolts || 1;
     const seen = new Set();
+    // Eye of the Storm synergy — every 4th bolt across all firings is a megabolt
+    const synMega  = player.synergies && player.synergies.thunderMega;
+    const synChain = player.synergies && player.synergies.thunderChain;
     for (let b = 0; b < bolts; b++) {
       const list = enemies.filter(e => !seen.has(e) && e.pos.distanceTo(player.pos) < 22);
       if (list.length === 0) break;
       const target = list[Math.floor(Math.random() * list.length)];
       seen.add(target);
-      const lineGeo = new THREE.CylinderGeometry(0.12, 0.12, 18, 6);
-      const lineMat = new THREE.MeshBasicMaterial({ color: 0xfff04a, blending: THREE.AdditiveBlending, depthWrite: false });
+      // Mega counter increments per-bolt; every 4th gets the triple-damage treatment
+      w._megaCounter = (w._megaCounter || 0) + 1;
+      const isMega = synMega && (w._megaCounter % 4 === 0);
+      const dmgMult = isMega ? 3 : 1;
+      const boltRadius = isMega ? 0.30 : 0.12;
+      const particleR  = isMega ? 14 : 8;
+      const lineGeo = new THREE.CylinderGeometry(boltRadius, boltRadius, 18, 6);
+      const lineMat = new THREE.MeshBasicMaterial({ color: isMega ? 0xffe14a : 0xfff04a, blending: THREE.AdditiveBlending, depthWrite: false });
       const bolt = new THREE.Mesh(lineGeo, lineMat);
       bolt.position.copy(target.pos);
       bolt.position.y = 9;
       scene.add(bolt);
-      const boltLight = acquirePtLight(0xfff04a, 3.0, 12);
+      const boltLight = acquirePtLight(0xfff04a, isMega ? 5.0 : 3.0, isMega ? 18 : 12);
       if (boltLight) boltLight.light.position.set(target.pos.x, target.pos.y + 1, target.pos.z);
       auraInstances.push({ mesh: bolt, life: 0.18, maxLife: 0.18, ptLight: boltLight });
       const isCrit = Math.random() < player.critChance + 0.1;
-      const dmg = (isCrit ? w.dmg * player.critMult : w.dmg) * player.damageMult;
+      const dmg = (isCrit ? w.dmg * player.critMult : w.dmg) * player.damageMult * dmgMult;
       damageEnemy(target, dmg, isCrit, w.id);
-      spawnParticle(target.pos.clone().setY(target.pos.y + 1), 0xfff04a, 12, 8);
+      spawnParticle(target.pos.clone().setY(target.pos.y + 1), 0xfff04a, isMega ? 24 : 12, particleR);
+      // Lightning Rod synergy — chain to nearest non-target enemy for 50% dmg
+      if (synChain) {
+        let nearest = null, nearestD2 = 36; // 6u radius
+        for (const e of enemies) {
+          if (e === target || seen.has(e)) continue;
+          const dx = e.pos.x - target.pos.x, dz = e.pos.z - target.pos.z;
+          const d2 = dx*dx + dz*dz;
+          if (d2 < nearestD2) { nearestD2 = d2; nearest = e; }
+        }
+        if (nearest) {
+          damageEnemy(nearest, dmg * 0.5, false, w.id);
+          // Quick visual: chain arc particle between target and nearest
+          const mid = new THREE.Vector3().lerpVectors(target.pos, nearest.pos, 0.5).setY(target.pos.y + 0.8);
+          spawnParticle(mid, 0xb0e0ff, 8, 3.0);
+        }
+      }
     }
   },
 });
@@ -334,33 +359,46 @@ defWeapon('shock', {
     return map[n] || 'maxed';
   },
   tick: (w, dt) => {
+    // Aftershock synergy queue — fires a smaller follow-up 0.35s after the main pop
+    if (w._aftershockIn != null) {
+      w._aftershockIn -= dt;
+      if (w._aftershockIn <= 0) {
+        w._aftershockIn = null;
+        _fireShock(w, w.radius * player.projectileMult * 0.65, w.dmg * player.damageMult * 0.5);
+      }
+    }
     w.cd -= dt;
     if (w.cd > 0) return;
     w.cd = 3.0 * (w.cdMod || 1) * player.cooldownMult;
-    const r = w.radius * player.projectileMult;
-    const ring = new THREE.Mesh(
-      new THREE.RingGeometry(0.4, 0.6, 28),
-      new THREE.MeshBasicMaterial({ color: 0x42c9f5, transparent: true, opacity: 0.8, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false })
-    );
-    ring.rotation.x = -Math.PI / 2;
-    ring.position.copy(player.pos);
-    ring.position.y = 0.1;
-    scene.add(ring);
-    auraInstances.push({ mesh: ring, life: 0.45, maxLife: 0.45, expandTo: r });
-    const dmg = w.dmg * player.damageMult;
-    for (const e of enemies) {
-      const d = e.pos.distanceTo(player.pos);
-      if (d < r + e.radius) {
-        const isCrit = Math.random() < player.critChance;
-        const finalDmg = isCrit ? dmg * player.critMult : dmg;
-        damageEnemy(e, finalDmg, isCrit, w.id);
-        const dir = new THREE.Vector3().subVectors(e.pos, player.pos).setY(0).normalize();
-        e.knockback.add(dir.multiplyScalar(8 * player.knockback));
-      }
-    }
-    spawnParticle(player.pos, 0x42c9f5, 14, 9);
+    _fireShock(w, w.radius * player.projectileMult, w.dmg * player.damageMult);
+    // Schedule the aftershock if the synergy is active
+    if (player.synergies && player.synergies.shockAfter) w._aftershockIn = 0.35;
   },
 });
+
+// Shared shockwave emitter — used by primary blast and the Aftershock follow-up.
+function _fireShock(w, r, dmg) {
+  const ring = new THREE.Mesh(
+    new THREE.RingGeometry(0.4, 0.6, 28),
+    new THREE.MeshBasicMaterial({ color: 0x42c9f5, transparent: true, opacity: 0.8, side: THREE.DoubleSide, blending: THREE.AdditiveBlending, depthWrite: false })
+  );
+  ring.rotation.x = -Math.PI / 2;
+  ring.position.copy(player.pos);
+  ring.position.y = 0.1;
+  scene.add(ring);
+  auraInstances.push({ mesh: ring, life: 0.45, maxLife: 0.45, expandTo: r });
+  for (const e of enemies) {
+    const d = e.pos.distanceTo(player.pos);
+    if (d < r + e.radius) {
+      const isCrit = Math.random() < player.critChance;
+      const finalDmg = isCrit ? dmg * player.critMult : dmg;
+      damageEnemy(e, finalDmg, isCrit, w.id);
+      const dir = new THREE.Vector3().subVectors(e.pos, player.pos).setY(0).normalize();
+      e.knockback.add(dir.multiplyScalar(8 * player.knockback));
+    }
+  }
+  spawnParticle(player.pos, 0x42c9f5, 14, 9);
+}
 
 // 6. FIREBALL
 defWeapon('fire', {
@@ -1153,14 +1191,16 @@ defWeapon('blizzard', {
     w.cd -= dt;
     if (w.cd > 0) return;
     w.cd = 0.45;
-    const radius = (w.radius || 4.5) * player.aoeMult;
+    // Defensive `|| 1` guards — early-run loadouts can leave these undefined
+    // if the player respec'd before stat-upgrade defaults reapplied.
+    const radius = (w.radius || 4.5) * (player.aoeMult || 1);
     const dmg = Math.round(10 * (w.dmgMult || 1) * player.damageMult);
     const r2 = radius * radius;
     for (const e of enemies) {
       const dx = e.pos.x - player.pos.x, dz = e.pos.z - player.pos.z;
       if (dx*dx + dz*dz < r2) {
         damageEnemy(e, dmg, false, w.id);
-        e.slowTimer = Math.max(e.slowTimer || 0, 2.0 * player.durationMult);
+        e.slowTimer = Math.max(e.slowTimer || 0, 2.0 * (player.durationMult || 1));
         e.slowMult = Math.min(e.slowMult || 1, 0.38);
         spawnParticle(e.pos.clone().setY(0.8), 0x88ccff, 2, 2.5);
       }
@@ -1504,6 +1544,10 @@ defWeapon('cheese_whip', {
   },
 });
 
+// Shared green-spark assets for the olive_railgun beam visual — avoids
+// cloning a fresh material every time the beam fires.
+const _OLIVE_GEO = new THREE.OctahedronGeometry(0.3, 0);
+const _OLIVE_MAT = new THREE.MeshBasicMaterial({ color: 0x44ff44 });
 // Slow powerful piercing beam
 defWeapon('olive_railgun', {
   name: 'Olive Railgun', icon: '🫒',
@@ -1542,9 +1586,10 @@ defWeapon('olive_railgun', {
         damageEnemy(e, dmg, Math.random() < player.critChance * 2, w.id);
       }
     }
-    // Visual: fire a fast thin spark projectile for effect
-    const mesh = makeSparkMesh(); mesh.scale.set(0.2, 0.2, 3.0);
-    mesh.material = mesh.material.clone(); mesh.material.color.setHex(0x44ff44);
+    // Visual: fire a fast thin green-spark projectile for effect.
+    // Uses shared _OLIVE_GEO/_OLIVE_MAT so we don't allocate per-shot.
+    const mesh = new THREE.Mesh(_OLIVE_GEO, _OLIVE_MAT);
+    mesh.scale.set(0.2, 0.2, 3.0);
     spawnProjectile({ pos: player.pos.clone().add(new THREE.Vector3(0, 1.2, 0)),
       vel: new THREE.Vector3(nx*30, 0, nz*30), damage: 0,
       radius: 0.1, pierce: 99, lifetime: 0.8, mesh, knockback: 0 });

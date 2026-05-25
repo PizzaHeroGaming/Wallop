@@ -1,6 +1,6 @@
 // game.js — core game logic: damageEnemy, update loop, player movement, spawning
 // Imports (acyclic — game.js is the top of the dep graph among game modules):
-import { scene, camera, renderer, composer, sun, clock, isMobile, tryEnterFullscreen, releasePtLight, setRendererArena } from './renderer.js?v=8fe0223';
+import { scene, camera, renderer, composer, sun, clock, isMobile, tryEnterFullscreen, releasePtLight, setRendererArena } from './renderer.js?v=88bd8a7';
 import {
   player,
   playerMixer, playerIdleAction, playerWalkAction, playerRunAction,
@@ -19,17 +19,17 @@ import {
   updateShieldOrbital, updateParticles,
   setDamageEnemyCb, setOnLevelUpReady,
   spawnGold, spawnSmokeCloud, makeEnemyMesh, ENEMY_DEFS,
-} from './entities.js?v=8fe0223';
-import { WEAPONS, ARMOR, TOMES, setDamageEnemyForWeapons, rebuildOrbits } from './weapons.js?v=8fe0223';
+} from './entities.js?v=88bd8a7';
+import { WEAPONS, ARMOR, TOMES, setDamageEnemyForWeapons, rebuildOrbits } from './weapons.js?v=88bd8a7';
 import {
   gameState, cam,
-} from './state.js?v=8fe0223';
-import { CFG, STAGE_MULTS, DIFFICULTIES } from './config.js?v=8fe0223';
-import { Profile, ARENAS, CHALLENGES } from './profile.js?v=8fe0223';
-import { groundHeight, resolveSolids, setTerrainArena } from './terrain.js?v=8fe0223';
-import { setWorldArena } from './world.js?v=8fe0223';
-import { killMesh, clamp, rand, tmp, tmp2, flatPhong } from './utils.js?v=8fe0223';
-import { Audio } from './audio.js?v=8fe0223';
+} from './state.js?v=88bd8a7';
+import { CFG, STAGE_MULTS, DIFFICULTIES } from './config.js?v=88bd8a7';
+import { Profile, ARENAS, CHALLENGES } from './profile.js?v=88bd8a7';
+import { groundHeight, resolveSolids, setTerrainArena } from './terrain.js?v=88bd8a7';
+import { setWorldArena } from './world.js?v=88bd8a7';
+import { killMesh, clamp, rand, tmp, tmp2, flatPhong } from './utils.js?v=88bd8a7';
+import { Audio } from './audio.js?v=88bd8a7';
 import {
   showDamage, showAlert, updateBossArrow, updateLoadoutDisplay,
   syncSliceDisplays, triggerGameOver,
@@ -41,7 +41,7 @@ import {
   setDamageEnemyForUI, setResetGameCb, setJumpDashCbs, setCallBossCb,
   initUI,
   addCameraShake,
-} from './ui.js?v=8fe0223';
+} from './ui.js?v=88bd8a7';
 
 // Player animation state (module-level so it persists across frames)
 let _animState = 'idle';
@@ -591,6 +591,10 @@ function _stripHalfItems() {
   player.timeSlowDur   = 0;
   player.timeSlowMult  = 0.5;
   player.turboDash     = 0;
+  player.extraProjectiles = 0; // stat-upgrade adders need resetting on stage strip
+  player.hasBerserker  = false; // Iron Hide re-applies via armor.upgrade replay
+  // Reset all synergy flags so half-stripped loadouts don't carry orphaned bonuses
+  player.synergies = {};
 
   // Re-apply persistent boosts (same as resetGame)
   const _bl = slug => Profile.getBoostLevel(slug);
@@ -1405,6 +1409,37 @@ function updateProjectiles(dt) {
           ring.position.y = 0.2;
           scene.add(ring);
           auraInstances.push({ mesh: ring, life: 0.3, maxLife: 0.3 });
+          // ── Fire synergies (only fire when the exploding projectile is a fireball
+          // and is NOT itself a split-spawned mini, to avoid recursive cascades) ──
+          if (p.weaponId === 'fire' && !p.isEcho && player.synergies) {
+            // Ignition: leave a burning ground that damages enemies inside for ~3s.
+            if (player.synergies.fireBurn) {
+              spawnSmokeCloud(e.pos.clone(), p.damage * 0.18, p.aoe * 0.9, 3.0, 0, 'fire');
+            }
+            // Pyromaniac: spawn 4 mini-fireballs in cardinal directions on impact.
+            if (player.synergies.fireSplit) {
+              const dirs = [[1,0],[-1,0],[0,1],[0,-1]];
+              const miniMesh = () => {
+                const g = new THREE.Mesh(
+                  new THREE.SphereGeometry(0.22, 8, 6),
+                  new THREE.MeshBasicMaterial({ color: 0xff8b3a })
+                );
+                return g;
+              };
+              for (const [dx2, dz2] of dirs) {
+                spawnProjectile({
+                  pos: e.pos.clone().setY(e.pos.y + 0.6),
+                  vel: new THREE.Vector3(dx2 * 14, 0, dz2 * 14),
+                  damage: p.damage * 0.45,
+                  radius: 0.28, pierce: 0, lifetime: 0.7,
+                  mesh: miniMesh(), knockback: p.knockback * 0.4,
+                  aoe: p.aoe * 0.45, isExplosion: false,
+                  weaponId: 'fire',          // mini-shots are still 'fire' for kill-attribution
+                  isEcho: true,              // suppress echo + further split recursion
+                });
+              }
+            }
+          }
           releasePtLight(p.ptLight);
           killMesh(p.mesh);
           projectiles.splice(i, 1);
@@ -1588,8 +1623,12 @@ function updateOrbitals(dt) {
   const orbitW = player.weapons.find(w => w.id === 'orbit');
   if (!orbitW) return;
   const r   = orbitW.radius * player.projectileMult;
-  const sp  = orbitW.speed;
+  // Dervish synergy — +60% spin speed
+  const speedMult = (player.synergies && player.synergies.orbitSpeed) ? 1.6 : 1.0;
+  const sp  = orbitW.speed * speedMult;
   const dmg = orbitW.dmg * player.damageMult;
+  // Saw Blades synergy — per-enemy hit cooldown halved (hit twice as often)
+  const hitCdBase = (player.synergies && player.synergies.orbitPierce) ? 0.20 : 0.40;
   for (let i = 0; i < orbitals.length; i++) {
     const o = orbitals[i];
     o.angle += sp * dt;
@@ -1605,7 +1644,7 @@ function updateOrbitals(dt) {
         const isCrit   = Math.random() < player.critChance;
         const finalDmg = isCrit ? dmg * player.critMult : dmg;
         damageEnemy(e, finalDmg, isCrit, 'orbit');
-        o.hitCd.set(e, 0.4);
+        o.hitCd.set(e, hitCdBase);
         const dir = new THREE.Vector3().subVectors(e.pos, player.pos).setY(0).normalize();
         e.knockback.add(dir.multiplyScalar(2 * player.knockback));
       }
