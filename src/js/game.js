@@ -1,6 +1,6 @@
 // game.js — core game logic: damageEnemy, update loop, player movement, spawning
 // Imports (acyclic — game.js is the top of the dep graph among game modules):
-import { scene, camera, renderer, composer, sun, clock, isMobile, tryEnterFullscreen, releasePtLight, setRendererArena } from './renderer.js?v=0646da5';
+import { scene, camera, renderer, composer, sun, clock, isMobile, tryEnterFullscreen, releasePtLight, setRendererArena } from './renderer.js?v=bd5ec0f';
 import {
   player,
   playerMixer, playerIdleAction, playerWalkAction, playerRunAction,
@@ -19,17 +19,18 @@ import {
   updateShieldOrbital, updateParticles,
   setDamageEnemyCb, setOnLevelUpReady,
   spawnGold, spawnSmokeCloud, makeEnemyMesh, ENEMY_DEFS,
-} from './entities.js?v=0646da5';
-import { WEAPONS, ARMOR, TOMES, setDamageEnemyForWeapons, rebuildOrbits } from './weapons.js?v=0646da5';
+} from './entities.js?v=bd5ec0f';
+import { WEAPONS, ARMOR, TOMES, setDamageEnemyForWeapons, rebuildOrbits } from './weapons.js?v=bd5ec0f';
+import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=bd5ec0f';
 import {
   gameState, cam,
-} from './state.js?v=0646da5';
-import { CFG, STAGE_MULTS, DIFFICULTIES } from './config.js?v=0646da5';
-import { Profile, ARENAS, CHALLENGES } from './profile.js?v=0646da5';
-import { groundHeight, resolveSolids, setTerrainArena } from './terrain.js?v=0646da5';
-import { setWorldArena } from './world.js?v=0646da5';
-import { killMesh, clamp, rand, tmp, tmp2, flatPhong } from './utils.js?v=0646da5';
-import { Audio } from './audio.js?v=0646da5';
+} from './state.js?v=bd5ec0f';
+import { CFG, STAGE_MULTS, DIFFICULTIES } from './config.js?v=bd5ec0f';
+import { Profile, ARENAS, CHALLENGES } from './profile.js?v=bd5ec0f';
+import { groundHeight, resolveSolids, setTerrainArena } from './terrain.js?v=bd5ec0f';
+import { setWorldArena } from './world.js?v=bd5ec0f';
+import { killMesh, clamp, rand, tmp, tmp2, flatPhong } from './utils.js?v=bd5ec0f';
+import { Audio } from './audio.js?v=bd5ec0f';
 import {
   showDamage, showAlert, updateBossArrow, updateLoadoutDisplay,
   syncSliceDisplays, triggerGameOver,
@@ -42,7 +43,7 @@ import {
   showStageClearScreen, setAdvanceStageCb, clearPendingStageClear,
   initUI,
   addCameraShake,
-} from './ui.js?v=0646da5';
+} from './ui.js?v=bd5ec0f';
 
 // Player animation state (module-level so it persists across frames)
 let _animState = 'idle';
@@ -612,34 +613,42 @@ function updateSpawning(dt) {
 }
 
 // ============================================================
-// STRIP HALF THE PLAYER'S LOADOUT — called on stage advance.
-// Resets stat contributions from armor/tomes and re-applies only
-// the kept items, so the player genuinely loses power.
+// STRIP HALF THE PLAYER'S STAT UPGRADES — called on stage advance.
+// Loadout (weapons / armor / tomes) is preserved intact; only the
+// level-up-picked stat upgrades + synergies get halved. Players keep
+// their weapon investment but lose a chunk of the global multipliers
+// (Bonk Power, Reflexes, Embiggen, Multi, Pierce, Sharp, Brutal etc),
+// the defensive layer they piled on (Tough, Regen, Armor, Shield),
+// and any synergies they cherrypicked.
 // ============================================================
 function _stripHalfItems() {
-  // Pick ~half of each category to keep (minimum 1 weapon always kept)
-  function keepHalf(arr) {
-    if (arr.length <= 1) return [...arr];
-    const keep = Math.ceil(arr.length / 2);
-    const shuffled = [...arr].sort(() => Math.random() - 0.5);
-    return shuffled.slice(0, keep);
-  }
-
   const _charStarters = {
     pizza_hero: 'pizza', frost_baker: 'ice', oven_knight: 'aura', crust_runner: 'boomerang',
     anchovy_archer: 'crossbow', stealth_slice: 'smoke',
   };
   const _charSlug = Profile.get().equippedCharacter || 'pizza_hero';
-  const starterWepId = _charStarters[_charSlug] || 'pizza';
 
-  let keptWeapons = keepHalf(player.weapons);
-  // Always keep the character's starter weapon
-  if (!keptWeapons.find(w => w.id === starterWepId)) {
-    const starter = player.weapons.find(w => w.id === starterWepId);
-    if (starter) keptWeapons.push(starter);
+  // Loadout preserved verbatim — players keep every weapon, armor piece, tome
+  // at its current level. Only stat upgrades + synergies get the haircut.
+  const keptWeapons = [...player.weapons];
+  const keptArmor   = [...player.armor_items];
+  const keptTomes   = [...player.tomes];
+
+  // ── Build the kept-stat-upgrade map by halving the existing pick pool ──
+  // Each entry in statLevels represents N discrete level-up picks. Flatten
+  // to a pick list, shuffle, keep ~half, then re-aggregate into the map.
+  const allPicks = [];
+  const oldStatLevels = player.statLevels || {};
+  for (const [id, count] of Object.entries(oldStatLevels)) {
+    for (let i = 0; i < count; i++) allPicks.push(id);
   }
-  const keptArmor = keepHalf(player.armor_items);
-  const keptTomes  = keepHalf(player.tomes);
+  allPicks.sort(() => Math.random() - 0.5);
+  const keepCount = Math.ceil(allPicks.length / 2);
+  const keptPicks = allPicks.slice(0, keepCount);
+  const newStatLevels = {};
+  for (const id of keptPicks) {
+    newStatLevels[id] = (newStatLevels[id] || 0) + 1;
+  }
 
   // --- Reset all stats that armor/tomes contribute to ---
   // (keep base player.maxHp and player.hp — warding tome re-adds during replay)
@@ -740,12 +749,26 @@ function _stripHalfItems() {
     }
   }
 
-  // Commit stripped arrays
+  // Re-apply the kept stat upgrades — each pick re-runs the upgrade's
+  // apply() function which mutates the player stats (damageMult, etc).
+  // Re-apply synergies the same way (single application sets the flag).
+  for (const [id, count] of Object.entries(newStatLevels)) {
+    const su = STAT_UPGRADES.find(s => s.id === id);
+    if (su) {
+      for (let i = 0; i < count; i++) su.apply();
+      continue;
+    }
+    const sy = SYNERGY_UPGRADES.find(s => s.id === id);
+    if (sy) sy.apply(); // synergies only fire once regardless of count
+  }
+
+  // Commit kept loadout + new stat map
   player.weapons     = keptWeapons;
   player.armor_items = keptArmor;
   player.tomes       = keptTomes;
+  player.statLevels  = newStatLevels;
 
-  showAlert(`HALF YOUR LOADOUT STRIPPED! ⚠️`, '#ff3864');
+  showAlert(`HALF YOUR STAT UPGRADES STRIPPED! ⚠️`, '#ff3864');
 }
 
 // ============================================================
@@ -783,9 +806,12 @@ function advanceStage() {
   if (_staffMesh)       { killMesh(_staffMesh);       set_staffMesh(null); }
   set_thunderWandAngle(0); set_shieldOrbitAngle(0); set_staffAngle(0);
 
-  // Loadout strip removed — players keep their full loadout across stages.
-  // _stripHalfItems() is intentionally NOT called here; the function is kept
-  // around in case we want to bring it back as a challenge modifier later.
+  // Half the player's stat-upgrade picks get stripped (Bonk Power, Reflexes,
+  // Embiggen, Tough, Pierce, Multi, etc) plus any synergies. Loadout itself
+  // (weapons / armor / tomes) carries over intact — testers found pure
+  // loadout stripping made re-ranking too hard, but no penalty made stage
+  // 2 + 3 way too easy. Halving just the multipliers is the middle ground.
+  _stripHalfItems();
 
   // Heal player 50% max HP as a stage-clear bonus
   player.hp = Math.min(player.maxHp, player.hp + Math.round(player.maxHp * 0.5));

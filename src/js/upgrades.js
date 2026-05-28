@@ -2,7 +2,7 @@
 // These live here (not in profile.js) because their apply() closures
 // reference `player` from entities.js, which would create a circular dep
 // if placed in profile.js.
-import { player } from './entities.js?v=0646da5';
+import { player } from './entities.js?v=bd5ec0f';
 
 export const STAT_UPGRADES = [
   // Core combat

@@ -1,4 +1,4 @@
-import { scene, acquirePtLight, releasePtLight } from './renderer.js?v=0646da5';
+import { scene, acquirePtLight, releasePtLight } from './renderer.js?v=bd5ec0f';
 import { player, enemies, projectiles, orbitals, auraInstances,
          spawnProjectile, spawnParticle, spawnSmokeCloud,
          makeSparkMesh, makeFireballMesh, makeBoomerangMesh,
@@ -6,9 +6,9 @@ import { player, enemies, projectiles, orbitals, auraInstances,
          _cloneWeaponMesh,
          _thunderWandMesh, _thunderWandAngle, set_thunderWandMesh, set_thunderWandAngle,
          _staffMesh, _staffAngle, set_staffMesh, set_staffAngle,
-       } from './entities.js?v=0646da5';
-import { clamp, rand } from './utils.js?v=0646da5';
-import { cam } from './state.js?v=0646da5';
+       } from './entities.js?v=bd5ec0f';
+import { clamp, rand } from './utils.js?v=bd5ec0f';
+import { cam } from './state.js?v=bd5ec0f';
 
 // damageEnemy is injected from game.js (circular dep breaker)
 let _damageEnemy = null;
