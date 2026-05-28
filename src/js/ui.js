@@ -15,7 +15,7 @@
 //   keyboard/mobile → tryJump, tryDash (game.js): use _jumpFn/_dashFn, set via setJumpDashCbs()
 //   openChest → presentChoiceScreen (this file): setOpenChestDeps is called in initUI()
 
-import { camera, renderer, isMobile, tryEnterFullscreen } from './renderer.js?v=08c16c6';
+import { camera, renderer, isMobile, tryEnterFullscreen } from './renderer.js?v=c5a7c80';
 import {
   player, enemies,
   tryInteract, setOpenChestDeps,
@@ -23,17 +23,17 @@ import {
   spawnParticle,
   CHARACTER_MODELS, _animClips, loadCharAsset,
   _applyCharacterModel,
-} from './entities.js?v=08c16c6';
-import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=08c16c6';
-import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=08c16c6';
-import { gameState, cam } from './state.js?v=08c16c6';
-import { Audio } from './audio.js?v=08c16c6';
-import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=08c16c6';
+} from './entities.js?v=c5a7c80';
+import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=c5a7c80';
+import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=c5a7c80';
+import { gameState, cam } from './state.js?v=c5a7c80';
+import { Audio } from './audio.js?v=c5a7c80';
+import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=c5a7c80';
 // VERSION lives on CFG.VERSION too — reading via property access doesn't
 // blow up if a cached older config.js is loaded without the named export
 const VERSION = CFG.VERSION || '0.0.0';
-import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=08c16c6';
-import { tmp, tmp2 } from './utils.js?v=08c16c6';
+import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=c5a7c80';
+import { tmp, tmp2 } from './utils.js?v=c5a7c80';
 
 // ============================================================
 // INJECTION CALLBACKS (break circular deps)
@@ -241,6 +241,24 @@ export function updateHUD() {
   hudEls.killsVal.textContent = gameState.kills;
 
   _reconcileBossBars();
+
+  // Low-HP red edge pulse — below 20% adds .active, below 10% adds .critical
+  // for a faster, deeper pulse. CSS is gated on body.playing so it never bleeds
+  // onto menus / pause / death screens.
+  const _lowHpEl = document.getElementById('low-hp-pulse');
+  if (_lowHpEl) {
+    const _hpRatio = player.maxHp > 0 ? (player.hp / player.maxHp) : 1;
+    if (_hpRatio < 0.10) {
+      _lowHpEl.classList.add('active');
+      _lowHpEl.classList.add('critical');
+    } else if (_hpRatio < 0.20) {
+      _lowHpEl.classList.add('active');
+      _lowHpEl.classList.remove('critical');
+    } else {
+      _lowHpEl.classList.remove('active');
+      _lowHpEl.classList.remove('critical');
+    }
+  }
 }
 
 // ── Multi-boss HP bars ──────────────────────────────────────────────────────

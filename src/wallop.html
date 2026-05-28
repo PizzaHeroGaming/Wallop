@@ -1377,6 +1377,35 @@
   }
   #flash.hit { background: rgba(255, 56, 100, 0.4); }
 
+  /* Low-HP pulse — red glow around screen edges when HP drops below 20%.
+     z-index 7 sits under the vignette + hit flash so they layer cleanly.
+     Always gated by body.playing so it never shows on menus / pause / death. */
+  #low-hp-pulse {
+    position: fixed; inset: 0; pointer-events: none; z-index: 7;
+    background: radial-gradient(ellipse at center,
+                  transparent 35%,
+                  rgba(255, 56, 100, 0.55) 100%);
+    opacity: 0;
+  }
+  body.playing #low-hp-pulse.active {
+    animation: lowHpPulse 1.4s ease-in-out infinite;
+  }
+  /* <10% HP: faster + deeper red so the player can't miss it */
+  body.playing #low-hp-pulse.active.critical {
+    background: radial-gradient(ellipse at center,
+                  transparent 28%,
+                  rgba(255, 30, 70, 0.75) 100%);
+    animation: lowHpPulseFast 0.7s ease-in-out infinite;
+  }
+  @keyframes lowHpPulse {
+    0%, 100% { opacity: 0.20; }
+    50%      { opacity: 0.70; }
+  }
+  @keyframes lowHpPulseFast {
+    0%, 100% { opacity: 0.35; }
+    50%      { opacity: 1.00; }
+  }
+
   /* Floating help in corners */
   #hint {
     position: absolute; bottom: 50px; left: 50%; transform: translateX(-50%);
@@ -2481,6 +2510,7 @@ window.addEventListener('load', () => {
 
 <div id="cursor"></div>
 <div id="vignette"></div>
+<div id="low-hp-pulse"></div>
 <div id="flash"></div>
 
 <!-- HUD -->
