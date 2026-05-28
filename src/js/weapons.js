@@ -1,4 +1,4 @@
-import { scene, acquirePtLight, releasePtLight } from './renderer.js?v=c5a7c80';
+import { scene, acquirePtLight, releasePtLight } from './renderer.js?v=0646da5';
 import { player, enemies, projectiles, orbitals, auraInstances,
          spawnProjectile, spawnParticle, spawnSmokeCloud,
          makeSparkMesh, makeFireballMesh, makeBoomerangMesh,
@@ -6,9 +6,9 @@ import { player, enemies, projectiles, orbitals, auraInstances,
          _cloneWeaponMesh,
          _thunderWandMesh, _thunderWandAngle, set_thunderWandMesh, set_thunderWandAngle,
          _staffMesh, _staffAngle, set_staffMesh, set_staffAngle,
-       } from './entities.js?v=c5a7c80';
-import { clamp, rand } from './utils.js?v=c5a7c80';
-import { cam } from './state.js?v=c5a7c80';
+       } from './entities.js?v=0646da5';
+import { clamp, rand } from './utils.js?v=0646da5';
+import { cam } from './state.js?v=0646da5';
 
 // damageEnemy is injected from game.js (circular dep breaker)
 let _damageEnemy = null;
@@ -705,7 +705,9 @@ defWeapon('staff', {
     if (!_staffMesh) {
       const clone = _cloneWeaponMesh('wand');
       if (clone) {
-        clone.scale.setScalar(0.9);
+        // Was scale 0.9 — too small to read at distance. Bumped to 1.8
+        // (matches the Thunder Strike floating wand).
+        clone.scale.setScalar(1.8);
         clone.traverse(c => { if (c.isMesh) c.castShadow = false; });
         scene.add(clone);
         set_staffMesh(clone);
@@ -714,10 +716,14 @@ defWeapon('staff', {
     if (_staffMesh) {
       set_staffAngle(_staffAngle + dt * 1.6);
       const bobY = Math.sin(_staffAngle * 1.3) * 0.09;
+      // Orbit radius bumped 0.5 → 1.3 so the staff sweeps OUTSIDE the player
+      // silhouette instead of clipping through the head every rotation.
+      // Y dropped from head-height (1.65) to chest-height (1.25) for the
+      // same reason — keeps the staff visually attached to the body.
       _staffMesh.position.set(
-        player.pos.x + Math.sin(_staffAngle) * 0.5,
-        player.pos.y + 1.65 + bobY,
-        player.pos.z + Math.cos(_staffAngle) * 0.5
+        player.pos.x + Math.sin(_staffAngle) * 1.3,
+        player.pos.y + 1.25 + bobY,
+        player.pos.z + Math.cos(_staffAngle) * 1.3
       );
       _staffMesh.rotation.y = _staffAngle + Math.PI;
       _staffMesh.rotation.z = 0.4;
