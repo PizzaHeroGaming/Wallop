@@ -1,10 +1,10 @@
-import { CFG, IS_MOBILE_EARLY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=bd5ec0f';
-import { scene, camera, isMobile, tryEnterFullscreen, renderer, acquirePtLight, releasePtLight } from './renderer.js?v=bd5ec0f';
-import { groundHeight, addSolid, resolveSolids, solidProps } from './terrain.js?v=bd5ec0f';
-import { killMesh, clamp, rand, tmp, tmp2, flatPhong, smoothPhong } from './utils.js?v=bd5ec0f';
-import { gameState } from './state.js?v=bd5ec0f';
-import { Profile } from './profile.js?v=bd5ec0f';
-import { Audio } from './audio.js?v=bd5ec0f';
+import { CFG, IS_MOBILE_EARLY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=e49c480';
+import { scene, camera, isMobile, tryEnterFullscreen, renderer, acquirePtLight, releasePtLight } from './renderer.js?v=e49c480';
+import { groundHeight, addSolid, resolveSolids, solidProps } from './terrain.js?v=e49c480';
+import { killMesh, clamp, rand, tmp, tmp2, flatPhong, smoothPhong } from './utils.js?v=e49c480';
+import { gameState } from './state.js?v=e49c480';
+import { Profile } from './profile.js?v=e49c480';
+import { Audio } from './audio.js?v=e49c480';
 
 // ============================================================
 // PLAYER
@@ -1918,9 +1918,12 @@ let _onLevelUpReady = null;
 export function setOnLevelUpReady(fn) { _onLevelUpReady = fn; }
 
 export function spawnSmokeCloud(pos, dmgPerTick, radius, life, slow, weaponId = null) {
+  // Translucent cloud — opacity dropped 0.4 → 0.22 and swapped from additive
+  // to normal blending so overlapping clouds don't compound into a screen-blot.
+  // Player can still see enemies + projectiles through it even at max stacks.
   const mat = new THREE.MeshBasicMaterial({
-    color: 0x889aaa, transparent: true, opacity: 0.4,
-    blending: THREE.AdditiveBlending, depthWrite: false, side: THREE.DoubleSide,
+    color: 0x889aaa, transparent: true, opacity: 0.22,
+    depthWrite: false, side: THREE.DoubleSide,
   });
   const mesh = new THREE.Mesh(new THREE.SphereGeometry(1, 10, 7), mat);
   mesh.position.copy(pos);
@@ -1943,7 +1946,7 @@ export function updateSmokeClouds(dt) {
     const growT = Math.min(1, (1 - t) / 0.2);
     const r = c.radius * (0.3 + 0.7 * growT);
     c.mesh.scale.setScalar(r);
-    c.mesh.material.opacity = 0.38 * t;
+    c.mesh.material.opacity = 0.22 * t; // matches the new translucent baseline
     c.tickCd -= dt;
     if (c.tickCd <= 0) {
       c.tickCd = 0.5;
