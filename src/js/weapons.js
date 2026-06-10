@@ -1,4 +1,4 @@
-import { scene, acquirePtLight, releasePtLight } from './renderer.js?v=cbb6e40';
+import { scene, acquirePtLight, releasePtLight } from './renderer.js?v=c5a4314';
 import { player, enemies, projectiles, orbitals, auraInstances,
          spawnProjectile, spawnParticle, spawnSmokeCloud,
          makeSparkMesh, makeFireballMesh, makeBoomerangMesh,
@@ -6,9 +6,9 @@ import { player, enemies, projectiles, orbitals, auraInstances,
          _cloneWeaponMesh,
          _thunderWandMesh, _thunderWandAngle, set_thunderWandMesh, set_thunderWandAngle,
          _staffMesh, _staffAngle, set_staffMesh, set_staffAngle,
-       } from './entities.js?v=cbb6e40';
-import { clamp, rand } from './utils.js?v=cbb6e40';
-import { cam } from './state.js?v=cbb6e40';
+       } from './entities.js?v=c5a4314';
+import { clamp, rand } from './utils.js?v=c5a4314';
+import { cam } from './state.js?v=c5a4314';
 
 // damageEnemy is injected from game.js (circular dep breaker)
 let _damageEnemy = null;
@@ -1386,11 +1386,30 @@ defWeapon('shadow_slice', {
       const angle = (i / count) * Math.PI * 2;
       const speed = 16;
       const mesh = new THREE.Group();
-      const blade = new THREE.Mesh(
-        new THREE.BoxGeometry(0.1, 0.05, 0.55),
-        new THREE.MeshPhongMaterial({ color: 0x222244, emissive: 0x6633aa, emissiveIntensity: 0.6, flatShading: true })
-      );
-      mesh.add(blade);
+      const daggerGlb = _cloneWeaponMesh('dagger');
+      if (daggerGlb) {
+        // KayKit dagger model — blade points +Y at rest; lay it forward (+Z)
+        // so the outer group's rotation.y aligns it with flight direction.
+        // Shadow flavor: dark purple emissive layered over the rogue texture.
+        daggerGlb.rotation.x = Math.PI / 2;
+        daggerGlb.scale.setScalar(1.4);
+        daggerGlb.traverse(c => {
+          if (c.isMesh && c.material) {
+            c.material = c.material.clone();
+            c.material.emissive = new THREE.Color(0x6633aa);
+            c.material.emissiveIntensity = 0.45;
+            c.castShadow = false;
+          }
+        });
+        mesh.add(daggerGlb);
+      } else {
+        // Fallback while the dagger GLTF streams in: simple glowing shadow blade
+        const blade = new THREE.Mesh(
+          new THREE.BoxGeometry(0.1, 0.05, 0.55),
+          new THREE.MeshPhongMaterial({ color: 0x222244, emissive: 0x6633aa, emissiveIntensity: 0.6, flatShading: true })
+        );
+        mesh.add(blade);
+      }
       mesh.scale.setScalar(player.projectileMult);
       // Point the blade along its flight direction — without this, only the
       // angle-0 dagger flew tip-first; the rest moved sideways.

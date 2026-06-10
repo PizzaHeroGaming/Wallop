@@ -1,10 +1,10 @@
-import { CFG, IS_MOBILE_EARLY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=cbb6e40';
-import { scene, camera, isMobile, tryEnterFullscreen, renderer, acquirePtLight, releasePtLight } from './renderer.js?v=cbb6e40';
-import { groundHeight, addSolid, resolveSolids, solidProps } from './terrain.js?v=cbb6e40';
-import { killMesh, clamp, rand, tmp, tmp2, flatPhong, smoothPhong } from './utils.js?v=cbb6e40';
-import { gameState } from './state.js?v=cbb6e40';
-import { Profile } from './profile.js?v=cbb6e40';
-import { Audio } from './audio.js?v=cbb6e40';
+import { CFG, IS_MOBILE_EARLY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=c5a4314';
+import { scene, camera, isMobile, tryEnterFullscreen, renderer, acquirePtLight, releasePtLight } from './renderer.js?v=c5a4314';
+import { groundHeight, addSolid, resolveSolids, solidProps } from './terrain.js?v=c5a4314';
+import { killMesh, clamp, rand, tmp, tmp2, flatPhong, smoothPhong } from './utils.js?v=c5a4314';
+import { gameState } from './state.js?v=c5a4314';
+import { Profile } from './profile.js?v=c5a4314';
+import { Audio } from './audio.js?v=c5a4314';
 
 // ============================================================
 // PLAYER
@@ -83,7 +83,7 @@ export function _cloneWeaponMesh(slug) {
   return THREE.SkeletonUtils.clone(gltf.scene);
 }
 // Preload all weapon models in the background so they're ready on first use
-['axe_1handed','axe_2handed','wand','arrow_crossbow','smokebomb','shield_round'].forEach(slug =>
+['axe_1handed','axe_2handed','wand','arrow_crossbow','smokebomb','shield_round','dagger'].forEach(slug =>
   _loadWeaponGLTF(slug, `assets/weapons/${slug}.gltf`).catch(() => {})
 );
 
