@@ -1,6 +1,6 @@
 // game.js — core game logic: damageEnemy, update loop, player movement, spawning
 // Imports (acyclic — game.js is the top of the dep graph among game modules):
-import { scene, camera, renderer, composer, sun, clock, isMobile, tryEnterFullscreen, releasePtLight, setRendererArena } from './renderer.js?v=47e55c5';
+import { scene, camera, renderer, composer, sun, clock, isMobile, tryEnterFullscreen, releasePtLight, setRendererArena } from './renderer.js?v=1aa72c6';
 import {
   player,
   playerMixer, playerIdleAction, playerWalkAction, playerRunAction,
@@ -19,18 +19,18 @@ import {
   updateShieldOrbital, updateParticles,
   setDamageEnemyCb, setOnLevelUpReady,
   spawnGold, spawnSmokeCloud, makeEnemyMesh, ENEMY_DEFS,
-} from './entities.js?v=47e55c5';
-import { WEAPONS, ARMOR, TOMES, setDamageEnemyForWeapons, rebuildOrbits } from './weapons.js?v=47e55c5';
-import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=47e55c5';
+} from './entities.js?v=1aa72c6';
+import { WEAPONS, ARMOR, TOMES, setDamageEnemyForWeapons, rebuildOrbits } from './weapons.js?v=1aa72c6';
+import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=1aa72c6';
 import {
   gameState, cam,
-} from './state.js?v=47e55c5';
-import { CFG, STAGE_MULTS, DIFFICULTIES } from './config.js?v=47e55c5';
-import { Profile, ARENAS, CHALLENGES } from './profile.js?v=47e55c5';
-import { groundHeight, resolveSolids, setTerrainArena } from './terrain.js?v=47e55c5';
-import { setWorldArena } from './world.js?v=47e55c5';
-import { killMesh, clamp, rand, tmp, tmp2, flatPhong } from './utils.js?v=47e55c5';
-import { Audio } from './audio.js?v=47e55c5';
+} from './state.js?v=1aa72c6';
+import { CFG, STAGE_MULTS, DIFFICULTIES } from './config.js?v=1aa72c6';
+import { Profile, ARENAS, CHALLENGES } from './profile.js?v=1aa72c6';
+import { groundHeight, resolveSolids, setTerrainArena } from './terrain.js?v=1aa72c6';
+import { setWorldArena } from './world.js?v=1aa72c6';
+import { killMesh, clamp, rand, tmp, tmp2, flatPhong } from './utils.js?v=1aa72c6';
+import { Audio } from './audio.js?v=1aa72c6';
 import {
   showDamage, showAlert, updateBossArrow, updateLoadoutDisplay,
   syncSliceDisplays, triggerGameOver,
@@ -43,7 +43,7 @@ import {
   showStageClearScreen, setAdvanceStageCb, clearPendingStageClear,
   initUI,
   addCameraShake,
-} from './ui.js?v=47e55c5';
+} from './ui.js?v=1aa72c6';
 
 // Player animation state (module-level so it persists across frames)
 let _animState = 'idle';
@@ -1755,8 +1755,11 @@ function updateOrbitals(dt) {
   const speedMult = (player.synergies && player.synergies.orbitSpeed) ? 1.6 : 1.0;
   const sp  = orbitW.speed * speedMult;
   const dmg = orbitW.dmg * player.damageMult;
-  // Saw Blades synergy — per-enemy hit cooldown halved (hit twice as often)
-  const hitCdBase = (player.synergies && player.synergies.orbitPierce) ? 0.20 : 0.40;
+  // Saw Blades synergy — per-enemy hit cooldown shortened 0.40s → 0.30s (1.33x
+  // faster). Was 0.20s (2x), which made maxed Pizza Wheel an ~8x-median boss
+  // melter (25 hits/sec at 0.20s, each clearing the 80 boss-cap). 0.30s keeps
+  // it top-tier without trivializing bosses — see scripts/balance-sim.mjs.
+  const hitCdBase = (player.synergies && player.synergies.orbitPierce) ? 0.30 : 0.40;
   for (let i = 0; i < orbitals.length; i++) {
     const o = orbitals[i];
     o.angle += sp * dt;
