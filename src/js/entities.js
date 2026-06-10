@@ -1,10 +1,10 @@
-import { CFG, IS_MOBILE_EARLY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=751aeed';
-import { scene, camera, isMobile, tryEnterFullscreen, renderer, acquirePtLight, releasePtLight } from './renderer.js?v=751aeed';
-import { groundHeight, addSolid, resolveSolids, solidProps } from './terrain.js?v=751aeed';
-import { killMesh, clamp, rand, tmp, tmp2, flatPhong, smoothPhong } from './utils.js?v=751aeed';
-import { gameState } from './state.js?v=751aeed';
-import { Profile } from './profile.js?v=751aeed';
-import { Audio } from './audio.js?v=751aeed';
+import { CFG, IS_MOBILE_EARLY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=d4a020e';
+import { scene, camera, isMobile, tryEnterFullscreen, renderer, acquirePtLight, releasePtLight } from './renderer.js?v=d4a020e';
+import { groundHeight, addSolid, resolveSolids, solidProps } from './terrain.js?v=d4a020e';
+import { killMesh, clamp, rand, tmp, tmp2, flatPhong, smoothPhong } from './utils.js?v=d4a020e';
+import { gameState } from './state.js?v=d4a020e';
+import { Profile } from './profile.js?v=d4a020e';
+import { Audio } from './audio.js?v=d4a020e';
 
 // ============================================================
 // PLAYER
@@ -1392,6 +1392,10 @@ export function spawnProjectile(opts) {
 
 export function makePizzaMesh(scale = 1) {
   // Quaternius Food Pack whole pizza when loaded; procedural pie fallback.
+  // Verified in-preview (side-by-side flip test): model is authored
+  // toppings-up (+Y) — do NOT flip. The "looks upside down" impression at
+  // gameplay angle is the dark crust rim reading as the top when viewed
+  // near edge-on from the chase camera.
   const glb = _cloneProp('pizza', scale);
   if (glb) return glb;
   const g = new THREE.Group();
@@ -1436,6 +1440,7 @@ export function makePizzaMesh(scale = 1) {
 export function makeBoneMesh(scale = 1) { return makePizzaMesh(scale); }
 
 // Orbit slices — Quaternius Pizza Slice when loaded, whole-pizza fallback.
+// Same verification as makePizzaMesh: authored toppings-up, no flip.
 export function makePizzaSliceMesh(scale = 1) {
   const glb = _cloneProp('pizza_slice', scale);
   if (glb) return glb;
