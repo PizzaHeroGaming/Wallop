@@ -1,10 +1,10 @@
-import { CFG, IS_MOBILE_EARLY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=d4a020e';
-import { scene, camera, isMobile, tryEnterFullscreen, renderer, acquirePtLight, releasePtLight } from './renderer.js?v=d4a020e';
-import { groundHeight, addSolid, resolveSolids, solidProps } from './terrain.js?v=d4a020e';
-import { killMesh, clamp, rand, tmp, tmp2, flatPhong, smoothPhong } from './utils.js?v=d4a020e';
-import { gameState } from './state.js?v=d4a020e';
-import { Profile } from './profile.js?v=d4a020e';
-import { Audio } from './audio.js?v=d4a020e';
+import { CFG, IS_MOBILE_EARLY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=0129c10';
+import { scene, camera, isMobile, tryEnterFullscreen, renderer, acquirePtLight, releasePtLight } from './renderer.js?v=0129c10';
+import { groundHeight, addSolid, resolveSolids, solidProps } from './terrain.js?v=0129c10';
+import { killMesh, clamp, rand, tmp, tmp2, flatPhong, smoothPhong } from './utils.js?v=0129c10';
+import { gameState } from './state.js?v=0129c10';
+import { Profile } from './profile.js?v=0129c10';
+import { Audio } from './audio.js?v=0129c10';
 
 // ============================================================
 // PLAYER
@@ -209,12 +209,18 @@ export function _cloneQuaterniusMesh(slug) {
   return clone;
 }
 
-// Preload all 27 Quaternius models in background — they're small (~50 KB each)
-Object.keys(QUATERNIUS_MODELS).forEach(slug =>
-  _loadQuaterniusGLB(slug).catch(err =>
-    console.warn(`[WALLOP] Quaternius preload failed for ${slug}:`, err)
-  )
-);
+// Preload all 27 Quaternius models in background — but DELAYED so the
+// critical-path models (player character, skeleton mooks, anim clips) win
+// the browser's per-host connection slots on a cold cache. Without the
+// delay these 27 fetches enqueued BEFORE knight.glb and the player ran
+// around invisible for the first stretch of slow first loads.
+setTimeout(() => {
+  Object.keys(QUATERNIUS_MODELS).forEach(slug =>
+    _loadQuaterniusGLB(slug).catch(err =>
+      console.warn(`[WALLOP] Quaternius preload failed for ${slug}:`, err)
+    )
+  );
+}, 2500);
 
 // Per-arena enemy roster — maps gameState.arena + def.body → Quaternius slug.
 // If absent OR asset not yet loaded, falls back to the existing KayKit skeleton path.
@@ -271,11 +277,16 @@ const _PROP_MODELS = {
   ice_cream:  { file: 'assets/quaternius_food/Ice Cream.glb',                     scale: 1.0  },
 };
 const _propAssets = {};
-Object.entries(_PROP_MODELS).forEach(([slug, entry]) => {
-  _loadGLB(entry.file)
-    .then(gltf => { _propAssets[slug] = gltf; })
-    .catch(err => console.warn(`[WALLOP] prop model failed: ${slug}`, err && err.message));
-});
+// Delayed for the same critical-path reason as the monster preload above —
+// every prop consumer has a procedural fallback, so a late start is invisible
+// to the player, but a clogged fetch queue on cold cache is not.
+setTimeout(() => {
+  Object.entries(_PROP_MODELS).forEach(([slug, entry]) => {
+    _loadGLB(entry.file)
+      .then(gltf => { _propAssets[slug] = gltf; })
+      .catch(err => console.warn(`[WALLOP] prop model failed: ${slug}`, err && err.message));
+  });
+}, 2000);
 /** Clone a prop model with its tuned base scale, or null if not yet loaded. */
 export function _cloneProp(slug, extraScale = 1) {
   const gltf = _propAssets[slug];
@@ -1324,7 +1335,9 @@ export function spawnEnemy(typeKey, opts = {}) {
     if (_glbSlugMap[def.body]) {
       enemy._pendingGLBSlug  = _glbSlugMap[def.body];
       enemy._pendingGLBScale = _glbScaleMap[def.body];
-      enemy.mesh.visible = false;
+      // Keep the procedural mesh VISIBLE while the GLB streams in. It used
+      // to be hidden, which meant invisible enemies dealing contact damage
+      // whenever GLBs were slow or failed (cold cache, mid-deploy 404s).
     }
   }
 
