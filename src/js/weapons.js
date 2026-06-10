@@ -1,4 +1,4 @@
-import { scene, acquirePtLight, releasePtLight } from './renderer.js?v=1186fed';
+import { scene, acquirePtLight, releasePtLight } from './renderer.js?v=cbb6e40';
 import { player, enemies, projectiles, orbitals, auraInstances,
          spawnProjectile, spawnParticle, spawnSmokeCloud,
          makeSparkMesh, makeFireballMesh, makeBoomerangMesh,
@@ -6,9 +6,9 @@ import { player, enemies, projectiles, orbitals, auraInstances,
          _cloneWeaponMesh,
          _thunderWandMesh, _thunderWandAngle, set_thunderWandMesh, set_thunderWandAngle,
          _staffMesh, _staffAngle, set_staffMesh, set_staffAngle,
-       } from './entities.js?v=1186fed';
-import { clamp, rand } from './utils.js?v=1186fed';
-import { cam } from './state.js?v=1186fed';
+       } from './entities.js?v=cbb6e40';
+import { clamp, rand } from './utils.js?v=cbb6e40';
+import { cam } from './state.js?v=cbb6e40';
 
 // damageEnemy is injected from game.js (circular dep breaker)
 let _damageEnemy = null;
@@ -1392,6 +1392,9 @@ defWeapon('shadow_slice', {
       );
       mesh.add(blade);
       mesh.scale.setScalar(player.projectileMult);
+      // Point the blade along its flight direction — without this, only the
+      // angle-0 dagger flew tip-first; the rest moved sideways.
+      mesh.rotation.y = angle;
       const isCrit = true; // signature crit
       const dmg = baseDmg * player.critMult;
       spawnProjectile({
