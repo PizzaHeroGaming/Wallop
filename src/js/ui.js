@@ -15,7 +15,7 @@
 //   keyboard/mobile → tryJump, tryDash (game.js): use _jumpFn/_dashFn, set via setJumpDashCbs()
 //   openChest → presentChoiceScreen (this file): setOpenChestDeps is called in initUI()
 
-import { camera, renderer, isMobile, tryEnterFullscreen } from './renderer.js?v=35b8cd2';
+import { camera, renderer, isMobile, tryEnterFullscreen } from './renderer.js?v=9d517ff';
 import {
   player, enemies,
   tryInteract, setOpenChestDeps,
@@ -23,17 +23,17 @@ import {
   spawnParticle,
   CHARACTER_MODELS, _animClips, loadCharAsset,
   _applyCharacterModel,
-} from './entities.js?v=35b8cd2';
-import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=35b8cd2';
-import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=35b8cd2';
-import { gameState, cam } from './state.js?v=35b8cd2';
-import { Audio } from './audio.js?v=35b8cd2';
-import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=35b8cd2';
+} from './entities.js?v=9d517ff';
+import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=9d517ff';
+import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=9d517ff';
+import { gameState, cam } from './state.js?v=9d517ff';
+import { Audio } from './audio.js?v=9d517ff';
+import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=9d517ff';
 // VERSION lives on CFG.VERSION too — reading via property access doesn't
 // blow up if a cached older config.js is loaded without the named export
 const VERSION = CFG.VERSION || '0.0.0';
-import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=35b8cd2';
-import { tmp, tmp2 } from './utils.js?v=35b8cd2';
+import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=9d517ff';
+import { tmp, tmp2 } from './utils.js?v=9d517ff';
 
 // ============================================================
 // INJECTION CALLBACKS (break circular deps)
@@ -748,15 +748,25 @@ function hideChoiceActions() {
 }
 
 export function showLevelUp() {
-  gameState.state = 'levelup';
-  if (_mouseLocked) document.exitPointerLock();
-  Audio.play('ui_levelup');
+  // Generate offers BEFORE touching state / pointer lock. When everything is
+  // maxed (no offers), we heal and bail without ever changing gameState or
+  // releasing the mouse — otherwise the exitPointerLock fired here would
+  // resolve AFTER onLevelUpDone flipped state back to 'playing', and the
+  // pointerlockchange handler's auto-pause path would open the pause menu on
+  // every single level-up. Same race class as the Esc-to-close pause trap.
   const offers = generateOffers();
   if (offers.length === 0) {
     player.hp = Math.min(player.maxHp, player.hp + 30);
-    onLevelUpDone();
+    // Stay in 'playing', keep pointer lock — just consume any further pending
+    // level-ups and carry on. No screen, no state churn, no spurious pause.
+    if (player.xp >= player.xpToNext) {
+      setTimeout(processPendingLevelUp, 0);
+    }
     return;
   }
+  gameState.state = 'levelup';
+  if (_mouseLocked) document.exitPointerLock();
+  Audio.play('ui_levelup');
   presentChoiceScreen({
     offers,
     title: 'LEVEL UP',
