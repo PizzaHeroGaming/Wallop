@@ -1,14 +1,14 @@
-import { scene, acquirePtLight, releasePtLight } from './renderer.js?v=e49c480';
+import { scene, acquirePtLight, releasePtLight } from './renderer.js?v=aceb222';
 import { player, enemies, projectiles, orbitals, auraInstances,
          spawnProjectile, spawnParticle, spawnSmokeCloud,
          makeSparkMesh, makeFireballMesh, makeBoomerangMesh,
-         makeCalzoneMesh, makeIceShardMesh, makePizzaMesh, makeBoneMesh,
+         makeCalzoneMesh, makeIceShardMesh, makePizzaMesh, makeBoneMesh, makePizzaSliceMesh,
          _cloneWeaponMesh,
          _thunderWandMesh, _thunderWandAngle, set_thunderWandMesh, set_thunderWandAngle,
          _staffMesh, _staffAngle, set_staffMesh, set_staffAngle,
-       } from './entities.js?v=e49c480';
-import { clamp, rand } from './utils.js?v=e49c480';
-import { cam } from './state.js?v=e49c480';
+       } from './entities.js?v=aceb222';
+import { clamp, rand } from './utils.js?v=aceb222';
+import { cam } from './state.js?v=aceb222';
 
 // damageEnemy is injected from game.js (circular dep breaker)
 let _damageEnemy = null;
@@ -230,7 +230,7 @@ export function rebuildOrbits(w) {
   orbitals.length = 0;
   for (let i = 0; i < w.count; i++) {
     const angle = (i / w.count) * Math.PI * 2;
-    const m = makeBoneMesh(player.projectileMult * 0.9);
+    const m = makePizzaSliceMesh(player.projectileMult * 0.9);
     scene.add(m);
     orbitals.push({
       mesh: m,

@@ -1,10 +1,10 @@
-import { CFG, IS_MOBILE_EARLY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=e49c480';
-import { scene, camera, isMobile, tryEnterFullscreen, renderer, acquirePtLight, releasePtLight } from './renderer.js?v=e49c480';
-import { groundHeight, addSolid, resolveSolids, solidProps } from './terrain.js?v=e49c480';
-import { killMesh, clamp, rand, tmp, tmp2, flatPhong, smoothPhong } from './utils.js?v=e49c480';
-import { gameState } from './state.js?v=e49c480';
-import { Profile } from './profile.js?v=e49c480';
-import { Audio } from './audio.js?v=e49c480';
+import { CFG, IS_MOBILE_EARLY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=aceb222';
+import { scene, camera, isMobile, tryEnterFullscreen, renderer, acquirePtLight, releasePtLight } from './renderer.js?v=aceb222';
+import { groundHeight, addSolid, resolveSolids, solidProps } from './terrain.js?v=aceb222';
+import { killMesh, clamp, rand, tmp, tmp2, flatPhong, smoothPhong } from './utils.js?v=aceb222';
+import { gameState } from './state.js?v=aceb222';
+import { Profile } from './profile.js?v=aceb222';
+import { Audio } from './audio.js?v=aceb222';
 
 // ============================================================
 // PLAYER
@@ -244,6 +244,46 @@ export const ENEMY_VARIANTS = {
     warlord: 'q_armabee_evo',
   },
 };
+
+// ============================================================
+// PICKUP / PROP MODEL UPGRADES (all CC0)
+// Replaces the procedural primitives for the things players stare at most:
+//   - XP gem        → Kenney Platformer Kit jewel.glb
+//   - Gold coin     → KayKit Dungeon Remastered coin.gltf
+//   - Chests        → KayKit Dungeon Remastered chest / chest_gold (hinged lid node)
+//   - Pizza Toss    → Quaternius Food Pack Pizza.glb
+//   - Orbit slices  → Quaternius Food Pack Pizza Slice.glb
+//   - Ice Cone shot → Quaternius Food Pack Ice Cream.glb
+// Every consumer keeps its procedural fallback so nothing breaks while
+// assets stream in (or if a file 404s).
+// ============================================================
+const _DNG_BASE = 'assets/KayKit_DungeonRemastered_1.1_FREE/KayKit_DungeonRemastered_1.1_FREE/Assets/gltf/';
+// Scales tuned by measuring each model's Box3 against the procedural mesh
+// it replaces (old gem ≈0.6 across, coin ≈0.5 diameter, chest ≈1.2 wide,
+// pizza ≈0.86 diameter, ice shard ≈0.9 tall).
+const _PROP_MODELS = {
+  gem:        { file: 'assets/kenney_platformer-kit/Models/GLB format/jewel.glb', scale: 1.7  },
+  coin:       { file: _DNG_BASE + 'coin.gltf',                                    scale: 1.4  },
+  chest:      { file: _DNG_BASE + 'chest.gltf',                                   scale: 0.85 },
+  chest_gold: { file: _DNG_BASE + 'chest_gold.gltf',                              scale: 0.85 },
+  pizza:      { file: 'assets/quaternius_food/Pizza.glb',                         scale: 0.30 },
+  pizza_slice:{ file: 'assets/quaternius_food/Pizza Slice.glb',                   scale: 0.6  },
+  ice_cream:  { file: 'assets/quaternius_food/Ice Cream.glb',                     scale: 1.0  },
+};
+const _propAssets = {};
+Object.entries(_PROP_MODELS).forEach(([slug, entry]) => {
+  _loadGLB(entry.file)
+    .then(gltf => { _propAssets[slug] = gltf; })
+    .catch(err => console.warn(`[WALLOP] prop model failed: ${slug}`, err && err.message));
+});
+/** Clone a prop model with its tuned base scale, or null if not yet loaded. */
+export function _cloneProp(slug, extraScale = 1) {
+  const gltf = _propAssets[slug];
+  if (!gltf) return null;
+  const clone = THREE.SkeletonUtils.clone(gltf.scene);
+  clone.scale.setScalar(_PROP_MODELS[slug].scale * extraScale);
+  return clone;
+}
 
 function _bindAnimActions(mixer) {
   const get = name => _animClips && _animClips.find(c => c.name === name);
@@ -1351,6 +1391,9 @@ export function spawnProjectile(opts) {
 }
 
 export function makePizzaMesh(scale = 1) {
+  // Quaternius Food Pack whole pizza when loaded; procedural pie fallback.
+  const glb = _cloneProp('pizza', scale);
+  if (glb) return glb;
   const g = new THREE.Group();
   const crustMat = new THREE.MeshPhongMaterial({ color: 0xd4a04a, flatShading: true, shininess: 6 });
   const crustOuter = new THREE.Mesh(
@@ -1391,6 +1434,13 @@ export function makePizzaMesh(scale = 1) {
 }
 
 export function makeBoneMesh(scale = 1) { return makePizzaMesh(scale); }
+
+// Orbit slices — Quaternius Pizza Slice when loaded, whole-pizza fallback.
+export function makePizzaSliceMesh(scale = 1) {
+  const glb = _cloneProp('pizza_slice', scale);
+  if (glb) return glb;
+  return makePizzaMesh(scale);
+}
 
 export function makeSparkMesh(color = 0xffd23f, size = 0.3) {
   return new THREE.Mesh(
@@ -1461,6 +1511,9 @@ export function makeCalzoneMesh(scale = 1) {
 }
 
 export function makeIceShardMesh(scale = 1) {
+  // Ice Cone weapon finally throws an actual ice cream cone. Shard fallback.
+  const glb = _cloneProp('ice_cream', scale);
+  if (glb) return glb;
   const g = new THREE.Group();
   const ice = new THREE.MeshPhongMaterial({ color: 0xa8e8ff, shininess: 100, flatShading: true, transparent: true, opacity: 0.85 });
   const shard = new THREE.Mesh(new THREE.OctahedronGeometry(0.32 * scale, 0), ice);
@@ -1478,10 +1531,18 @@ export function makeIceShardMesh(scale = 1) {
 // ============================================================
 export function spawnGem(pos, value) {
   const colorByValue = value >= 5 ? 0xff64c8 : (value >= 3 ? 0xffd23f : 0x42c9f5);
-  const m = new THREE.Mesh(
-    new THREE.OctahedronGeometry(0.32, 0),
-    new THREE.MeshBasicMaterial({ color: colorByValue })
-  );
+  // Kenney jewel model when loaded — retinted per value tier so the
+  // blue/yellow/pink value language carries over. Octahedron fallback.
+  let m = _cloneProp('gem');
+  if (m) {
+    const mat = new THREE.MeshPhongMaterial({ color: colorByValue, flatShading: true, shininess: 80 });
+    m.traverse(c => { if (c.isMesh) c.material = mat; });
+  } else {
+    m = new THREE.Mesh(
+      new THREE.OctahedronGeometry(0.32, 0),
+      new THREE.MeshBasicMaterial({ color: colorByValue })
+    );
+  }
   m.position.copy(pos);
   m.position.y = groundHeight(pos.x, pos.z) + 0.5;
   scene.add(m);
@@ -1491,13 +1552,19 @@ export function spawnGem(pos, value) {
 }
 
 export function spawnGoldCoin(pos) {
-  const m = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.25, 0.25, 0.06, 8),
-    new THREE.MeshBasicMaterial({ color: 0xffd23f })
-  );
+  // KayKit coin model when loaded; flat gold cylinder fallback.
+  let m = _cloneProp('coin');
+  if (m) {
+    m.userData._glbCoin = true; // updateGold spins .y for the upright model
+  } else {
+    m = new THREE.Mesh(
+      new THREE.CylinderGeometry(0.25, 0.25, 0.06, 8),
+      new THREE.MeshBasicMaterial({ color: 0xffd23f })
+    );
+    m.rotation.x = Math.PI / 2;
+  }
   m.position.copy(pos);
   m.position.y = groundHeight(pos.x, pos.z) + 0.5;
-  m.rotation.x = Math.PI / 2;
   scene.add(m);
   const coin = { pos: m.position, mesh: m, life: 30, bobOffset: Math.random() * Math.PI * 2 };
   goldCoins.push(coin);
@@ -1512,7 +1579,42 @@ export function spawnGold(pos) {
 // ============================================================
 // CHESTS
 // ============================================================
+// Glow beam + ground ring shared by both chest variants (GLB + procedural)
+function _addChestGlow(g, tier) {
+  const beamColor = tier === 'rare' ? 0xffd23f : 0x9ed8ff;
+  const beam = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.08, 0.4, 4.5, 12, 1, true),
+    new THREE.MeshBasicMaterial({ color: beamColor, transparent: true, opacity: 0.35, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending })
+  );
+  beam.position.y = 2.5;
+  g.add(beam);
+  const ring = new THREE.Mesh(
+    new THREE.RingGeometry(0.7, 0.85, 24),
+    new THREE.MeshBasicMaterial({ color: beamColor, transparent: true, opacity: 0.45, side: THREE.DoubleSide, depthWrite: false, blending: THREE.AdditiveBlending })
+  );
+  ring.rotation.x = -Math.PI / 2;
+  ring.position.y = 0.05;
+  g.add(ring);
+  return { beam, ring };
+}
+
 function makeChestMesh(tier) {
+  // KayKit Dungeon chest when loaded — chest_gold for rare. The GLTF ships
+  // a separate hinged lid node (chest_lid / chest_gold_lid) that rotates at
+  // its own origin, so it slots straight into the lidPivot open animation.
+  const glb = _cloneProp(tier === 'rare' ? 'chest_gold' : 'chest');
+  if (glb) {
+    const g = new THREE.Group();
+    glb.traverse(c => { if (c.isMesh) { c.castShadow = true; c.receiveShadow = true; } });
+    g.add(glb);
+    let lidPivot = null;
+    glb.traverse(c => { if (!lidPivot && /lid/i.test(c.name)) lidPivot = c; });
+    const { beam, ring } = _addChestGlow(g, tier);
+    // Fall back to a dummy pivot if the lid node is ever missing so the
+    // open animation can't crash — chest just won't visibly open.
+    return { mesh: g, lidPivot: lidPivot || new THREE.Group(), beam, ring };
+  }
+
   const g = new THREE.Group();
   const woodColor = tier === 'rare' ? 0x6a3a1c : 0x4a2a14;
   const trimColor = tier === 'rare' ? 0xffd23f : 0xa07a3a;
@@ -1903,7 +2005,8 @@ export function updateGold(dt) {
     } else {
       c.pos.y = groundHeight(c.pos.x, c.pos.z) + 0.5 + Math.sin(performance.now() * 0.005 + c.bobOffset) * 0.1;
     }
-    c.mesh.rotation.z += dt * 4;
+    if (c.mesh.userData._glbCoin) c.mesh.rotation.y += dt * 4;
+    else                          c.mesh.rotation.z += dt * 4;
     if (dist < 0.8) {
       player.gold += 1;
       Audio.play('pickup_gold');
