@@ -1,6 +1,6 @@
 // game.js — core game logic: damageEnemy, update loop, player movement, spawning
 // Imports (acyclic — game.js is the top of the dep graph among game modules):
-import { scene, camera, renderer, composer, sun, clock, isMobile, tryEnterFullscreen, releasePtLight, setRendererArena } from './renderer.js?v=be5e205';
+import { scene, camera, renderer, composer, sun, clock, isMobile, tryEnterFullscreen, releasePtLight, setRendererArena } from './renderer.js?v=2f7c517';
 import {
   player,
   playerMixer, playerIdleAction, playerWalkAction, playerRunAction,
@@ -19,18 +19,18 @@ import {
   updateShieldOrbital, updateParticles,
   setDamageEnemyCb, setOnLevelUpReady,
   spawnGold, spawnSmokeCloud, makeEnemyMesh, ENEMY_DEFS,
-} from './entities.js?v=be5e205';
-import { WEAPONS, ARMOR, TOMES, setDamageEnemyForWeapons, rebuildOrbits } from './weapons.js?v=be5e205';
-import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=be5e205';
+} from './entities.js?v=2f7c517';
+import { WEAPONS, ARMOR, TOMES, setDamageEnemyForWeapons, rebuildOrbits } from './weapons.js?v=2f7c517';
+import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=2f7c517';
 import {
   gameState, cam,
-} from './state.js?v=be5e205';
-import { CFG, STAGE_MULTS, DIFFICULTIES } from './config.js?v=be5e205';
-import { Profile, ARENAS, CHALLENGES } from './profile.js?v=be5e205';
-import { groundHeight, resolveSolids, setTerrainArena } from './terrain.js?v=be5e205';
-import { setWorldArena } from './world.js?v=be5e205';
-import { killMesh, clamp, rand, tmp, tmp2, flatPhong } from './utils.js?v=be5e205';
-import { Audio } from './audio.js?v=be5e205';
+} from './state.js?v=2f7c517';
+import { CFG, STAGE_MULTS, DIFFICULTIES } from './config.js?v=2f7c517';
+import { Profile, ARENAS, CHALLENGES } from './profile.js?v=2f7c517';
+import { groundHeight, resolveSolids, setTerrainArena } from './terrain.js?v=2f7c517';
+import { setWorldArena } from './world.js?v=2f7c517';
+import { killMesh, clamp, rand, tmp, tmp2, flatPhong } from './utils.js?v=2f7c517';
+import { Audio } from './audio.js?v=2f7c517';
 import {
   showDamage, showAlert, updateBossArrow, updateLoadoutDisplay,
   syncSliceDisplays, triggerGameOver,
@@ -43,7 +43,7 @@ import {
   showStageClearScreen, setAdvanceStageCb, clearPendingStageClear,
   initUI,
   addCameraShake,
-} from './ui.js?v=be5e205';
+} from './ui.js?v=2f7c517';
 
 // Player animation state (module-level so it persists across frames)
 let _animState = 'idle';
@@ -1810,9 +1810,9 @@ export function updateTitleScene(dt) {
   const angle = 0.62 + Math.sin(_titleT * 0.18) * 0.10;
   const radius = 5.0, height = 1.95;
   camera.position.set(Math.sin(angle) * radius, height, Math.cos(angle) * radius);
-  // lookAt offset to the hero's LEFT pushes the hero into the right third of
-  // frame, leaving the left clear for the logo + button stack.
-  camera.lookAt(-2.6, 1.25, 0);
+  // lookAt offset to the hero's LEFT pushes the hero toward the right edge of
+  // frame, leaving the left ~2/3 clear for the centered logo + button stack.
+  camera.lookAt(-3.7, 1.25, 0);
 
   if (player.group) {
     player.group.position.set(0, groundHeight(0, 0), 0);

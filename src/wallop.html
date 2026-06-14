@@ -2406,7 +2406,9 @@
       padding-left: max(30px, env(safe-area-inset-left)) !important;
       gap: 10px !important;
     }
-    #title-block { align-items: flex-start !important; gap: 2px !important; }
+    /* Logo spans the full width + centers horizontally over the whole screen,
+       while the button column below stays left-anchored and the hero sits right. */
+    #title-block { width: 100% !important; align-items: center !important; gap: 2px !important; }
     #title {
       transform: rotate(-2deg) !important;
       font-size: clamp(30px, 7.5vw, 52px) !important;
@@ -2414,8 +2416,8 @@
       margin: 0 !important;
     }
     #subtitle {
-      font-size: 13px !important; text-align: left !important;
-      margin: 3px 0 0 4px !important; letter-spacing: 2px !important;
+      font-size: 13px !important; text-align: center !important;
+      margin: 3px 0 0 0 !important; letter-spacing: 2px !important;
       color: var(--ink) !important; opacity: 0.85;
     }
     #start-main { width: min(54%, 460px) !important; align-items: flex-start !important; }
