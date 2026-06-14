@@ -2471,6 +2471,12 @@
     }
   }
 
+  /* Scrollable overlays must TOP-align, not center. With .overlay's default
+     justify-content:center, any content taller than the viewport pushes its
+     top (title + first items) ABOVE scrollTop 0 where it can't be reached.
+     flex-start makes the list start at the top and scroll down normally. */
+  #challenges-screen, #about-screen { justify-content: flex-start !important; }
+
   /* Extra-compact tier for the shortest landscape phones (e.g. 640x360) so
      the logo never clips against the top edge. */
   @media (max-height: 380px) {

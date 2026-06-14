@@ -2474,6 +2474,12 @@
     }
   }
 
+  /* Scrollable overlays must TOP-align, not center. With .overlay's default
+     justify-content:center, any content taller than the viewport pushes its
+     top (title + first items) ABOVE scrollTop 0 where it can't be reached.
+     flex-start makes the list start at the top and scroll down normally. */
+  #challenges-screen, #about-screen { justify-content: flex-start !important; }
+
   /* Extra-compact tier for the shortest landscape phones (e.g. 640x360) so
      the logo never clips against the top edge. */
   @media (max-height: 380px) {
@@ -3115,6 +3121,6 @@ window.addEventListener('load', () => {
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
-<script type="module" src="src/js/main.js?v=8dff660"></script>
+<script type="module" src="src/js/main.js?v=2700161"></script>
 </body>
 </html>
