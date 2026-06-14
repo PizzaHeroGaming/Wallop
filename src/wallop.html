@@ -2477,6 +2477,54 @@
      flex-start makes the list start at the top and scroll down normally. */
   #challenges-screen, #about-screen { justify-content: flex-start !important; }
 
+  /* ============================================================
+     RUN-CONFIG over the live hero backdrop — same directional scrim as the
+     menu, left-anchored column, hero stays on the right (state stays 'start'
+     so updateTitleScene keeps orbiting + live-swaps the arena backdrop).
+     ============================================================ */
+  #run-config-screen {
+    background:
+      linear-gradient(90deg, rgba(8,10,24,0.94) 0%, rgba(8,10,24,0.82) 26%, rgba(8,10,24,0.30) 56%, rgba(8,10,24,0) 80%),
+      linear-gradient(0deg,  rgba(8,10,24,0.82) 0%, rgba(8,10,24,0) 40%) !important;
+  }
+  @media (max-height: 600px) {
+    #run-config-screen {
+      align-items: flex-start !important;
+      justify-content: center !important;
+      padding-left: max(30px, env(safe-area-inset-left)) !important;
+      gap: 8px !important;
+    }
+    #run-config-title {
+      width: min(56%, 470px) !important; text-align: center !important;
+      font-size: clamp(13px, 3.4vw, 18px) !important; margin: 0 !important;
+    }
+    /* Stack arena + difficulty vertically in the left column */
+    #run-config-body {
+      display: flex !important; flex-direction: column !important;
+      width: min(56%, 470px) !important; max-width: none !important;
+      gap: 8px !important; align-items: stretch !important;
+    }
+    #run-config-body #mob-arena-select {
+      display: flex !important; width: 100% !important; max-width: none !important; margin: 0 !important;
+    }
+    #run-config-body .start-run-config {
+      width: 100% !important; max-width: none !important; margin: 0 !important; padding: 8px 12px !important;
+    }
+    #run-config-body .arena-config-desktop { display: none !important; }
+    /* Difficulty buttons in a 2-up wrap to keep the column short */
+    #run-config-body #diff-btns {
+      display: flex !important; flex-direction: row !important; flex-wrap: wrap !important;
+      gap: 5px !important; justify-content: center !important;
+    }
+    #run-config-body .diff-btn { flex: 1 1 44% !important; min-width: 0 !important; padding: 7px 8px !important; font-size: 8px !important; }
+    /* PLAY + BACK as a left-anchored row matching the menu buttons */
+    #run-config-actions {
+      width: min(56%, 470px) !important; justify-content: flex-start !important;
+      gap: 8px !important; margin-top: 2px !important;
+    }
+    #run-config-actions .btn { flex: 1 1 46% !important; min-width: 0 !important; font-size: 11px !important; padding: 11px 14px !important; min-height: 0 !important; }
+  }
+
   /* Extra-compact tier for the shortest landscape phones (e.g. 640x360) so
      the logo never clips against the top edge. */
   @media (max-height: 380px) {

@@ -1,6 +1,6 @@
 // game.js — core game logic: damageEnemy, update loop, player movement, spawning
 // Imports (acyclic — game.js is the top of the dep graph among game modules):
-import { scene, camera, renderer, composer, sun, clock, isMobile, tryEnterFullscreen, releasePtLight, setRendererArena } from './renderer.js?v=318db48';
+import { scene, camera, renderer, composer, sun, clock, isMobile, tryEnterFullscreen, releasePtLight, setRendererArena } from './renderer.js?v=2700161';
 import {
   player,
   playerMixer, playerIdleAction, playerWalkAction, playerRunAction,
@@ -19,18 +19,18 @@ import {
   updateShieldOrbital, updateParticles,
   setDamageEnemyCb, setOnLevelUpReady,
   spawnGold, spawnSmokeCloud, makeEnemyMesh, ENEMY_DEFS,
-} from './entities.js?v=318db48';
-import { WEAPONS, ARMOR, TOMES, setDamageEnemyForWeapons, rebuildOrbits } from './weapons.js?v=318db48';
-import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=318db48';
+} from './entities.js?v=2700161';
+import { WEAPONS, ARMOR, TOMES, setDamageEnemyForWeapons, rebuildOrbits } from './weapons.js?v=2700161';
+import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=2700161';
 import {
   gameState, cam,
-} from './state.js?v=318db48';
-import { CFG, STAGE_MULTS, DIFFICULTIES } from './config.js?v=318db48';
-import { Profile, ARENAS, CHALLENGES } from './profile.js?v=318db48';
-import { groundHeight, resolveSolids, setTerrainArena } from './terrain.js?v=318db48';
-import { setWorldArena } from './world.js?v=318db48';
-import { killMesh, clamp, rand, tmp, tmp2, flatPhong } from './utils.js?v=318db48';
-import { Audio } from './audio.js?v=318db48';
+} from './state.js?v=2700161';
+import { CFG, STAGE_MULTS, DIFFICULTIES } from './config.js?v=2700161';
+import { Profile, ARENAS, CHALLENGES } from './profile.js?v=2700161';
+import { groundHeight, resolveSolids, setTerrainArena } from './terrain.js?v=2700161';
+import { setWorldArena } from './world.js?v=2700161';
+import { killMesh, clamp, rand, tmp, tmp2, flatPhong } from './utils.js?v=2700161';
+import { Audio } from './audio.js?v=2700161';
 import {
   showDamage, showAlert, updateBossArrow, updateLoadoutDisplay,
   syncSliceDisplays, triggerGameOver,
@@ -43,7 +43,7 @@ import {
   showStageClearScreen, setAdvanceStageCb, clearPendingStageClear,
   initUI,
   addCameraShake,
-} from './ui.js?v=318db48';
+} from './ui.js?v=2700161';
 
 // Player animation state (module-level so it persists across frames)
 let _animState = 'idle';
@@ -864,9 +864,9 @@ export function resetGame() {
   // scenery tints).  Must happen before any new scenery is placed.
   const arenaSlug = gameState.arena || Profile.getEquippedArena() || 'pepperoni_pines';
   gameState.arena = arenaSlug;
-  setRendererArena(arenaSlug);
-  setTerrainArena(arenaSlug);
-  setWorldArena(arenaSlug);
+  // Deduped — if the title/config screen already swapped the backdrop to this
+  // arena, this is a no-op, so PLAY doesn't re-randomize obstacles mid-sweep.
+  applyArenaVisuals(arenaSlug);
 
   for (const e of enemies) killMesh(e.mesh);
   enemies.length = 0;
@@ -1798,9 +1798,25 @@ function updateWeapons(dt) {
 // menu sits on top of the real game world instead of a flat color.
 // Called from main.js animate() whenever gameState.state === 'start'.
 // ============================================================
+// Apply an arena's full visual treatment (sky/fog/lights, ground/scenery
+// tint, inner obstacles). Deduped via _lastAppliedArena so it's safe + cheap
+// to call every frame from the title loop — only does real work when the
+// selected arena actually changes. Lets the menu/config backdrop live-swap
+// as the player picks arenas, and lets resetGame skip a redundant rebuild.
+let _lastAppliedArena = null;
+export function applyArenaVisuals(slug) {
+  if (!slug || slug === _lastAppliedArena) return;
+  _lastAppliedArena = slug;
+  setRendererArena(slug);
+  setTerrainArena(slug);
+  setWorldArena(slug);
+}
+
 let _titleT = 0;
 export function updateTitleScene(dt) {
   _titleT += dt;
+  // Keep the live backdrop matched to the currently-selected arena (deduped).
+  applyArenaVisuals(gameState.arena);
   // Hero stands at the world origin as the title mascot.
   player.pos.set(0, 0, 0);
 
