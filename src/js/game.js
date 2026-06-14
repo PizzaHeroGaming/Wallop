@@ -1810,9 +1810,9 @@ export function updateTitleScene(dt) {
   const angle = 0.62 + Math.sin(_titleT * 0.18) * 0.10;
   const radius = 5.0, height = 1.95;
   camera.position.set(Math.sin(angle) * radius, height, Math.cos(angle) * radius);
-  // lookAt offset to the hero's LEFT pushes the hero toward the right edge of
-  // frame, leaving the left ~2/3 clear for the centered logo + button stack.
-  camera.lookAt(-3.7, 1.25, 0);
+  // lookAt offset pushes the hero into the open right-side field, clear of the
+  // left button column. Tuned in-preview across 640/844/926 landscape widths.
+  camera.lookAt(-6.6, 1.7, 0);
 
   if (player.group) {
     player.group.position.set(0, groundHeight(0, 0), 0);
