@@ -15,7 +15,7 @@
 //   keyboard/mobile → tryJump, tryDash (game.js): use _jumpFn/_dashFn, set via setJumpDashCbs()
 //   openChest → presentChoiceScreen (this file): setOpenChestDeps is called in initUI()
 
-import { camera, renderer, isMobile, tryEnterFullscreen } from './renderer.js?v=86b4455';
+import { camera, renderer, isMobile, tryEnterFullscreen } from './renderer.js?v=318db48';
 import {
   player, enemies,
   tryInteract, setOpenChestDeps,
@@ -23,17 +23,17 @@ import {
   spawnParticle,
   CHARACTER_MODELS, _animClips, loadCharAsset,
   _applyCharacterModel,
-} from './entities.js?v=86b4455';
-import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=86b4455';
-import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=86b4455';
-import { gameState, cam } from './state.js?v=86b4455';
-import { Audio } from './audio.js?v=86b4455';
-import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=86b4455';
+} from './entities.js?v=318db48';
+import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=318db48';
+import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=318db48';
+import { gameState, cam } from './state.js?v=318db48';
+import { Audio } from './audio.js?v=318db48';
+import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=318db48';
 // VERSION lives on CFG.VERSION too — reading via property access doesn't
 // blow up if a cached older config.js is loaded without the named export
 const VERSION = CFG.VERSION || '0.0.0';
-import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=86b4455';
-import { tmp, tmp2 } from './utils.js?v=86b4455';
+import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=318db48';
+import { tmp, tmp2 } from './utils.js?v=318db48';
 
 // ============================================================
 // INJECTION CALLBACKS (break circular deps)

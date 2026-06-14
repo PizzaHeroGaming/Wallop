@@ -2433,15 +2433,30 @@
     #mob-char-btn { padding: 7px 10px !important; font-size: 9px !important; min-height: 0 !important; }
     #mob-char-dots { padding-top: 2px !important; gap: 5px !important; }
 
-    /* Big primary button, compact 2-up secondary grid */
+    /* Big primary button, compact 2-up secondary grid (Challenges + Armory).
+       About + Exit are pulled OUT of this stack (handled below) so the main
+       column stays a clean focused trio: PLAY -> Challenges/Armory -> hero. */
     #start-btn {
       flex: 1 1 100% !important; font-size: 15px !important;
       padding: 15px 18px !important; min-height: 0 !important; letter-spacing: 2px !important;
     }
-    #challenges-btn, #armory-btn, #about-btn, #exit-btn {
+    #challenges-btn, #armory-btn {
       flex: 1 1 46% !important; font-size: 8px !important;
       padding: 10px 8px !important; min-height: 36px !important;
     }
+
+    /* About → compact utility pill in the top-LEFT corner (mirrors the slice
+       chip top-right). De-emphasized: it's info, not a gameplay destination. */
+    #about-btn {
+      position: absolute !important;
+      top: calc(10px + env(safe-area-inset-top)) !important;
+      left: calc(12px + env(safe-area-inset-left)) !important;
+      flex: 0 0 auto !important; font-size: 8px !important;
+      padding: 7px 12px !important; min-height: 0 !important;
+    }
+    /* Exit dropped on phones — you background the app; no in-game exit needed.
+       (Still present on the desktop/Steam build outside this breakpoint.) */
+    #exit-btn { display: none !important; }
 
     /* Slice chip pinned to the top-right corner, clear of the hero's face */
     #slice-counter {
