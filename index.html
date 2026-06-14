@@ -2412,8 +2412,8 @@
     #title-block { align-items: flex-start !important; gap: 2px !important; }
     #title {
       transform: rotate(-2deg) !important;
-      font-size: clamp(36px, 9vw, 64px) !important;
-      text-shadow: 5px 5px 0 #000, 0 0 26px rgba(255,210,63,0.4) !important;
+      font-size: clamp(30px, 7.5vw, 52px) !important;
+      text-shadow: 4px 4px 0 #000, 0 0 24px rgba(255,210,63,0.4) !important;
       margin: 0 !important;
     }
     #subtitle {
@@ -2426,7 +2426,13 @@
 
     /* PLAY first, hero selector tucked underneath */
     .start-actions { order: 1 !important; width: 100% !important; gap: 7px !important; justify-content: flex-start !important; }
-    #mob-char-select { order: 2 !important; width: 100% !important; margin-top: 2px !important; }
+    #mob-char-select { order: 2 !important; width: 100% !important; margin-top: 2px !important; padding: 6px 10px !important; gap: 4px !important; }
+    /* Compact hero selector — the row already shows the name, so the
+       "CHOOSE YOUR HERO" label is redundant noise; drop it to save height. */
+    #mob-char-select .sel-title { display: none !important; }
+    #mob-char-select .mob-char-row { padding: 2px 4px !important; }
+    #mob-char-btn { padding: 7px 10px !important; font-size: 9px !important; min-height: 0 !important; }
+    #mob-char-dots { padding-top: 2px !important; gap: 5px !important; }
 
     /* Big primary button, compact 2-up secondary grid */
     #start-btn {
@@ -2445,6 +2451,23 @@
       right: calc(12px + env(safe-area-inset-right)) !important;
       margin: 0 !important;
     }
+  }
+
+  /* Extra-compact tier for the shortest landscape phones (e.g. 640x360) so
+     the logo never clips against the top edge. */
+  @media (max-height: 380px) {
+    #start-screen {
+      gap: 6px !important;
+      padding-top: max(8px, env(safe-area-inset-top)) !important;
+      padding-bottom: max(8px, env(safe-area-inset-bottom)) !important;
+    }
+    #start-left { gap: 5px !important; }
+    #title { font-size: clamp(26px, 6.5vw, 44px) !important; }
+    #subtitle { font-size: 11px !important; }
+    #start-btn { font-size: 13px !important; padding: 11px 16px !important; }
+    #challenges-btn, #armory-btn, #about-btn, #exit-btn { min-height: 32px !important; padding: 8px 6px !important; }
+    #mob-char-select { padding: 5px 8px !important; }
+    #mob-char-btn { padding: 5px 8px !important; }
   }
 </style>
 </head>
@@ -3071,6 +3094,6 @@ window.addEventListener('load', () => {
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
-<script type="module" src="src/js/main.js?v=be5e205"></script>
+<script type="module" src="src/js/main.js?v=2f7c517"></script>
 </body>
 </html>
