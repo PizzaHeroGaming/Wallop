@@ -9,10 +9,10 @@
 //   game.js        → damageEnemy, update, initGame
 //   main.js        → animate, splash, resize
 
-import { scene, camera, renderer, clock, composer, isMobile, tryEnterFullscreen, rearmFullscreenOnNextTap } from './renderer.js?v=eb0a775';
-import { gameState } from './state.js?v=eb0a775';
-import { initGame, update } from './game.js?v=eb0a775';
-import './world.js?v=eb0a775'; // side-effect only: builds terrain scenery at load time
+import { scene, camera, renderer, clock, composer, isMobile, tryEnterFullscreen, rearmFullscreenOnNextTap } from './renderer.js?v=9e07013';
+import { gameState } from './state.js?v=9e07013';
+import { initGame, update, updateTitleScene } from './game.js?v=9e07013';
+import './world.js?v=9e07013'; // side-effect only: builds terrain scenery at load time
 
 // ============================================================
 // WEBGL CONTEXT LOSS HANDLING
@@ -99,6 +99,8 @@ function animate() {
   if (renderer.getContext().isContextLost && renderer.getContext().isContextLost()) return;
   const dt = Math.min(0.05, clock.getDelta());
   update(dt);
+  // Live title-screen backdrop: orbit the hero while sitting on the start menu.
+  if (gameState.state === 'start') updateTitleScene(dt);
   document.body.classList.toggle('playing', gameState.state === 'playing');
   if (composer) composer.render(); else renderer.render(scene, camera);
 }

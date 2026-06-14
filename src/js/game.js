@@ -1,6 +1,6 @@
 // game.js — core game logic: damageEnemy, update loop, player movement, spawning
 // Imports (acyclic — game.js is the top of the dep graph among game modules):
-import { scene, camera, renderer, composer, sun, clock, isMobile, tryEnterFullscreen, releasePtLight, setRendererArena } from './renderer.js?v=eb0a775';
+import { scene, camera, renderer, composer, sun, clock, isMobile, tryEnterFullscreen, releasePtLight, setRendererArena } from './renderer.js?v=9e07013';
 import {
   player,
   playerMixer, playerIdleAction, playerWalkAction, playerRunAction,
@@ -19,18 +19,18 @@ import {
   updateShieldOrbital, updateParticles,
   setDamageEnemyCb, setOnLevelUpReady,
   spawnGold, spawnSmokeCloud, makeEnemyMesh, ENEMY_DEFS,
-} from './entities.js?v=eb0a775';
-import { WEAPONS, ARMOR, TOMES, setDamageEnemyForWeapons, rebuildOrbits } from './weapons.js?v=eb0a775';
-import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=eb0a775';
+} from './entities.js?v=9e07013';
+import { WEAPONS, ARMOR, TOMES, setDamageEnemyForWeapons, rebuildOrbits } from './weapons.js?v=9e07013';
+import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=9e07013';
 import {
   gameState, cam,
-} from './state.js?v=eb0a775';
-import { CFG, STAGE_MULTS, DIFFICULTIES } from './config.js?v=eb0a775';
-import { Profile, ARENAS, CHALLENGES } from './profile.js?v=eb0a775';
-import { groundHeight, resolveSolids, setTerrainArena } from './terrain.js?v=eb0a775';
-import { setWorldArena } from './world.js?v=eb0a775';
-import { killMesh, clamp, rand, tmp, tmp2, flatPhong } from './utils.js?v=eb0a775';
-import { Audio } from './audio.js?v=eb0a775';
+} from './state.js?v=9e07013';
+import { CFG, STAGE_MULTS, DIFFICULTIES } from './config.js?v=9e07013';
+import { Profile, ARENAS, CHALLENGES } from './profile.js?v=9e07013';
+import { groundHeight, resolveSolids, setTerrainArena } from './terrain.js?v=9e07013';
+import { setWorldArena } from './world.js?v=9e07013';
+import { killMesh, clamp, rand, tmp, tmp2, flatPhong } from './utils.js?v=9e07013';
+import { Audio } from './audio.js?v=9e07013';
 import {
   showDamage, showAlert, updateBossArrow, updateLoadoutDisplay,
   syncSliceDisplays, triggerGameOver,
@@ -43,7 +43,7 @@ import {
   showStageClearScreen, setAdvanceStageCb, clearPendingStageClear,
   initUI,
   addCameraShake,
-} from './ui.js?v=eb0a775';
+} from './ui.js?v=9e07013';
 
 // Player animation state (module-level so it persists across frames)
 let _animState = 'idle';
@@ -1790,6 +1790,42 @@ function updateWeapons(dt) {
   for (const w of player.weapons) {
     WEAPONS[w.id].tick(w, dt);
   }
+}
+
+// ============================================================
+// TITLE-SCREEN SCENE — live 3D backdrop behind the start menu.
+// Slowly orbits the camera around the hero standing in the arena so the
+// menu sits on top of the real game world instead of a flat color.
+// Called from main.js animate() whenever gameState.state === 'start'.
+// ============================================================
+let _titleT = 0;
+export function updateTitleScene(dt) {
+  _titleT += dt;
+  // Hero stands at the world origin as the title mascot.
+  player.pos.set(0, 0, 0);
+  if (player.group) {
+    player.group.position.set(0, groundHeight(0, 0), 0);
+    // Gentle "look around" sway so the hero reads as alive + facing the lens,
+    // rather than a stiff turntable that would show its back.
+    player.group.rotation.y = Math.PI + Math.sin(_titleT * 0.4) * 0.35;
+  }
+  // Idle animation keeps the mascot breathing.
+  if (playerMixer) playerMixer.update(dt);
+
+  // Fixed 3/4 hero-portrait camera with a subtle parallax sway (not a full
+  // orbit — that would drag the hero across the whole frame and fight the menu
+  // layout). Low angle so the hero stands tall against the sky.
+  const angle = 0.62 + Math.sin(_titleT * 0.18) * 0.10;
+  const radius = 5.0, height = 1.95;
+  camera.position.set(Math.sin(angle) * radius, height, Math.cos(angle) * radius);
+  // lookAt offset to the hero's LEFT pushes the hero into the right third of
+  // frame, leaving the left clear for the logo + button stack.
+  camera.lookAt(-1.7, 1.25, 0);
+
+  // Keep the sun anchored so the hero is lit + casts a grounding shadow.
+  sun.position.set(40, 65, 25);
+  sun.target.position.set(0, 0, 0);
+  sun.target.updateMatrixWorld();
 }
 
 // ============================================================
