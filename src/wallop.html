@@ -2383,6 +2383,66 @@
   body summary.patch-ver { color: #b8501c !important; }
   body details.patch-entry[open] summary.patch-ver { color: #c8102e !important; }
   /* ===== end Kenney UI pack overrides ===== */
+
+  /* ============================================================
+     MOBILE TITLE SCREEN — live 3D hero backdrop
+     The start screen sits over the real forest arena (updateTitleScene in
+     game.js orbits a hero-portrait camera). A directional dark scrim keeps
+     the left/bottom legible for the logo + buttons while the hero shows
+     through on the right.
+     ============================================================ */
+  /* Transparent directional scrim (replaces the old opaque navy fill) */
+  #start-screen {
+    background:
+      linear-gradient(90deg, rgba(8,10,24,0.94) 0%, rgba(8,10,24,0.82) 26%, rgba(8,10,24,0.30) 56%, rgba(8,10,24,0) 80%),
+      linear-gradient(0deg,  rgba(8,10,24,0.82) 0%, rgba(8,10,24,0) 40%) !important;
+  }
+
+  /* Landscape phones: left-anchored logo + button column, hero at right */
+  @media (max-height: 600px) {
+    #start-screen {
+      align-items: flex-start !important;
+      justify-content: center !important;
+      padding-left: max(30px, env(safe-area-inset-left)) !important;
+      gap: 10px !important;
+    }
+    #title-block { align-items: flex-start !important; gap: 2px !important; }
+    #title {
+      transform: rotate(-2deg) !important;
+      font-size: clamp(36px, 9vw, 64px) !important;
+      text-shadow: 5px 5px 0 #000, 0 0 26px rgba(255,210,63,0.4) !important;
+      margin: 0 !important;
+    }
+    #subtitle {
+      font-size: 13px !important; text-align: left !important;
+      margin: 3px 0 0 4px !important; letter-spacing: 2px !important;
+      color: var(--ink) !important; opacity: 0.85;
+    }
+    #start-main { width: min(54%, 460px) !important; align-items: flex-start !important; }
+    #start-left { width: 100% !important; gap: 8px !important; }
+
+    /* PLAY first, hero selector tucked underneath */
+    .start-actions { order: 1 !important; width: 100% !important; gap: 7px !important; justify-content: flex-start !important; }
+    #mob-char-select { order: 2 !important; width: 100% !important; margin-top: 2px !important; }
+
+    /* Big primary button, compact 2-up secondary grid */
+    #start-btn {
+      flex: 1 1 100% !important; font-size: 15px !important;
+      padding: 15px 18px !important; min-height: 0 !important; letter-spacing: 2px !important;
+    }
+    #challenges-btn, #armory-btn, #about-btn, #exit-btn {
+      flex: 1 1 46% !important; font-size: 8px !important;
+      padding: 10px 8px !important; min-height: 36px !important;
+    }
+
+    /* Slice chip pinned to the top-right corner, clear of the hero's face */
+    #slice-counter {
+      position: absolute !important;
+      top: calc(10px + env(safe-area-inset-top)) !important;
+      right: calc(12px + env(safe-area-inset-right)) !important;
+      margin: 0 !important;
+    }
+  }
 </style>
 </head>
 <body>
