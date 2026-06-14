@@ -1807,12 +1807,16 @@ export function updateTitleScene(dt) {
   // Fixed 3/4 hero-portrait camera with a subtle parallax sway (not a full
   // orbit — that would drag the hero across the whole frame and fight the menu
   // layout). Low angle so the hero stands tall against the sky.
-  const angle = 0.62 + Math.sin(_titleT * 0.18) * 0.10;
+  // Tiny sway amplitude (0.04) so the hero keeps a subtle parallax life but
+  // stays parked in the right-side field instead of drifting out of it — a
+  // bigger sway pulled the hero left across half the cycle.
+  const angle = 0.62 + Math.sin(_titleT * 0.18) * 0.04;
   const radius = 5.0, height = 1.95;
   camera.position.set(Math.sin(angle) * radius, height, Math.cos(angle) * radius);
-  // lookAt offset pushes the hero into the open right-side field, clear of the
-  // left button column. Tuned in-preview across 640/844/926 landscape widths.
-  camera.lookAt(-6.6, 1.7, 0);
+  // lookAt offset parks the hero in the open right-side field (~72% across,
+  // body fills ~66-82%), clear of the left button column. Tuned in-preview
+  // across 640/844/926 landscape widths.
+  camera.lookAt(-8.5, 1.6, 0);
 
   if (player.group) {
     player.group.position.set(0, groundHeight(0, 0), 0);
