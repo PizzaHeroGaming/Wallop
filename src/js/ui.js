@@ -1909,10 +1909,13 @@ export function initButtons() {
     document.getElementById('about-screen').classList.remove('hidden');
     refreshDevModeUI();
   });
-  document.getElementById('about-close').addEventListener('click', () => {
+  const _closeAbout = () => {
     document.getElementById('about-screen').classList.add('hidden');
     document.getElementById('start-screen').classList.remove('hidden');
-  });
+  };
+  document.getElementById('about-close').addEventListener('click', _closeAbout);
+  const _aboutBackTop = document.getElementById('about-back-top');
+  if (_aboutBackTop) _aboutBackTop.addEventListener('click', _closeAbout);
 
   // ── Dev mode (testing): login at the bottom of About screen ──
   const devLoginBtn = document.getElementById('dev-login-btn');
