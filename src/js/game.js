@@ -2103,13 +2103,13 @@ function _completeActiveChallenge() {
 const CHALLENGE_LOGIC = {
   glass_cannon: {
     setup(player /*, gameState*/) {
-      player.maxHp     = Math.max(20, Math.round(player.maxHp * 0.5));
+      player.maxHp     = Math.max(16, Math.round(player.maxHp * 0.4));
       player.hp        = player.maxHp;
       player.damageMult += 0.5;
     },
     check(player, gameState) {
       if (player.hp <= 0) return 'failed';
-      if (gameState.gameTime >= 300) return 'won';
+      if (gameState.gameTime >= 360) return 'won'; // survive to 6:00
       return 'pending';
     },
   },
@@ -2122,9 +2122,9 @@ const CHALLENGE_LOGIC = {
       // Check kill log on the Stage 1 boss (mini1 / sauce slinger).  We mark it
       // when miniboss1Defeated is set in killEnemy. Until then, just count time.
       if (gameState.challengeData.sauceDefeatedAt != null) {
-        return gameState.challengeData.sauceDefeatedAt < 240 ? 'won' : 'failed';
+        return gameState.challengeData.sauceDefeatedAt < 210 ? 'won' : 'failed';
       }
-      if (gameState.gameTime >= 240) return 'failed';
+      if (gameState.gameTime >= 210) return 'failed'; // boss spawns 3:00, must die by 3:30
       return 'pending';
     },
   },
@@ -2132,7 +2132,7 @@ const CHALLENGE_LOGIC = {
     setup() {},
     check(player, gameState) {
       if (player.hp <= 0) return 'failed';
-      if (gameState.kills >= 150) return 'won';
+      if (gameState.kills >= 200) return 'won';
       if (gameState.gameTime >= 240) return 'failed';
       return 'pending';
     },
