@@ -9,10 +9,10 @@
 //   game.js        → damageEnemy, update, initGame
 //   main.js        → animate, splash, resize
 
-import { scene, camera, renderer, clock, composer, isMobile, tryEnterFullscreen, rearmFullscreenOnNextTap } from './renderer.js?v=b603185';
-import { gameState } from './state.js?v=b603185';
-import { initGame, update, updateTitleScene, updateIntroSweep } from './game.js?v=b603185';
-import './world.js?v=b603185'; // side-effect only: builds terrain scenery at load time
+import { scene, camera, renderer, clock, composer, isMobile, tryEnterFullscreen, rearmFullscreenOnNextTap } from './renderer.js?v=56e3d9b';
+import { gameState } from './state.js?v=56e3d9b';
+import { initGame, update, updateTitleScene, updateIntroSweep } from './game.js?v=56e3d9b';
+import './world.js?v=56e3d9b'; // side-effect only: builds terrain scenery at load time
 
 // ============================================================
 // WEBGL CONTEXT LOSS HANDLING

@@ -1849,6 +1849,16 @@
   /* ===== ABOUT SCREEN ===== */
   #about-screen { align-items: flex-start; justify-content: flex-start; padding: 20px 16px 32px; }
   .about-panel { width: 100%; max-width: 640px; margin: 0 auto; }
+  /* Sticky top BACK bar so the player can leave without scrolling past the
+     whole patch log. */
+  #about-top-bar {
+    position: sticky; top: 0; z-index: 5;
+    display: flex; justify-content: flex-start;
+    padding: 4px 0 10px;
+    margin-bottom: 4px;
+    background: linear-gradient(to bottom, var(--bg) 70%, transparent);
+  }
+  #about-top-bar .btn { font-size: 10px; padding: 9px 16px; }
   .about-title { font-family: 'Press Start 2P', monospace; font-size: 20px; color: var(--accent); text-align: center; margin-bottom: 4px; text-shadow: 3px 3px 0 #000; }
   .about-sub { font-family: 'VT323', monospace; font-size: 22px; color: var(--ink-dim); text-align: center; margin-bottom: 6px; }
   .about-version {
@@ -2968,6 +2978,9 @@ window.addEventListener('load', () => {
 <!-- About screen -->
 <div id="about-screen" class="overlay hidden" style="overflow-y:auto;">
   <div class="about-panel">
+    <div id="about-top-bar">
+      <button class="btn" id="about-back-top">← BACK</button>
+    </div>
     <div class="about-title">WALLOP</div>
     <div class="about-sub">Pizza Hero Gaming</div>
     <div class="about-version" id="about-version">v0.0.0</div>
@@ -3021,6 +3034,19 @@ window.addEventListener('load', () => {
       <div class="about-heading">PATCH LOG</div>
 
       <details class="patch-entry" open>
+        <summary class="patch-ver">v0.8 — Onboarding &amp; Challenge Expansion</summary>
+        <ul class="patch-list">
+          <li><strong>Cinematic menu → gameplay transition:</strong> Hitting START RUN now slides the run-config panel to the left over the live hero + arena backdrop (swapping arenas updates the backdrop in real time). Pressing PLAY orbits the camera smoothly from the menu portrait pose around behind the hero into the exact gameplay framing — one continuous shot, no hard cut.</li>
+          <li><strong>Redesigned mobile title screen:</strong> Live 3D forest backdrop with the selected hero on the right, centered WALLOP wordmark, and a big PLAY. The hero swaps when you pick a different character. About moved to a corner pill; logo + menu reflowed so nothing clips on the smallest landscape phones.</li>
+          <li><strong>First-run tutorial:</strong> A new player's very first run freezes the clock and enemy spawns and walks them through MOVE then LOOK — each step clears when it detects you actually doing it. Skippable, only ever shows once, and skipped entirely on challenge runs.</li>
+          <li><strong>7 new challenges</strong> (12 total). Any-character: Double Trouble (both bosses before 7:00) and Level Rush (level 20 by 5:00). Character-specific, gated until you own the character and auto-equipping it for the run: Bullseye (Anchovy Archer), Cold Snap (Frost Baker), Immovable (Oven Knight), Hit &amp; Run (Crust Runner), Night Shift (Stealth Slice).</li>
+          <li><strong>Original challenges retuned harder</strong> after a difficulty sim showed they were soft: Speed Demon's window tightened to 30s (kill the Sauce Slinger before 3:30), Glass Cannon dropped to 40% HP and now demands surviving to 6:00, Slaughterhouse bumped 150 → 200 kills.</li>
+          <li><strong>Confirmation prompts</strong> on the pause menu's RESTART and MAIN MENU so a stray tap can't throw away an active run. ESC cancels the prompt instead of resuming underneath it.</li>
+          <li>Quality-of-life: a BACK button now sits at the top of the About screen too, so you don't have to scroll past the whole patch log to leave.</li>
+        </ul>
+      </details>
+
+      <details class="patch-entry">
         <summary class="patch-ver">v0.7 — Bosses, Audio &amp; Polish Pass</summary>
         <ul class="patch-list">
           <li><strong>9 unique boss models</strong> via Quaternius CC0 pack — each arena now has its own Sauce Slinger / Hammer Chef / Warlord. Pepperoni Pines: Wizard → Big Orc → Big Demon. Sundried Slopes: Big Cactoro → Goleling Evo → Mushroom King. Frostbite Glacier: Ghost → Big Yeti → Frozen Wyrm (pale-blue dragon).</li>
@@ -3307,6 +3333,6 @@ window.addEventListener('load', () => {
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
-<script type="module" src="src/js/main.js?v=b603185"></script>
+<script type="module" src="src/js/main.js?v=56e3d9b"></script>
 </body>
 </html>
