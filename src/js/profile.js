@@ -296,6 +296,9 @@ export const Profile = (function () {
       // Audio prefs — persisted across sessions, defaults match "low + on"
       audioMuted: false,
       audioVolume: 0.4,
+      // First-run tutorial (move + camera). Set true once the player has either
+      // completed or skipped the tutorial so it never shows again.
+      tutorialDone: false,
     };
   }
   function migrate(saved) {
@@ -556,7 +559,11 @@ export const Profile = (function () {
     reset,
     enterDevMode, exitDevMode, isInDevMode,
     isChallengeCompleted, markChallengeCompleted,
+    isTutorialDone, markTutorialDone,
   };
+
+  function isTutorialDone() { return !!_state.tutorialDone; }
+  function markTutorialDone() { _state.tutorialDone = true; save(); }
 })();
 
 // ============================================================

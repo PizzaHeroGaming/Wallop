@@ -2541,6 +2541,72 @@
     #mob-char-select { padding: 5px 8px !important; }
     #mob-char-btn { padding: 5px 8px !important; }
   }
+
+  /* ============================================================
+     FIRST-RUN TUTORIAL OVERLAY (move + camera)
+     Sits above gameplay but lets input through (only the SKIP
+     button is interactive) so the player can practice underneath.
+     ============================================================ */
+  #tutorial-overlay {
+    position: fixed; inset: 0; z-index: 30;
+    display: flex; align-items: flex-end; justify-content: center;
+    padding-bottom: max(80px, 18vh);
+    pointer-events: none;
+  }
+  #tutorial-overlay.hidden { display: none; }
+  #tut-card {
+    pointer-events: none;
+    background: var(--panel);
+    border: 3px solid #000;
+    box-shadow: 4px 4px 0 #000;
+    padding: 14px 18px;
+    max-width: min(86vw, 440px);
+    text-align: center;
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    animation: tut-pop 0.25s ease-out;
+  }
+  @keyframes tut-pop {
+    from { transform: translateY(14px) scale(0.96); opacity: 0; }
+    to   { transform: translateY(0)    scale(1);    opacity: 1; }
+  }
+  #tut-glyph { font-size: 34px; line-height: 1; filter: drop-shadow(2px 2px 0 #000); }
+  #tut-title {
+    font-family: 'Press Start 2P', monospace;
+    font-size: 16px; color: var(--accent);
+    text-shadow: 2px 2px 0 #000; letter-spacing: 1px;
+  }
+  #tut-body {
+    font-family: 'VT323', monospace;
+    font-size: 20px; color: var(--ink); line-height: 1.15;
+  }
+  #tut-body b { color: var(--accent); }
+  #tut-progress { display: flex; gap: 8px; margin-top: 2px; }
+  .tut-dot {
+    width: 12px; height: 12px; border: 2px solid #000;
+    background: var(--panel-2); box-shadow: 1px 1px 0 #000;
+  }
+  .tut-dot.active { background: var(--accent); }
+  .tut-dot.done   { background: var(--hot); }
+  #tut-skip-btn {
+    pointer-events: auto;
+    margin-top: 6px;
+    font-family: 'Press Start 2P', monospace;
+    font-size: 9px; color: var(--ink-dim);
+    background: var(--panel-2);
+    border: 2px solid #000; box-shadow: 2px 2px 0 #000;
+    padding: 7px 12px; cursor: pointer;
+    transition: transform 0.08s, box-shadow 0.08s;
+  }
+  #tut-skip-btn:hover { transform: translateY(-1px); box-shadow: 3px 3px 0 #000; color: var(--ink); }
+  #tut-skip-btn:active { transform: translateY(1px); box-shadow: 1px 1px 0 #000; }
+  #tutorial-overlay.tut-complete #tut-skip-btn { visibility: hidden; }
+  @media (max-height: 600px) {
+    #tutorial-overlay { padding-bottom: max(60px, 14vh); }
+    #tut-card { padding: 10px 14px; max-width: min(80vw, 380px); }
+    #tut-glyph { font-size: 26px; }
+    #tut-title { font-size: 13px; }
+    #tut-body { font-size: 17px; }
+  }
 </style>
 </head>
 <body>
@@ -2713,6 +2779,18 @@ window.addEventListener('load', () => {
   <button id="pause-btn" aria-label="Pause">⏸</button>
   <div id="boss-arrow"></div>
   <div id="dmg-overlay" style="position:absolute;inset:0;pointer-events:none;"></div>
+</div>
+
+<!-- First-run tutorial prompt (move + camera). Shown by game.js on a new
+     player's first normal run; only the SKIP button is interactive. -->
+<div id="tutorial-overlay" class="hidden">
+  <div id="tut-card">
+    <div id="tut-glyph">⌨️</div>
+    <div id="tut-title">MOVE</div>
+    <div id="tut-body"></div>
+    <div id="tut-progress"></div>
+    <button id="tut-skip-btn">SKIP TUTORIAL</button>
+  </div>
 </div>
 
 <!-- Mobile controls — floating thumbsticks. Two invisible zones cover the

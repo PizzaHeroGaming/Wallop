@@ -42,6 +42,7 @@ import {
   setDamageEnemyForUI, setResetGameCb, setJumpDashCbs, setCallBossCb, setPauseTimerCbs,
   showStageClearScreen, setAdvanceStageCb, clearPendingStageClear,
   onIntroComplete, setBeginIntroCb,
+  showTutorialStep, hideTutorial, setTutorialSkipCb,
   initUI,
   addCameraShake,
 } from './ui.js?v=e17ae8c';
@@ -1042,6 +1043,110 @@ export function resetGame() {
   }
 
   updateLoadoutDisplay();
+
+  // First-run tutorial: on a brand-new player's first normal run, freeze the
+  // clock + spawns and walk them through MOVE then LOOK. Skipped on challenge
+  // runs (those players already know the controls).
+  if (!Profile.isTutorialDone() && !gameState.activeChallenge) {
+    startTutorial();
+  } else {
+    gameState.tutorialActive = false;
+  }
+}
+
+// ============================================================
+// FIRST-RUN TUTORIAL (move + camera)
+// ============================================================
+// The clock and enemy spawns are frozen while this runs (see update()), so a
+// new player can learn the controls in a calm arena. Two steps: demonstrate
+// movement, then demonstrate looking around. Either can be skipped.
+let _tutStep = 0;          // 0 = move, 1 = look
+let _tutMoveTime = 0;      // seconds of held movement input
+let _tutLookAmount = 0;    // accumulated |yaw| change in radians
+let _tutLastYaw = 0;
+let _tutHold = 0;          // brief "GO!" hold after the last step before resuming
+const TUT_MOVE_GOAL = 1.1; // seconds of movement to clear step 1
+const TUT_LOOK_GOAL = 1.3; // radians of camera turn to clear step 2
+
+function _tutStepContent(step) {
+  const mob = isMobile();
+  if (step === 0) {
+    return {
+      glyph: mob ? '🕹️' : '⌨️',
+      title: 'MOVE',
+      body: mob
+        ? 'Touch and drag anywhere on the <b>LEFT</b> side to move.'
+        : 'Use <b>WASD</b> or the <b>ARROW KEYS</b> to move.',
+      idx: 0, total: 2,
+    };
+  }
+  return {
+    glyph: mob ? '👆' : '🖱️',
+    title: 'LOOK AROUND',
+    body: mob
+      ? 'Touch and drag on the <b>RIGHT</b> side to turn the camera.'
+      : 'Move the <b>MOUSE</b> to turn the camera.',
+    idx: 1, total: 2,
+  };
+}
+
+function startTutorial() {
+  gameState.tutorialActive = true;
+  _tutStep = 0;
+  _tutMoveTime = 0;
+  _tutLookAmount = 0;
+  _tutLastYaw = cam.yaw;
+  _tutHold = 0;
+  showTutorialStep(_tutStepContent(0));
+}
+
+export function skipTutorial() {
+  if (!gameState.tutorialActive) return;
+  finishTutorial();
+}
+
+function finishTutorial() {
+  gameState.tutorialActive = false;
+  Profile.markTutorialDone();
+  hideTutorial();
+  showAlert('GO!', '#ffd23f');
+}
+
+function updateTutorial(dt) {
+  // If we're in the brief celebratory hold after the last step, count it down.
+  if (_tutHold > 0) {
+    _tutHold -= dt;
+    if (_tutHold <= 0) finishTutorial();
+    return;
+  }
+
+  if (_tutStep === 0) {
+    // Movement input (mirror of updatePlayer's read)
+    let mx = 0, mz = 0;
+    if (keys.KeyW || keys.ArrowUp)    mz -= 1;
+    if (keys.KeyS || keys.ArrowDown)  mz += 1;
+    if (keys.KeyA || keys.ArrowLeft)  mx -= 1;
+    if (keys.KeyD || keys.ArrowRight) mx += 1;
+    mx += joystickInput.x;
+    mz += joystickInput.y;
+    if (Math.hypot(mx, mz) > 0.2) _tutMoveTime += dt;
+    if (_tutMoveTime >= TUT_MOVE_GOAL) {
+      _tutStep = 1;
+      _tutLastYaw = cam.yaw;
+      showTutorialStep(_tutStepContent(1));
+    }
+  } else {
+    // Camera turn: accumulate absolute yaw change (works for mouse + right stick)
+    let d = cam.yaw - _tutLastYaw;
+    while (d >  Math.PI) d -= Math.PI * 2;
+    while (d < -Math.PI) d += Math.PI * 2;
+    _tutLookAmount += Math.abs(d);
+    _tutLastYaw = cam.yaw;
+    if (_tutLookAmount >= TUT_LOOK_GOAL) {
+      showTutorialStep({ ..._tutStepContent(1), idx: 2, complete: true });
+      _tutHold = 0.6; // brief beat so the player sees both steps tick complete
+    }
+  }
 }
 
 // ============================================================
@@ -1910,6 +2015,16 @@ export function updateIntroSweep(dt) {
 export function update(dt) {
   if (gameState.state !== 'playing') return;
 
+  // First-run tutorial: keep the player + camera fully live so they can practice,
+  // but freeze the clock, spawns, and all hostile systems until it's cleared.
+  if (gameState.tutorialActive) {
+    updatePlayer(dt);
+    if (playerMixer) playerMixer.update(dt);
+    updateParticles(dt);
+    updateTutorial(dt);
+    return;
+  }
+
   gameState.gameTime += dt;
   updateSpawning(dt);
   updatePlayer(dt);
@@ -2083,6 +2198,10 @@ export function initGame() {
   // Inject the intro-sweep starter so the run-config PLAY button kicks off the
   // cinematic camera move into gameplay.
   setBeginIntroCb(beginIntroSweep);
+
+  // Inject the tutorial SKIP handler so the overlay's SKIP button can dismiss
+  // the first-run tutorial and start the real run immediately.
+  setTutorialSkipCb(skipTutorial);
 
   // processPendingLevelUp is called by updateGems in entities.js
   setOnLevelUpReady(processPendingLevelUp);

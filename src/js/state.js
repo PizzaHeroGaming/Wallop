@@ -19,6 +19,9 @@ export const gameState = {
   finalSwarm: false,
   _lastWave: 0,
   chestTimer: 90,
+  // First-run tutorial active flag. While true, update() freezes the clock and
+  // spawns so a new player can learn MOVE + LOOK in a calm arena.
+  tutorialActive: false,
   // Active challenge id (string) or null. Set by the challenges menu before
   // calling resetGame; consumed by CHALLENGE_LOGIC[id].setup/check in game.js.
   activeChallenge: null,

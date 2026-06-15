@@ -71,6 +71,44 @@ export function onIntroComplete() {
 }
 
 // ============================================================
+// FIRST-RUN TUTORIAL OVERLAY (move + camera)
+// ============================================================
+// game.js owns the tutorial state machine; ui.js just renders the prompt card
+// and reports the SKIP click back through an injected callback.
+let _tutSkipFn = null;
+/** Called by game.js: setTutorialSkipCb(skipTutorial) */
+export function setTutorialSkipCb(fn) { _tutSkipFn = fn; }
+
+/** Render/refresh the tutorial prompt card. step = { glyph, title, body, idx, total, complete }. */
+export function showTutorialStep(step) {
+  const ov = document.getElementById('tutorial-overlay');
+  if (!ov) return;
+  ov.classList.remove('hidden');
+  const g = document.getElementById('tut-glyph');
+  const t = document.getElementById('tut-title');
+  const b = document.getElementById('tut-body');
+  const p = document.getElementById('tut-progress');
+  if (g) g.textContent = step.glyph || '';
+  if (t) t.textContent = step.title || '';
+  if (b) b.innerHTML = step.body || '';
+  if (p) {
+    p.innerHTML = '';
+    const total = step.total || 1;
+    for (let i = 0; i < total; i++) {
+      const dot = document.createElement('span');
+      dot.className = 'tut-dot' + (i < step.idx ? ' done' : (i === step.idx ? ' active' : ''));
+      p.appendChild(dot);
+    }
+  }
+  ov.classList.toggle('tut-complete', !!step.complete);
+}
+
+export function hideTutorial() {
+  const ov = document.getElementById('tutorial-overlay');
+  if (ov) ov.classList.add('hidden');
+}
+
+// ============================================================
 // INPUT STATE (exported so game.js can read them)
 // ============================================================
 export const keys = {};
@@ -1915,6 +1953,13 @@ export function initUI() {
   initButtons();
   initCharSelect();
   initAudioControls();
+
+  // Tutorial SKIP button — reports back to game.js's tutorial state machine
+  const _tutSkip = document.getElementById('tut-skip-btn');
+  if (_tutSkip) _tutSkip.addEventListener('click', (e) => {
+    e.stopPropagation();
+    if (_tutSkipFn) _tutSkipFn();
+  });
 
   // Expose renderStageSelect globally so wallop.html's splash onComplete
   // can call it after the start screen becomes visible (belt-and-suspenders).
