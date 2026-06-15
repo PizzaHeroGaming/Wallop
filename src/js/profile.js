@@ -607,6 +607,66 @@ export const CHALLENGES = [
     desc: 'Beat the Sauce Slinger using only Pizza Toss (no other weapons offered).',
     reward: 200,
   },
+
+  // ── More any-character challenges ──
+  {
+    id: 'double_trouble',
+    name: 'Double Trouble',
+    icon: '👹',
+    desc: 'Defeat the Sauce Slinger AND the Hammer Chef before 7:00.',
+    reward: 200,
+  },
+  {
+    id: 'level_rush',
+    name: 'Level Rush',
+    icon: '📈',
+    desc: 'Reach character level 20 before 5:00.',
+    reward: 125,
+  },
+
+  // ── Character-specific challenges ──
+  // `requiresChar` gates the card: it stays LOCKED until that character is
+  // unlocked, and launching it force-equips that character for the run.
+  {
+    id: 'bullseye',
+    name: 'Bullseye',
+    icon: '🎯',
+    desc: 'As the Anchovy Archer: defeat the Sauce Slinger before 3:30.',
+    reward: 200,
+    requiresChar: 'anchovy_archer',
+  },
+  {
+    id: 'cold_snap',
+    name: 'Cold Snap',
+    icon: '❄️',
+    desc: 'As the Frost Baker: defeat the Sauce Slinger before 3:45.',
+    reward: 175,
+    requiresChar: 'frost_baker',
+  },
+  {
+    id: 'immovable',
+    name: 'Immovable',
+    icon: '🛡️',
+    desc: 'As the Oven Knight: survive to 7:00.',
+    reward: 200,
+    requiresChar: 'oven_knight',
+  },
+  {
+    id: 'hit_and_run',
+    name: 'Hit & Run',
+    icon: '💨',
+    desc: 'As the Crust Runner: reach 150 kills before 3:30.',
+    reward: 175,
+    requiresChar: 'crust_runner',
+  },
+  {
+    id: 'night_shift',
+    name: 'Night Shift',
+    icon: '🌙',
+    desc: 'As the Stealth Slice: survive to 4:30 without taking a single hit.',
+    reward: 225,
+    requiresChar: 'stealth_slice',
+  },
 ];
 
 // Note: STAT_UPGRADES and SYNERGY_UPGRADES are defined in upgrades.js (not here)

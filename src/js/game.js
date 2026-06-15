@@ -168,10 +168,16 @@ export function killEnemy(e, srcWeaponId = null) {
       showAlert(`+${totalSlices} 🍕 SLICES${bonusNote}`, '#ffd23f');
       syncSliceDisplays();
     }
-    // Challenge hook: mark first-stage boss defeat time for speed_demon + pizza_purist
+    // Challenge hook: mark boss defeat times (speed_demon / pizza_purist / bullseye
+    // / cold_snap use mini1; double_trouble also needs mini2).
     if (e.bossTier === 'mini1' && gameState.activeChallenge && gameState.challengeData) {
       if (gameState.challengeData.sauceDefeatedAt == null) {
         gameState.challengeData.sauceDefeatedAt = gameState.gameTime;
+      }
+    }
+    if (e.bossTier === 'mini2' && gameState.activeChallenge && gameState.challengeData) {
+      if (gameState.challengeData.hammerDefeatedAt == null) {
+        gameState.challengeData.hammerDefeatedAt = gameState.gameTime;
       }
     }
     if (e.bossTier === 'final') {
@@ -2165,6 +2171,81 @@ const CHALLENGE_LOGIC = {
       if (player.hp <= 0) return 'failed';
       if (gameState.challengeData.sauceDefeatedAt != null) return 'won';
       if (gameState.gameTime >= 300) return 'failed'; // 5min ceiling
+      return 'pending';
+    },
+  },
+
+  // ── More any-character challenges ──
+  double_trouble: {
+    setup() {},
+    check(player, gameState) {
+      if (player.hp <= 0) return 'failed';
+      const cd = gameState.challengeData;
+      // Both bosses must be dead, and the later kill (Hammer Chef, 6:00 spawn)
+      // must land before 7:00.
+      if (cd.sauceDefeatedAt != null && cd.hammerDefeatedAt != null) {
+        return (cd.hammerDefeatedAt < 420) ? 'won' : 'failed';
+      }
+      if (gameState.gameTime >= 420) return 'failed';
+      return 'pending';
+    },
+  },
+  level_rush: {
+    setup() {},
+    check(player, gameState) {
+      if (player.hp <= 0) return 'failed';
+      if (player.level >= 20) return 'won';
+      if (gameState.gameTime >= 300) return 'failed';
+      return 'pending';
+    },
+  },
+
+  // ── Character-specific challenges (run force-equips the required character) ──
+  bullseye: {
+    setup() {},
+    check(player, gameState) {
+      if (player.hp <= 0) return 'failed';
+      if (gameState.challengeData.sauceDefeatedAt != null) {
+        return gameState.challengeData.sauceDefeatedAt < 210 ? 'won' : 'failed';
+      }
+      if (gameState.gameTime >= 210) return 'failed';
+      return 'pending';
+    },
+  },
+  cold_snap: {
+    setup() {},
+    check(player, gameState) {
+      if (player.hp <= 0) return 'failed';
+      if (gameState.challengeData.sauceDefeatedAt != null) {
+        return gameState.challengeData.sauceDefeatedAt < 225 ? 'won' : 'failed';
+      }
+      if (gameState.gameTime >= 225) return 'failed';
+      return 'pending';
+    },
+  },
+  immovable: {
+    setup() {},
+    check(player, gameState) {
+      if (player.hp <= 0) return 'failed';
+      if (gameState.gameTime >= 420) return 'won'; // survive to 7:00
+      return 'pending';
+    },
+  },
+  hit_and_run: {
+    setup() {},
+    check(player, gameState) {
+      if (player.hp <= 0) return 'failed';
+      if (gameState.kills >= 150) return gameState.gameTime < 210 ? 'won' : 'failed';
+      if (gameState.gameTime >= 210) return 'failed';
+      return 'pending';
+    },
+  },
+  night_shift: {
+    setup() {},
+    check(player, gameState) {
+      if (gameState.challengeData.tookDamage) return 'failed';
+      if (player.hp <= 0) return 'failed';
+      if (gameState.gameTime >= 270) return 'won'; // survive to 4:30 untouched
       return 'pending';
     },
   },

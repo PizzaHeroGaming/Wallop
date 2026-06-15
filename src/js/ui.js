@@ -1049,20 +1049,26 @@ function renderChallenges() {
   const list = document.getElementById('challenges-list');
   if (!list) return;
   list.innerHTML = '';
+  const charBySlug = slug => (CATALOG.characters || []).find(ch => ch.slug === slug);
   for (const c of CHALLENGES) {
     const done = Profile.isChallengeCompleted(c.id);
+    const reqChar = c.requiresChar ? charBySlug(c.requiresChar) : null;
+    const charLocked = reqChar ? !Profile.isUnlocked(c.requiresChar) : false;
     const card = document.createElement('div');
-    card.className = 'challenge-card' + (done ? ' completed' : '');
+    card.className = 'challenge-card' + (done ? ' completed' : '') + (charLocked ? ' char-locked' : '');
+    const tag = reqChar ? `<span class="challenge-char">${reqChar.icon} ${reqChar.name}</span>` : '';
+    const btn = charLocked
+      ? `<button class="btn" disabled>🔒 LOCKED</button>`
+      : `<button class="btn ${done ? '' : 'hot'}" data-challenge="${c.id}">${done ? 'REPLAY' : '▶ PLAY'}</button>`;
+    const note = charLocked ? ` <span class="challenge-locknote">— unlock ${reqChar.name} in the Armory</span>` : '';
     card.innerHTML = `
       <div class="challenge-icon">${c.icon}</div>
       <div class="challenge-body">
-        <div class="challenge-name">${c.name}</div>
-        <div class="challenge-desc">${c.desc}</div>
-        <div class="challenge-reward">🍕 ${c.reward} SLICES${done ? '' : ''}</div>
+        <div class="challenge-name">${c.name}${tag}</div>
+        <div class="challenge-desc">${c.desc}${note}</div>
+        <div class="challenge-reward">🍕 ${c.reward} SLICES</div>
       </div>
-      <button class="btn ${done ? '' : 'hot'}" data-challenge="${c.id}">
-        ${done ? 'REPLAY' : '▶ PLAY'}
-      </button>
+      ${btn}
     `;
     list.appendChild(card);
   }
@@ -1797,6 +1803,13 @@ export function initButtons() {
     const btn = e.target.closest('[data-challenge]');
     if (!btn) return;
     const id = btn.dataset.challenge;
+    const ch = CHALLENGES.find(c => c.id === id);
+    // Character-specific challenges: must own the character; force-equip it for
+    // the run so the challenge is always attempted with the intended kit.
+    if (ch && ch.requiresChar) {
+      if (!Profile.isUnlocked(ch.requiresChar)) return; // safety — button is disabled anyway
+      Profile.setEquippedCharacter(ch.requiresChar);
+    }
     document.getElementById('challenges-screen').classList.add('hidden');
     document.getElementById('hud').style.display = 'block';
     gameState.activeChallenge = id;

@@ -19,6 +19,7 @@ const WAVE_EVERY = 90, WAVE_COUNT = 13;                        // 12 + 1 elite, 
 // mini1 (Sauce Slinger): spawns at 180s, summons minionCount=2 every minionCd=9s
 const BOSS1_SPAWN = 180, BOSS1_MINION_CD = 9, BOSS1_MINIONS = 2;
 const BOSS1 = { baseHp: 480, hpPerLvl: 60 };                   // game.js:344
+const BOSS2 = { baseHp: 1200, hpPerLvl: 90, spawn: 360 };     // Hammer Chef, game.js:358
 
 // Enemy XP by type, and the earliest time each is eligible (spawnTime).
 const ENEMIES = {
@@ -73,6 +74,7 @@ function simulate(maxT) {
 function levelAt(T) { return simulate(T + 0.1).levelEnd; }
 function killsBy(T) { return simulate(T + 0.1).killsTotal; }
 function boss1HP(level) { return Math.round(BOSS1.baseHp + level * BOSS1.hpPerLvl); }
+function boss2HP(level) { return Math.round(BOSS2.baseHp + level * BOSS2.hpPerLvl); }
 
 // ── Realistic EARLY single-target DPS band at ~3:00 ──
 // At 3:00 a focused player typically has: starter pizza ~L4–5, one other weapon
@@ -143,5 +145,54 @@ console.log('   VERDICT: genuinely hard; highest reward (250) fits.\n');
   console.log(`   Pizza-only boss DPS band weak/median/strong = ${pizzaDPS.weak}/${pizzaDPS.median}/${pizzaDPS.strong}`);
   console.log(`   TTK: weak ${(hp/pizzaDPS.weak).toFixed(0)}s | median ${(hp/pizzaDPS.median).toFixed(0)}s | strong ${(hp/pizzaDPS.strong).toFixed(0)}s (need ≤ ${window}s)\n`);
 }
+
+// ── NEW challenges audit ──
+console.log('================== NEW CHALLENGES ==================\n');
+
+// Any-char: double_trouble — kill mini2 (Hammer Chef) by 7:00 (spawns 6:00 → 60s window)
+{
+  const lvl = levelAt(360);
+  const hp = boss2HP(lvl);
+  const window = 420 - 360;
+  console.log('── DOUBLE TROUBLE (any) ── kill Sauce Slinger + Hammer Chef before 7:00');
+  console.log(`   Hammer Chef spawns 6:00 at ~level ${lvl} → HP ≈ ${hp}. Window = ${window}s (mini1 already dead).`);
+  console.log(`   Need boss DPS = ${(hp/window).toFixed(0)}. By 6:00 a built character clears this; a thin build won't.\n`);
+}
+
+// Any-char: level_rush — level 20 by 5:00
+{
+  const lvl = levelAt(300);
+  console.log('── LEVEL RUSH (any) ── reach level 20 before 5:00');
+  console.log(`   Strong-clear ceiling level by 5:00 ≈ ${lvl}. Target 20 → `
+    + (lvl < 20 ? 'HARD even for ceiling clears.' : lvl < 24 ? 'reachable only with strong XP/AOE collection.' : 'reachable with solid AOE.') + '\n');
+}
+
+// Char-specific timed boss kills (single-target gated)
+const charBoss = [
+  ['BULLSEYE (Anchovy Archer)', 210, 'crit/pierce single-target'],
+  ['COLD SNAP (Frost Baker)',   225, 'ice slow + kite'],
+];
+{
+  const lvl = levelAt(180);
+  const hp = boss1HP(lvl);
+  const mmss = s => `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+  for (const [name, deadline, kit] of charBoss) {
+    const window = deadline - 180;
+    console.log(`── ${name} ── kill Sauce Slinger by ${mmss(deadline)} (${window}s window)`);
+    console.log(`   Boss HP ≈ ${hp}. Need ${(hp/window).toFixed(0)} DPS. Char identity: ${kit}.`);
+  }
+  console.log('');
+}
+
+// hit_and_run — 150 kills by 3:30
+{
+  const cap210 = killsBy(210);
+  console.log('── HIT & RUN (Crust Runner) ── 150 kills before 3:30');
+  console.log(`   Spawn ceiling by 3:30 ≈ ${cap210}. 150 = ${(150/cap210*100).toFixed(0)}% — speed char herds packs into AOE; demands an AOE build.\n`);
+}
+
+// immovable / night_shift — survival
+console.log('── IMMOVABLE (Oven Knight) ── survive to 7:00: tank kit vs both boss spawns + warlord trash; slow movement makes dodging harder.');
+console.log('── NIGHT SHIFT (Stealth Slice) ── survive to 4:30 ZERO damage: dodge (15%) helps but one clean hit fails; harder tier of Untouchable.\n');
 
 console.log('==================================================================');
