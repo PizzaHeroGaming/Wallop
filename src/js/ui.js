@@ -15,7 +15,7 @@
 //   keyboard/mobile → tryJump, tryDash (game.js): use _jumpFn/_dashFn, set via setJumpDashCbs()
 //   openChest → presentChoiceScreen (this file): setOpenChestDeps is called in initUI()
 
-import { camera, renderer, isMobile, tryEnterFullscreen } from './renderer.js?v=b48836e';
+import { camera, renderer, isMobile, tryEnterFullscreen } from './renderer.js?v=ecf745e';
 import {
   player, enemies,
   tryInteract, setOpenChestDeps,
@@ -23,17 +23,17 @@ import {
   spawnParticle,
   CHARACTER_MODELS, _animClips, loadCharAsset,
   _applyCharacterModel,
-} from './entities.js?v=b48836e';
-import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=b48836e';
-import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=b48836e';
-import { gameState, cam } from './state.js?v=b48836e';
-import { Audio } from './audio.js?v=b48836e';
-import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=b48836e';
+} from './entities.js?v=ecf745e';
+import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=ecf745e';
+import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=ecf745e';
+import { gameState, cam } from './state.js?v=ecf745e';
+import { Audio } from './audio.js?v=ecf745e';
+import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=ecf745e';
 // VERSION lives on CFG.VERSION too — reading via property access doesn't
 // blow up if a cached older config.js is loaded without the named export
 const VERSION = CFG.VERSION || '0.0.0';
-import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=b48836e';
-import { tmp, tmp2 } from './utils.js?v=b48836e';
+import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=ecf745e';
+import { tmp, tmp2 } from './utils.js?v=ecf745e';
 
 // ============================================================
 // INJECTION CALLBACKS (break circular deps)
@@ -1665,6 +1665,7 @@ export function initButtons() {
   const _playBtn = document.getElementById('run-config-play-btn');
   if (_playBtn) _playBtn.addEventListener('click', () => {
     document.getElementById('run-config-screen').classList.add('hidden');
+    document.getElementById('hud').style.display = 'none'; // stay hidden through the cinematic
     gameState.difficulty = _selectedDiff;
     gameState.activeChallenge = null; // normal run — clear any leftover challenge
     tryEnterFullscreen();
