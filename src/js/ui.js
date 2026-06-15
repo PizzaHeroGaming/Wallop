@@ -15,7 +15,7 @@
 //   keyboard/mobile → tryJump, tryDash (game.js): use _jumpFn/_dashFn, set via setJumpDashCbs()
 //   openChest → presentChoiceScreen (this file): setOpenChestDeps is called in initUI()
 
-import { camera, renderer, isMobile, tryEnterFullscreen } from './renderer.js?v=2700161';
+import { camera, renderer, isMobile, tryEnterFullscreen } from './renderer.js?v=b48836e';
 import {
   player, enemies,
   tryInteract, setOpenChestDeps,
@@ -23,17 +23,17 @@ import {
   spawnParticle,
   CHARACTER_MODELS, _animClips, loadCharAsset,
   _applyCharacterModel,
-} from './entities.js?v=2700161';
-import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=2700161';
-import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=2700161';
-import { gameState, cam } from './state.js?v=2700161';
-import { Audio } from './audio.js?v=2700161';
-import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=2700161';
+} from './entities.js?v=b48836e';
+import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=b48836e';
+import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=b48836e';
+import { gameState, cam } from './state.js?v=b48836e';
+import { Audio } from './audio.js?v=b48836e';
+import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=b48836e';
 // VERSION lives on CFG.VERSION too — reading via property access doesn't
 // blow up if a cached older config.js is loaded without the named export
 const VERSION = CFG.VERSION || '0.0.0';
-import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=2700161';
-import { tmp, tmp2 } from './utils.js?v=2700161';
+import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=b48836e';
+import { tmp, tmp2 } from './utils.js?v=b48836e';
 
 // ============================================================
 // INJECTION CALLBACKS (break circular deps)
@@ -59,6 +59,16 @@ let _suspendTimersFn = null;
 let _resumeTimersFn  = null;
 /** Called by game.js: setPauseTimerCbs(suspendPausableTimers, resumePausableTimers) */
 export function setPauseTimerCbs(sFn, rFn) { _suspendTimersFn = sFn; _resumeTimersFn = rFn; }
+
+let _beginIntroFn = null;
+/** Called by game.js: setBeginIntroCb(beginIntroSweep) */
+export function setBeginIntroCb(fn) { _beginIntroFn = fn; }
+/** Called by game.js at the END of the intro sweep — reveal HUD + lock pointer
+ *  exactly as the run begins (not during the cinematic). */
+export function onIntroComplete() {
+  document.getElementById('hud').style.display = 'block';
+  if (!isMobile()) renderer.domElement.requestPointerLock();
+}
 
 // ============================================================
 // INPUT STATE (exported so game.js can read them)
@@ -1655,12 +1665,13 @@ export function initButtons() {
   const _playBtn = document.getElementById('run-config-play-btn');
   if (_playBtn) _playBtn.addEventListener('click', () => {
     document.getElementById('run-config-screen').classList.add('hidden');
-    document.getElementById('hud').style.display = 'block';
     gameState.difficulty = _selectedDiff;
     gameState.activeChallenge = null; // normal run — clear any leftover challenge
     tryEnterFullscreen();
-    if (_resetGameFn) _resetGameFn();
-    if (!isMobile()) renderer.domElement.requestPointerLock();
+    // Cinematic sweep: camera orbits behind the hero, then the run begins
+    // (HUD + pointer lock are revealed by onIntroComplete at the sweep's end).
+    if (_beginIntroFn) _beginIntroFn();
+    else if (_resetGameFn) _resetGameFn(); // fallback if intro wiring missing
   });
 
   // BACK button returns to the start screen

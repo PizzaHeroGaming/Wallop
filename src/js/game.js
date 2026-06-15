@@ -1,6 +1,6 @@
 // game.js — core game logic: damageEnemy, update loop, player movement, spawning
 // Imports (acyclic — game.js is the top of the dep graph among game modules):
-import { scene, camera, renderer, composer, sun, clock, isMobile, tryEnterFullscreen, releasePtLight, setRendererArena } from './renderer.js?v=2700161';
+import { scene, camera, renderer, composer, sun, clock, isMobile, tryEnterFullscreen, releasePtLight, setRendererArena } from './renderer.js?v=b48836e';
 import {
   player,
   playerMixer, playerIdleAction, playerWalkAction, playerRunAction,
@@ -19,18 +19,18 @@ import {
   updateShieldOrbital, updateParticles,
   setDamageEnemyCb, setOnLevelUpReady,
   spawnGold, spawnSmokeCloud, makeEnemyMesh, ENEMY_DEFS,
-} from './entities.js?v=2700161';
-import { WEAPONS, ARMOR, TOMES, setDamageEnemyForWeapons, rebuildOrbits } from './weapons.js?v=2700161';
-import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=2700161';
+} from './entities.js?v=b48836e';
+import { WEAPONS, ARMOR, TOMES, setDamageEnemyForWeapons, rebuildOrbits } from './weapons.js?v=b48836e';
+import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=b48836e';
 import {
   gameState, cam,
-} from './state.js?v=2700161';
-import { CFG, STAGE_MULTS, DIFFICULTIES } from './config.js?v=2700161';
-import { Profile, ARENAS, CHALLENGES } from './profile.js?v=2700161';
-import { groundHeight, resolveSolids, setTerrainArena } from './terrain.js?v=2700161';
-import { setWorldArena } from './world.js?v=2700161';
-import { killMesh, clamp, rand, tmp, tmp2, flatPhong } from './utils.js?v=2700161';
-import { Audio } from './audio.js?v=2700161';
+} from './state.js?v=b48836e';
+import { CFG, STAGE_MULTS, DIFFICULTIES } from './config.js?v=b48836e';
+import { Profile, ARENAS, CHALLENGES } from './profile.js?v=b48836e';
+import { groundHeight, resolveSolids, setTerrainArena } from './terrain.js?v=b48836e';
+import { setWorldArena } from './world.js?v=b48836e';
+import { killMesh, clamp, rand, tmp, tmp2, flatPhong } from './utils.js?v=b48836e';
+import { Audio } from './audio.js?v=b48836e';
 import {
   showDamage, showAlert, updateBossArrow, updateLoadoutDisplay,
   syncSliceDisplays, triggerGameOver,
@@ -41,9 +41,10 @@ import {
   applyCameraJoystick, tickHUD,
   setDamageEnemyForUI, setResetGameCb, setJumpDashCbs, setCallBossCb, setPauseTimerCbs,
   showStageClearScreen, setAdvanceStageCb, clearPendingStageClear,
+  onIntroComplete, setBeginIntroCb,
   initUI,
   addCameraShake,
-} from './ui.js?v=2700161';
+} from './ui.js?v=b48836e';
 
 // Player animation state (module-level so it persists across frames)
 let _animState = 'idle';
@@ -860,6 +861,11 @@ export function resetGame() {
   // never finished before restarting — otherwise the NEW run's first level-up
   // would close into a stale STAGE-1-COMPLETE overlay.
   clearPendingStageClear();
+  // Default gameplay camera orientation — elevated 3/4 behind view. Set here so
+  // every run start (sweep, restart, challenge) begins framed; the intro sweep
+  // ends on this exact pose so the handoff is seamless.
+  cam.yaw = 0;
+  cam.pitch = INTRO_PITCH;
   // Apply the player's chosen arena theme (sky, fog, lights, ground texture,
   // scenery tints).  Must happen before any new scenery is placed.
   const arenaSlug = gameState.arena || Profile.getEquippedArena() || 'pepperoni_pines';
@@ -1850,6 +1856,55 @@ export function updateTitleScene(dt) {
 }
 
 // ============================================================
+// INTRO SWEEP — one continuous camera move from the menu/config hero-portrait
+// to the gameplay follow pose, orbiting AROUND the hero (not through it) so
+// it reads as the camera swinging behind the player. At the end we hand off
+// to the real gameplay camera at the exact same pose, then start the run.
+// ============================================================
+const INTRO_DUR = 1.35;
+const INTRO_PITCH = 0.7;                  // gameplay default pitch (also set in resetGame)
+let _introT = 0;
+export function beginIntroSweep() { _introT = 0; gameState.state = 'intro'; }
+function _smooth(t) { return t * t * (3 - 2 * t); } // smoothstep ease
+
+export function updateIntroSweep(dt) {
+  _introT += dt;
+  const raw = Math.min(1, _introT / INTRO_DUR);
+  const e = _smooth(raw);
+
+  // End pose = gameplay camera for yaw 0 / pitch INTRO_PITCH, expressed in the
+  // same orbit terms the title camera uses (angle/radius/height around hero).
+  const Dc      = CFG.CAM_DIST * Math.cos(INTRO_PITCH);
+  const aEnd    = Math.PI;                 // directly behind the hero
+  const rEnd    = Dc;
+  const hEnd    = CFG.CAM_HEIGHT * INTRO_PITCH;
+
+  const angle  = 0.62 + (aEnd - 0.62) * e; // 0.62 (front-right) -> PI (behind)
+  const radius = 5.0  + (rEnd - 5.0)  * e;
+  const height = 1.95 + (hEnd - 1.95) * e;
+  camera.position.set(Math.sin(angle) * radius, height, Math.cos(angle) * radius);
+  camera.lookAt(-8.5 * (1 - e), 1.6 + (1.2 - 1.6) * e, 0); // pan target to hero center
+
+  if (player.group) {
+    player.group.position.set(0, groundHeight(0, 0), 0);
+    player.group.rotation.y = 0.62 * (1 - e); // settle toward gameplay-forward
+  }
+  if (playerMixer) playerMixer.update(dt);
+  sun.position.set(40, 65, 25);
+  sun.target.position.set(0, 0, 0);
+  sun.target.updateMatrixWorld();
+
+  if (raw >= 1) {
+    // Lock in the gameplay camera orientation so the follow cam continues from
+    // the exact pose the sweep ended on — no jump — then start the run.
+    cam.yaw = 0;
+    cam.pitch = INTRO_PITCH;
+    resetGame();              // state -> 'playing'; arena already applied (deduped)
+    onIntroComplete();        // ui.js: reveal HUD + (re)acquire pointer lock
+  }
+}
+
+// ============================================================
 // MAIN UPDATE LOOP
 // ============================================================
 export function update(dt) {
@@ -2024,6 +2079,10 @@ export function initGame() {
 
   // Inject advanceStage so the stage-clear screen's Continue button can fire it
   setAdvanceStageCb(advanceStage);
+
+  // Inject the intro-sweep starter so the run-config PLAY button kicks off the
+  // cinematic camera move into gameplay.
+  setBeginIntroCb(beginIntroSweep);
 
   // processPendingLevelUp is called by updateGems in entities.js
   setOnLevelUpReady(processPendingLevelUp);

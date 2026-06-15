@@ -9,10 +9,10 @@
 //   game.js        → damageEnemy, update, initGame
 //   main.js        → animate, splash, resize
 
-import { scene, camera, renderer, clock, composer, isMobile, tryEnterFullscreen, rearmFullscreenOnNextTap } from './renderer.js?v=2700161';
-import { gameState } from './state.js?v=2700161';
-import { initGame, update, updateTitleScene } from './game.js?v=2700161';
-import './world.js?v=2700161'; // side-effect only: builds terrain scenery at load time
+import { scene, camera, renderer, clock, composer, isMobile, tryEnterFullscreen, rearmFullscreenOnNextTap } from './renderer.js?v=b48836e';
+import { gameState } from './state.js?v=b48836e';
+import { initGame, update, updateTitleScene, updateIntroSweep } from './game.js?v=b48836e';
+import './world.js?v=b48836e'; // side-effect only: builds terrain scenery at load time
 
 // ============================================================
 // WEBGL CONTEXT LOSS HANDLING
@@ -99,8 +99,11 @@ function animate() {
   if (renderer.getContext().isContextLost && renderer.getContext().isContextLost()) return;
   const dt = Math.min(0.05, clock.getDelta());
   update(dt);
-  // Live title-screen backdrop: orbit the hero while sitting on the start menu.
+  // Live title-screen backdrop: orbit the hero while sitting on the start menu
+  // (and the run-config screen, which keeps state === 'start').
   if (gameState.state === 'start') updateTitleScene(dt);
+  // Cinematic camera sweep from menu -> gameplay after PLAY.
+  else if (gameState.state === 'intro') updateIntroSweep(dt);
   document.body.classList.toggle('playing', gameState.state === 'playing');
   if (composer) composer.render(); else renderer.render(scene, camera);
 }
