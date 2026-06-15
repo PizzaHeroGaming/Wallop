@@ -109,6 +109,35 @@ export function hideTutorial() {
 }
 
 // ============================================================
+// REUSABLE CONFIRMATION MODAL
+// ============================================================
+// Used to guard destructive in-run actions (RESTART / MAIN MENU) so a stray
+// tap can't throw away an active run. Handlers are added/removed per call so
+// they never stack.
+export function showConfirm({ title = 'ARE YOU SURE?', message = '', confirmLabel = 'CONFIRM', cancelLabel = 'CANCEL', onConfirm, onCancel } = {}) {
+  const ov = document.getElementById('confirm-overlay');
+  if (!ov) { if (onConfirm) onConfirm(); return; } // fail-safe: act if the modal is missing
+  const tEl = document.getElementById('confirm-title');
+  const mEl = document.getElementById('confirm-message');
+  const okBtn = document.getElementById('confirm-ok-btn');
+  const noBtn = document.getElementById('confirm-cancel-btn');
+  if (tEl) tEl.textContent = title;
+  if (mEl) mEl.textContent = message;
+  if (okBtn) okBtn.textContent = confirmLabel;
+  if (noBtn) noBtn.textContent = cancelLabel;
+  function close() {
+    ov.classList.add('hidden');
+    okBtn.removeEventListener('click', onOk);
+    noBtn.removeEventListener('click', onNo);
+  }
+  function onOk() { close(); if (onConfirm) onConfirm(); }
+  function onNo() { close(); if (onCancel) onCancel(); }
+  okBtn.addEventListener('click', onOk);
+  noBtn.addEventListener('click', onNo);
+  ov.classList.remove('hidden');
+}
+
+// ============================================================
 // INPUT STATE (exported so game.js can read them)
 // ============================================================
 export const keys = {};
@@ -1448,7 +1477,11 @@ export function initInput() {
     if (e.code === 'ShiftLeft' && gameState.state === 'playing') { if (_dashFn) _dashFn(); }
     if (e.code === 'KeyE'      && gameState.state === 'playing') tryInteract();
     if (e.code === 'Escape') {
-      if      (gameState.state === 'playing') openPauseMenu();
+      const confirmOv = document.getElementById('confirm-overlay');
+      if (confirmOv && !confirmOv.classList.contains('hidden')) {
+        // A confirmation is open — ESC cancels it instead of toggling pause.
+        document.getElementById('confirm-cancel-btn')?.click();
+      } else if (gameState.state === 'playing') openPauseMenu();
       else if (gameState.state === 'paused')  closePauseMenu();
     }
   });
@@ -1823,19 +1856,33 @@ export function initButtons() {
   document.getElementById('resume-btn').addEventListener('click', closePauseMenu);
 
   document.getElementById('restart-pause-btn').addEventListener('click', () => {
-    document.getElementById('pause-screen').classList.add('hidden');
-    if (_resetGameFn) _resetGameFn();
-    if (isMobile()) tryEnterFullscreen();
-    if (!isMobile()) renderer.domElement.requestPointerLock();
+    showConfirm({
+      title: 'RESTART RUN?',
+      message: 'Your current run will be lost and a fresh one started.',
+      confirmLabel: 'RESTART',
+      onConfirm: () => {
+        document.getElementById('pause-screen').classList.add('hidden');
+        if (_resetGameFn) _resetGameFn();
+        if (isMobile()) tryEnterFullscreen();
+        if (!isMobile()) renderer.domElement.requestPointerLock();
+      },
+    });
   });
 
   document.getElementById('menu-pause-btn').addEventListener('click', () => {
-    document.getElementById('pause-screen').classList.add('hidden');
-    document.getElementById('hud').style.display = 'none';
-    document.getElementById('start-screen').classList.remove('hidden');
-    gameState.state = 'start';
-    if (document.pointerLockElement) document.exitPointerLock();
-    syncSliceDisplays();
+    showConfirm({
+      title: 'QUIT TO MENU?',
+      message: 'Your current run will be lost. Slices earned from boss kills are already saved.',
+      confirmLabel: 'MAIN MENU',
+      onConfirm: () => {
+        document.getElementById('pause-screen').classList.add('hidden');
+        document.getElementById('hud').style.display = 'none';
+        document.getElementById('start-screen').classList.remove('hidden');
+        gameState.state = 'start';
+        if (document.pointerLockElement) document.exitPointerLock();
+        syncSliceDisplays();
+      },
+    });
   });
 
   // Stage-clear intermission: continue advances, quit goes to main menu.
