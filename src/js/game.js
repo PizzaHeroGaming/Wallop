@@ -1023,6 +1023,7 @@ export function resetGame() {
   gameState.kills         = 0;
   gameState.damageDealt   = 0;
   gameState.slicesEarned  = 0;
+  gameState._slicesDoubled = false;
   gameState.bossSpawned       = false;
   gameState.miniboss1Spawned  = false;
   gameState.miniboss2Spawned  = false;

@@ -299,6 +299,10 @@ export const Profile = (function () {
       // First-run tutorial (move + camera). Set true once the player has either
       // completed or skipped the tutorial so it never shows again.
       tutorialDone: false,
+      // Watch-ad-for-slices on-demand reward: daily-capped. Tracks the date of
+      // the last grant and how many have been claimed today.
+      adSlicesDate: '',
+      adSlicesCount: 0,
     };
   }
   function migrate(saved) {
@@ -560,11 +564,29 @@ export const Profile = (function () {
     enterDevMode, exitDevMode, isInDevMode,
     isChallengeCompleted, markChallengeCompleted,
     isTutorialDone, markTutorialDone,
+    adSlicesRemainingToday, recordAdSliceWatch,
   };
 
   function isTutorialDone() { return !!_state.tutorialDone; }
   function markTutorialDone() { _state.tutorialDone = true; save(); }
+
+  // ── Watch-ad-for-slices (on-demand, daily-capped) ──
+  function _todayStr() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+  function adSlicesRemainingToday() {
+    if (_state.adSlicesDate !== _todayStr()) return AD_SLICES_DAILY_CAP; // new day → full allowance
+    return Math.max(0, AD_SLICES_DAILY_CAP - (_state.adSlicesCount || 0));
+  }
+  function recordAdSliceWatch() {
+    const today = _todayStr();
+    if (_state.adSlicesDate !== today) { _state.adSlicesDate = today; _state.adSlicesCount = 0; }
+    _state.adSlicesCount = (_state.adSlicesCount || 0) + 1;
+    save();
+  }
 })();
+const AD_SLICES_DAILY_CAP = 10;
 
 // ============================================================
 // CHALLENGES — handcrafted run-modifier objectives.  Data only.

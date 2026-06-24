@@ -32,6 +32,8 @@ import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=56e3d9b';
 // VERSION lives on CFG.VERSION too — reading via property access doesn't
 // blow up if a cached older config.js is loaded without the named export
 const VERSION = CFG.VERSION || '0.0.0';
+// Slices granted per on-demand "watch ad for slices" view (daily-capped in Profile).
+const AD_SLICE_REWARD = 3;
 import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=56e3d9b';
 import { tmp, tmp2 } from './utils.js?v=56e3d9b';
 
@@ -939,8 +941,14 @@ export function triggerGameOver(victory) {
     ${sliceLine}
   `;
   stats.style.display = 'none';
+  // Mobile-only: offer one ad to double the slices earned this run.
+  const canDouble = isMobile() && gameState.slicesEarned > 0 && !gameState._slicesDoubled;
+  const doubleBtn = canDouble
+    ? `<button class="btn hot" id="double-slices-btn">📺 DOUBLE SLICES (+${gameState.slicesEarned})</button>`
+    : '';
   btns.innerHTML = `
     <div class="end-actions">
+      ${doubleBtn}
       <button class="btn" id="restart-btn">RUN IT BACK</button>
       <button class="btn dim" id="stats-btn">SEE STATS</button>
       <button class="btn dim" id="mainmenu-btn">MAIN MENU</button>
@@ -1071,6 +1079,23 @@ export function syncSliceDisplays() {
   const b = document.getElementById('armory-slice-count');
   if (a) a.textContent = n;
   if (b) b.textContent = n;
+}
+
+// On-demand "watch ad for slices" button in the Armory header. Mobile-only
+// (Steam never shows ads); reflects the remaining daily allowance.
+function refreshArmoryWatchBtn() {
+  const btn = document.getElementById('armory-watch-slices');
+  if (!btn) return;
+  if (!isMobile()) { btn.style.display = 'none'; return; }
+  btn.style.display = '';
+  const left = Profile.adSlicesRemainingToday();
+  if (left <= 0) {
+    btn.disabled = true;
+    btn.innerHTML = '📺 BACK TOMORROW';
+  } else {
+    btn.disabled = false;
+    btn.innerHTML = `📺 +${AD_SLICE_REWARD} 🍕 <span class="watch-left">${left} left</span>`;
+  }
 }
 
 // Render the list of challenges as cards. Completed ones get a 'done' visual.
@@ -1781,6 +1806,21 @@ export function initButtons() {
       // Clean up entity arrays via injected resetGame (partial) or directly
       // The full cleanup happens when the next run starts via resetGame()
       syncSliceDisplays();
+    } else if (id === 'double-slices-btn') {
+      if (gameState._slicesDoubled || gameState.slicesEarned <= 0) return;
+      const btn = e.target;
+      const bonus = gameState.slicesEarned;
+      btn.disabled = true;
+      window.GameAds.showRewarded((success) => {
+        if (!success) { btn.disabled = false; return; }
+        gameState._slicesDoubled = true;
+        Profile.addSlices(bonus);
+        Profile.save();
+        syncSliceDisplays();
+        btn.textContent = `✓ DOUBLED (+${bonus})`;
+        btn.classList.remove('hot');
+        btn.classList.add('dim');
+      });
     }
   });
 
@@ -1794,7 +1834,23 @@ export function initButtons() {
     });
     document.getElementById('armory-detail').classList.add('hidden');
     syncSliceDisplays();
+    refreshArmoryWatchBtn();
     renderArmoryGrid();
+  });
+
+  // Watch-ad-for-slices button (Armory header)
+  const _watchSlices = document.getElementById('armory-watch-slices');
+  if (_watchSlices) _watchSlices.addEventListener('click', () => {
+    if (Profile.adSlicesRemainingToday() <= 0) return;
+    _watchSlices.disabled = true;
+    window.GameAds.showRewarded((success) => {
+      if (success) {
+        Profile.addSlices(AD_SLICE_REWARD);
+        Profile.recordAdSliceWatch();
+        syncSliceDisplays();
+      }
+      refreshArmoryWatchBtn();
+    });
   });
 
   document.getElementById('armory-close').addEventListener('click', () => {

@@ -13,6 +13,7 @@ export const gameState = {
   kills: 0,
   damageDealt: 0,
   slicesEarned: 0,
+  _slicesDoubled: false, // set once the run-end "double slices" ad has been claimed
   bossSpawned: false,
   miniboss1Spawned: false,
   miniboss2Spawned: false,
