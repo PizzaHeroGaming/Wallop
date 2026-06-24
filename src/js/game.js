@@ -164,6 +164,10 @@ export function killEnemy(e, srcWeaponId = null) {
       Profile.addSlices(totalSlices);
       Audio.play('pickup_slice');
       gameState.slicesEarned = (gameState.slicesEarned || 0) + totalSlices;
+      // Only kill-earned slices are eligible for the run-end "Double Slices" ad —
+      // challenge bounties (added in _completeActiveChallenge) are NOT, so a fixed
+      // challenge reward can never be doubled.
+      gameState.doublableSlices = (gameState.doublableSlices || 0) + totalSlices;
       const bonusNote = totalSlices !== e.sliceDrop ? ` (×${rawMult.toFixed(1)})` : '';
       showAlert(`+${totalSlices} 🍕 SLICES${bonusNote}`, '#ffd23f');
       syncSliceDisplays();
@@ -1023,6 +1027,7 @@ export function resetGame() {
   gameState.kills         = 0;
   gameState.damageDealt   = 0;
   gameState.slicesEarned  = 0;
+  gameState.doublableSlices = 0;
   gameState._slicesDoubled = false;
   gameState.bossSpawned       = false;
   gameState.miniboss1Spawned  = false;

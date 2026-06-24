@@ -941,10 +941,12 @@ export function triggerGameOver(victory) {
     ${sliceLine}
   `;
   stats.style.display = 'none';
-  // Mobile-only: offer one ad to double the slices earned this run.
-  const canDouble = isMobile() && gameState.slicesEarned > 0 && !gameState._slicesDoubled;
+  // Mobile-only: offer one ad to double the slices EARNED FROM KILLS this run.
+  // Challenge bounties are excluded (doublableSlices), so a fixed challenge
+  // reward can never be doubled.
+  const canDouble = isMobile() && gameState.doublableSlices > 0 && !gameState._slicesDoubled;
   const doubleBtn = canDouble
-    ? `<button class="btn hot" id="double-slices-btn">📺 DOUBLE SLICES (+${gameState.slicesEarned})</button>`
+    ? `<button class="btn hot" id="double-slices-btn">📺 DOUBLE SLICES (+${gameState.doublableSlices})</button>`
     : '';
   btns.innerHTML = `
     <div class="end-actions">
@@ -1807,9 +1809,9 @@ export function initButtons() {
       // The full cleanup happens when the next run starts via resetGame()
       syncSliceDisplays();
     } else if (id === 'double-slices-btn') {
-      if (gameState._slicesDoubled || gameState.slicesEarned <= 0) return;
+      if (gameState._slicesDoubled || gameState.doublableSlices <= 0) return;
       const btn = e.target;
-      const bonus = gameState.slicesEarned;
+      const bonus = gameState.doublableSlices;
       btn.disabled = true;
       window.GameAds.showRewarded((success) => {
         if (!success) { btn.disabled = false; return; }

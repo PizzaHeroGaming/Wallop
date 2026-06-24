@@ -13,6 +13,7 @@ export const gameState = {
   kills: 0,
   damageDealt: 0,
   slicesEarned: 0,
+  doublableSlices: 0,    // kill-earned slices eligible for the run-end "double slices" ad (excludes challenge bounties)
   _slicesDoubled: false, // set once the run-end "double slices" ad has been claimed
   bossSpawned: false,
   miniboss1Spawned: false,
