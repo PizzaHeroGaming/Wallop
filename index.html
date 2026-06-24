@@ -400,6 +400,10 @@
     color: var(--accent); text-shadow: 3px 3px 0 #000;
     letter-spacing: 2px; margin-right: auto;
   }
+  #armory-watch-slices {
+    font-size: 9px; padding: 9px 12px; display: inline-flex; align-items: center; gap: 6px;
+  }
+  #armory-watch-slices .watch-left { font-size: 8px; opacity: 0.75; }
   #armory-slices {
     display: flex; align-items: center; gap: 8px;
     font-family: 'Press Start 2P', monospace; font-size: 14px;
@@ -3203,6 +3207,7 @@ window.addEventListener('load', () => {
       <span id="armory-slice-count">0</span>
       <span class="slice-label">SLICES</span>
     </div>
+    <button class="btn" id="armory-watch-slices" style="display:none;">📺 +3 🍕</button>
     <button class="btn-x" id="armory-close">✕</button>
   </div>
   <div id="armory-tabs">
@@ -3333,6 +3338,6 @@ window.addEventListener('load', () => {
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
-<script type="module" src="src/js/main.js?v=56e3d9b"></script>
+<script type="module" src="src/js/main.js?v=01a2de7"></script>
 </body>
 </html>
