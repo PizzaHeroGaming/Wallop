@@ -179,18 +179,13 @@
     z-index: 11;
   }
   #boss-wrap.hidden { display: none; }
-  /* Each boss gets its own row inside #boss-wrap. Rows stack vertically
-     with a gap between them when multiple bosses are alive at once. */
-  .boss-row { margin-bottom: 10px; }
+  /* Each boss gets one compact row inside #boss-wrap. The name + HP are
+     overlaid INSIDE the bar (name left, HP right) so a single thin bar
+     represents each boss — multiple bosses stack without taking the screen. */
+  .boss-row { margin-bottom: 6px; }
   .boss-row:last-child { margin-bottom: 0; }
-  .boss-name {
-    font-family: 'Press Start 2P', monospace; font-size: 11px;
-    color: var(--hot); text-align: center;
-    text-shadow: 2px 2px 0 #000;
-    letter-spacing: 2px; margin-bottom: 6px;
-  }
   .boss-bar {
-    position: relative; height: 18px; background: #000;
+    position: relative; height: 22px; background: #000;
     border: 2px solid #000; overflow: hidden;
   }
   .boss-fill {
@@ -198,11 +193,17 @@
     background: linear-gradient(180deg, #ff6b8a 0%, var(--hot) 50%, #560818 100%);
     transition: width 0.18s ease-out;
   }
-  .boss-text {
-    position: absolute; inset: 0; text-align: center; line-height: 18px;
-    font-family: 'Press Start 2P', monospace; font-size: 9px; color: white;
+  .boss-name, .boss-text {
+    position: absolute; top: 0; line-height: 22px; z-index: 1;
+    font-family: 'Press Start 2P', monospace; font-size: 9px; color: #fff;
     text-shadow: 1px 1px 0 #000, -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000;
+    pointer-events: none;
   }
+  .boss-name {
+    left: 8px; max-width: 56%; letter-spacing: 1px;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .boss-text { right: 8px; }
 
   /* Boss off-screen directional indicator */
   #boss-arrow {
@@ -986,7 +987,13 @@
     /* Mobile: stat tiles are smaller (~28px tall) so boss bar sits at ~52px below the top inset.
        Width capped at 320px so loadout (140px at left edge, right=148px) stays uncovered when
        boss bars are centered on the smallest landscape phones (640px wide -> bar at 160-480px). */
-    #boss-wrap { width: min(320px, 60vw); top: calc(52px + env(safe-area-inset-top)); }
+    #boss-wrap { width: min(300px, 58vw); top: calc(52px + env(safe-area-inset-top)); }
+    /* Compact boss bars on phones: shorter bars + smaller overlaid text so
+       multiple simultaneous bosses don't take over the screen. */
+    .boss-bar { height: 17px; }
+    .boss-name, .boss-text { line-height: 17px; font-size: 7px; }
+    .boss-name { max-width: 54%; letter-spacing: 0; }
+    .boss-row { margin-bottom: 4px; }
 
     #title { font-size: 44px; }
 

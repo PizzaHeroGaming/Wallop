@@ -348,19 +348,22 @@ export function updateHUD() {
 const _bossRows = new Map(); // boss -> { row, name, fill, text }
 
 function _createBossRow(boss) {
+  // Compact single-line layout: one thin bar per boss with the name overlaid on
+  // the left and the HP numbers on the right, so multiple bosses don't take over
+  // the screen on phones.
   const row  = document.createElement('div');
   row.className = 'boss-row';
-  const name = document.createElement('div');
-  name.className = 'boss-name';
   const bar  = document.createElement('div');
   bar.className = 'boss-bar';
   const fill = document.createElement('div');
   fill.className = 'boss-fill';
+  const name = document.createElement('div');
+  name.className = 'boss-name';
   const text = document.createElement('div');
   text.className = 'boss-text';
   bar.appendChild(fill);
+  bar.appendChild(name);
   bar.appendChild(text);
-  row.appendChild(name);
   row.appendChild(bar);
   hudEls.bossWrap.appendChild(row);
   return { row, name, fill, text };
@@ -387,7 +390,8 @@ function _reconcileBossBars() {
       els = _createBossRow(boss);
       _bossRows.set(boss, els);
     }
-    els.name.textContent = boss.def.name;
+    // Drop a leading "THE " so long names fit on the compact overlaid bar.
+    els.name.textContent = boss.def.name.replace(/^THE\s+/i, '');
     const pct = Math.max(0, (boss.hp / boss.maxHp) * 100);
     els.fill.style.width = pct + '%';
     els.text.textContent = `${Math.ceil(boss.hp)} / ${Math.ceil(boss.maxHp)}`;
