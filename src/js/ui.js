@@ -902,6 +902,20 @@ export function processPendingLevelUp() {
 // GAME OVER / VICTORY
 // ============================================================
 let __runsPlayed = 0;
+// Deferred game-over interstitial: armed when a run ends, fired when the player
+// LEAVES the game-over screen — and skipped if they watched the Double Slices
+// rewarded ad, so we never stack two full-screen ads on one run.
+let _pendingGameOverInterstitial = false;
+let _rewardedWatchedThisRun = false;
+
+/** Fire the armed game-over interstitial unless a rewarded ad was already
+ *  watched this run. Called from the game-over exit buttons. */
+function _flushGameOverInterstitial() {
+  if (_pendingGameOverInterstitial && !_rewardedWatchedThisRun) {
+    window.GameAds.showInterstitial();
+  }
+  _pendingGameOverInterstitial = false;
+}
 
 export function triggerGameOver(victory) {
   _bossArrowEl.style.display = 'none';
@@ -967,7 +981,10 @@ export function triggerGameOver(victory) {
   Profile.save();
 
   __runsPlayed++;
-  if (__runsPlayed >= 2 && __runsPlayed % 2 === 0) window.GameAds.showInterstitial();
+  // Arm the interstitial (every other run) but DON'T show it yet — wait until the
+  // player leaves this screen, and skip it entirely if they tap Double Slices.
+  _rewardedWatchedThisRun = false;
+  _pendingGameOverInterstitial = (__runsPlayed >= 2 && __runsPlayed % 2 === 0);
   window.GameAds.preload();
 }
 
@@ -1793,6 +1810,7 @@ export function initButtons() {
   document.getElementById('gameover-screen').addEventListener('click', e => {
     const id = e.target.id;
     if (id === 'restart-btn') {
+      _flushGameOverInterstitial(); // deferred interstitial fires on exit (skipped if they watched Double Slices)
       document.getElementById('gameover-screen').classList.add('hidden');
       renderDiffSelect(); // refresh difficulty buttons
       renderArenaSelect();    // refresh arena cards in case a new one unlocked
@@ -1804,6 +1822,7 @@ export function initButtons() {
       stats.style.display = hidden ? '' : 'none';
       e.target.textContent = hidden ? 'HIDE STATS' : 'SEE STATS';
     } else if (id === 'mainmenu-btn') {
+      _flushGameOverInterstitial(); // deferred interstitial fires on exit (skipped if they watched Double Slices)
       document.getElementById('gameover-screen').classList.add('hidden');
       document.getElementById('hud').style.display = 'none';
       document.getElementById('start-screen').classList.remove('hidden');
@@ -1820,6 +1839,7 @@ export function initButtons() {
       window.GameAds.showRewarded((success) => {
         if (!success) { btn.disabled = false; return; }
         gameState._slicesDoubled = true;
+        _rewardedWatchedThisRun = true; // suppress the deferred interstitial this run
         Profile.addSlices(bonus);
         Profile.save();
         syncSliceDisplays();
