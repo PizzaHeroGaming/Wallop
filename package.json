@@ -1,0 +1,22 @@
+{
+  "name": "wallop",
+  "version": "0.8.0",
+  "private": true,
+  "description": "WALLOP — 3D bullet-heaven roguelike by Pizza Hero Gaming. Capacitor wrapper for Google Play.",
+  "scripts": {
+    "build:web": "python3 scripts/build-pages.py",
+    "build:cap": "python3 scripts/build-pages.py && python3 scripts/build-www.py",
+    "cap:add": "cap add android",
+    "cap:sync": "cap sync android",
+    "cap:open": "cap open android"
+  },
+  "author": "YourPizzaHero",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@capacitor/android": "^8.4.1",
+    "@capacitor/core": "^8.4.1"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.4.1"
+  }
+}
