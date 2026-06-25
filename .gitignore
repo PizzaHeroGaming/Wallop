@@ -38,3 +38,6 @@ Thumbs.db
 *.log
 /tmp-*
 /scratch-*
+
+# Generated icon sources (rasterized from assets/icons/icon.svg by scripts/gen-icon-sources.js)
+cap-resources/
