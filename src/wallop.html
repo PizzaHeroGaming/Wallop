@@ -793,8 +793,10 @@
   /* Pause / menu button — sits in the top-right of the HUD during play */
   #pause-btn {
     position: absolute;
-    top: calc(16px + env(safe-area-inset-top));
-    right: calc(16px + env(safe-area-inset-right));
+    /* Offsets are relative to #hud, which is already inset by the safe area —
+       don't add env() again or it double-counts the notch/status bar. */
+    top: 16px;
+    right: 16px;
     width: 48px; height: 48px;
     background: var(--panel);
     color: var(--ink);
@@ -962,8 +964,8 @@
        to the desktop center-anchored top-bar that overlapped the HP wrap. */
     #loadout {
       padding: 5px;
-      top: calc(56px + env(safe-area-inset-top));
-      left: calc(8px + env(safe-area-inset-left));
+      top: 56px;
+      left: 8px;
       gap: 4px;
     }
     .loadout-label { width: 36px; font-size: 6px; }
@@ -976,18 +978,18 @@
     #top-bar {
       gap: 4px;
       left: auto; transform: none;
-      right: calc(8px + env(safe-area-inset-right));
+      right: 8px;
     }
     .stat-tile { padding: 4px 6px; min-width: 54px; }
     .stat-tile .value { font-size: 11px; }
     .stat-tile .label { font-size: 6px; }
-    #hp-wrap { width: 180px; left: calc(12px + env(safe-area-inset-left)); }
-    #xp-wrap { left: calc(8px + env(safe-area-inset-left)); right: calc(8px + env(safe-area-inset-right)); }
+    #hp-wrap { width: 180px; left: 12px; }
+    #xp-wrap { left: 8px; right: 8px; }
     #lvl-badge { font-size: 9px; }
     /* Mobile: stat tiles are smaller (~28px tall) so boss bar sits at ~52px below the top inset.
        Width capped at 320px so loadout (140px at left edge, right=148px) stays uncovered when
        boss bars are centered on the smallest landscape phones (640px wide -> bar at 160-480px). */
-    #boss-wrap { width: min(300px, 58vw); top: calc(52px + env(safe-area-inset-top)); }
+    #boss-wrap { width: min(300px, 58vw); top: 52px; }
     /* Compact boss bars on phones: shorter bars + smaller overlaid text so
        multiple simultaneous bosses don't take over the screen. */
     .boss-bar { height: 17px; }
@@ -1037,7 +1039,7 @@
 
   /* Phones in portrait (or very narrow landscape) — stack cards vertically */
   @media (max-width: 600px) {
-    #loadout { top: calc(48px + env(safe-area-inset-top)); }
+    #loadout { top: 48px; }
     .loadout-label { display: none; } /* save horizontal space */
     .loadout-slot  { width: 26px; height: 26px; }
     #hp-wrap { width: 150px; }
