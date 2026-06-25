@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Wallop</string>
+    <string name="title_activity_main">Wallop</string>
+    <string name="package_name">com.pizzaherogaming.wallop</string>
+    <string name="custom_url_scheme">com.pizzaherogaming.wallop</string>
+</resources>

@@ -10,8 +10,11 @@ npm-debug.log*
 .claude/sessions/
 .claude/local-*
 
-# Capacitor / native wrappers (auto-generated, don't commit)
-android/
+# Capacitor / native wrappers
+# android/ IS committed — we customize the manifest (landscape lock, AdMob App
+# ID), icons, and signing config, so it's version-controlled. Its own
+# android/.gitignore excludes machine-specific bits (local.properties, build/,
+# the copied web assets under app/src/main/assets/public).
 ios/
 www/
 
