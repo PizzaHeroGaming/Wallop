@@ -55,7 +55,7 @@ Smash. Survive. Snowball. How long can you last?
 ## Assets in this folder
 - **App icon (512×512):** `icon-512.png`
 - **Feature graphic (1024×500):** `feature-graphic.png`
-- **Phone screenshots (landscape, 2244×1008):** `screenshots/01-title.png`, `02-armory.png`, `03-gameplay.png`, `04-action.png`, `05-levelup.png`
+- **Phone screenshots (landscape, 2244×1008), action-first order:** `screenshots/01-swarm.png`, `02-onslaught.png`, `03-levelup.png`, `04-armory.png`, `05-title.png`
 
 ## Still to do in Play Console
 - Create the app; set the fields above.
