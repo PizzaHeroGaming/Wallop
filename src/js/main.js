@@ -9,10 +9,10 @@
 //   game.js        → damageEnemy, update, initGame
 //   main.js        → animate, splash, resize
 
-import { scene, camera, renderer, clock, composer, isMobile, tryEnterFullscreen, rearmFullscreenOnNextTap } from './renderer.js?v=9bfd818';
-import { gameState } from './state.js?v=9bfd818';
-import { initGame, update, updateTitleScene, updateIntroSweep } from './game.js?v=9bfd818';
-import './world.js?v=9bfd818'; // side-effect only: builds terrain scenery at load time
+import { scene, camera, renderer, clock, composer, isMobile, tryEnterFullscreen, rearmFullscreenOnNextTap } from './renderer.js?v=48c9f41';
+import { gameState } from './state.js?v=48c9f41';
+import { initGame, update, updateTitleScene, updateIntroSweep } from './game.js?v=48c9f41';
+import './world.js?v=48c9f41'; // side-effect only: builds terrain scenery at load time
 
 // ============================================================
 // WEBGL CONTEXT LOSS HANDLING
@@ -94,8 +94,17 @@ try {
 // ============================================================
 // ANIMATE LOOP
 // ============================================================
-function animate() {
+// Frame-rate cap. Modern phones run 90/120Hz panels, and rendering this 3D
+// scene at the full refresh rate just cooks the device + drains battery for no
+// real gameplay benefit. Cap mobile to 60fps by skipping the extra vsync ticks;
+// desktop stays uncapped (lets a future high-refresh PC/Steam build run free).
+// dt comes from the clock, so capping doesn't change game speed.
+const _FRAME_MS = isMobile() ? (1000 / 60) : 0;
+let _lastFrameT = 0;
+function animate(now) {
   requestAnimationFrame(animate);
+  if (_FRAME_MS && (now - _lastFrameT) < _FRAME_MS - 0.5) return; // skip extra ticks on high-refresh panels
+  _lastFrameT = now;
   if (renderer.getContext().isContextLost && renderer.getContext().isContextLost()) return;
   const dt = Math.min(0.05, clock.getDelta());
   update(dt);
@@ -107,4 +116,4 @@ function animate() {
   document.body.classList.toggle('playing', gameState.state === 'playing');
   if (composer) composer.render(); else renderer.render(scene, camera);
 }
-animate();
+requestAnimationFrame(animate);
