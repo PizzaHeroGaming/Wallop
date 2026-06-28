@@ -21,6 +21,12 @@ const DEFAULTS = {
   screenShake: true,
   reduceFlashes: false,          // dampen bloom + skip big screen flashes
   damageNumbers: true,
+  // Key bindings — action → KeyboardEvent.code. Arrow keys stay as fixed
+  // movement alternates in code, so these are the primary/remappable set.
+  keybinds: {
+    up: 'KeyW', down: 'KeyS', left: 'KeyA', right: 'KeyD',
+    jump: 'Space', dash: 'ShiftLeft', interact: 'KeyE',
+  },
 };
 
 let _s = _load();
@@ -45,6 +51,14 @@ export const Settings = {
   /** The whole settings object (read-only intent). */
   all() { return _s; },
   /** Reset everything to defaults. */
-  reset() { _s = { ...DEFAULTS }; save(); },
+  reset() { _s = JSON.parse(JSON.stringify(DEFAULTS)); save(); },
+  /** Read one key binding (falls back to default per-action). */
+  getBind(action) { return (_s.keybinds && _s.keybinds[action]) || DEFAULTS.keybinds[action]; },
+  /** Set one key binding + persist. */
+  setBind(action, code) {
+    if (!_s.keybinds) _s.keybinds = { ...DEFAULTS.keybinds };
+    _s.keybinds[action] = code;
+    save();
+  },
   DEFAULTS,
 };

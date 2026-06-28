@@ -2769,6 +2769,12 @@
     background: var(--panel-2); color: var(--ink); border: 2px solid #000; cursor: pointer;
   }
   .set-readout { min-width: 48px; text-align: right; color: var(--accent); }
+  .keybind-key {
+    font-family: 'Press Start 2P', monospace; font-size: 11px; color: var(--ink);
+    background: var(--panel-2); border: 2px solid #000; box-shadow: 2px 2px 0 #000;
+    padding: 8px 12px; min-width: 84px; cursor: pointer;
+  }
+  .keybind-key:hover { background: var(--accent); color: #000; }
   #settings-buttons { display: flex; gap: 12px; justify-content: center; margin-top: 10px; flex-wrap: wrap; }
   #settings-buttons .btn { font-size: 12px; padding: 12px 18px; }
 </style>
@@ -3428,6 +3434,12 @@ window.addEventListener('load', () => {
         <span id="set-stick-readout" class="set-readout">1.0×</span></div>
       <div class="set-row"><label>Vibration</label>
         <input type="checkbox" id="set-vibration"></div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-h">KEY BINDINGS</div>
+      <div id="set-keybinds"></div>
+      <div style="font-family:'VT323',monospace;font-size:15px;color:var(--ink-dim);margin-top:4px;">Arrow keys always work as movement. Click a key to rebind.</div>
     </div>
 
     <div class="settings-section">

@@ -15,7 +15,7 @@
 //   keyboard/mobile → tryJump, tryDash (game.js): use _jumpFn/_dashFn, set via setJumpDashCbs()
 //   openChest → presentChoiceScreen (this file): setOpenChestDeps is called in initUI()
 
-import { camera, renderer, isMobile, tryEnterFullscreen } from './renderer.js?v=71c52ce';
+import { camera, renderer, isMobile, tryEnterFullscreen } from './renderer.js?v=de9569f';
 import {
   player, enemies,
   tryInteract, setOpenChestDeps,
@@ -23,20 +23,20 @@ import {
   spawnParticle,
   CHARACTER_MODELS, _animClips, loadCharAsset,
   _applyCharacterModel,
-} from './entities.js?v=71c52ce';
-import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=71c52ce';
-import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=71c52ce';
-import { gameState, cam } from './state.js?v=71c52ce';
-import { Audio } from './audio.js?v=71c52ce';
-import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=71c52ce';
+} from './entities.js?v=de9569f';
+import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=de9569f';
+import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=de9569f';
+import { gameState, cam } from './state.js?v=de9569f';
+import { Audio } from './audio.js?v=de9569f';
+import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=de9569f';
 // VERSION lives on CFG.VERSION too — reading via property access doesn't
 // blow up if a cached older config.js is loaded without the named export
 const VERSION = CFG.VERSION || '0.0.0';
 // Slices granted per on-demand "watch ad for slices" view (daily-capped in Profile).
 const AD_SLICE_REWARD = 3;
-import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=71c52ce';
-import { tmp, tmp2 } from './utils.js?v=71c52ce';
-import { Settings } from './settings.js?v=71c52ce';
+import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=de9569f';
+import { tmp, tmp2 } from './utils.js?v=de9569f';
+import { Settings } from './settings.js?v=de9569f';
 
 // ============================================================
 // INJECTION CALLBACKS (break circular deps)
@@ -1560,11 +1560,13 @@ export function pollGamepad(dt) {
 // ============================================================
 export function initInput() {
   document.addEventListener('keydown', e => {
+    // Key-rebind capture (Settings menu) swallows the next keypress.
+    if (_rebindAction) { e.preventDefault(); _captureRebind(e); return; }
     if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) e.preventDefault();
     keys[e.code] = true;
-    if (e.code === 'Space'     && gameState.state === 'playing') { if (_jumpFn) _jumpFn(); }
-    if (e.code === 'ShiftLeft' && gameState.state === 'playing') { if (_dashFn) _dashFn(); }
-    if (e.code === 'KeyE'      && gameState.state === 'playing') tryInteract();
+    if (e.code === Settings.getBind('jump') && gameState.state === 'playing') { if (_jumpFn) _jumpFn(); }
+    if (e.code === Settings.getBind('dash') && gameState.state === 'playing') { if (_dashFn) _dashFn(); }
+    if (e.code === Settings.getBind('interact') && gameState.state === 'playing') tryInteract();
     if (e.code === 'Escape') {
       const confirmOv = document.getElementById('confirm-overlay');
       const settingsOv = document.getElementById('settings-screen');
@@ -2234,7 +2236,53 @@ function _syncSettingsUI() {
   _setCheckUI('set-reduceflashes', Settings.get('reduceFlashes'));
   _setCheckUI('set-damagenums', Settings.get('damageNumbers'));
 
+  _buildKeybindRows();
   _syncAllAudioControlUIs();
+}
+
+// ── Key rebinding ──
+let _rebindAction = null;
+const _KEYBIND_ACTIONS = [
+  ['up', 'Move up'], ['down', 'Move down'], ['left', 'Move left'], ['right', 'Move right'],
+  ['jump', 'Jump'], ['dash', 'Dash'], ['interact', 'Interact / use'],
+];
+function _keyLabel(code) {
+  if (!code) return '—';
+  if (code === 'Space') return 'Space';
+  if (code.startsWith('Key')) return code.slice(3);
+  if (code.startsWith('Digit')) return code.slice(5);
+  if (code.startsWith('Arrow')) return { ArrowUp: '↑', ArrowDown: '↓', ArrowLeft: '←', ArrowRight: '→' }[code];
+  if (code.startsWith('Shift')) return 'Shift';
+  if (code.startsWith('Control')) return 'Ctrl';
+  if (code.startsWith('Alt')) return 'Alt';
+  return code;
+}
+function _buildKeybindRows() {
+  const wrap = document.getElementById('set-keybinds');
+  if (!wrap) return;
+  wrap.innerHTML = '';
+  for (const [action, label] of _KEYBIND_ACTIONS) {
+    const row = document.createElement('div');
+    row.className = 'set-row';
+    const isRebinding = _rebindAction === action;
+    row.innerHTML = `<label>${label}</label>`;
+    const btn = document.createElement('button');
+    btn.className = 'keybind-key';
+    btn.textContent = isRebinding ? 'press a key…' : _keyLabel(Settings.getBind(action));
+    btn.addEventListener('click', () => {
+      _rebindAction = action;
+      _buildKeybindRows();
+    });
+    row.appendChild(btn);
+    wrap.appendChild(row);
+  }
+}
+function _captureRebind(e) {
+  const action = _rebindAction;
+  _rebindAction = null;
+  // Escape cancels the rebind (leaves the binding unchanged).
+  if (e.code !== 'Escape' && action) Settings.setBind(action, e.code);
+  _buildKeybindRows();
 }
 
 function openSettings(origin) {

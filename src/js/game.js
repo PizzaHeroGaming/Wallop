@@ -1,6 +1,6 @@
 // game.js — core game logic: damageEnemy, update loop, player movement, spawning
 // Imports (acyclic — game.js is the top of the dep graph among game modules):
-import { scene, camera, renderer, composer, sun, clock, isMobile, isSteamBuild, tryEnterFullscreen, releasePtLight, setRendererArena } from './renderer.js?v=71c52ce';
+import { scene, camera, renderer, composer, sun, clock, isMobile, isSteamBuild, tryEnterFullscreen, releasePtLight, setRendererArena } from './renderer.js?v=de9569f';
 import {
   player,
   playerMixer, playerIdleAction, playerWalkAction, playerRunAction,
@@ -19,18 +19,18 @@ import {
   updateShieldOrbital, updateParticles,
   setDamageEnemyCb, setOnLevelUpReady,
   spawnGold, spawnSmokeCloud, makeEnemyMesh, ENEMY_DEFS,
-} from './entities.js?v=71c52ce';
-import { WEAPONS, ARMOR, TOMES, setDamageEnemyForWeapons, rebuildOrbits } from './weapons.js?v=71c52ce';
-import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=71c52ce';
+} from './entities.js?v=de9569f';
+import { WEAPONS, ARMOR, TOMES, setDamageEnemyForWeapons, rebuildOrbits } from './weapons.js?v=de9569f';
+import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=de9569f';
 import {
   gameState, cam,
-} from './state.js?v=71c52ce';
-import { CFG, STAGE_MULTS, DIFFICULTIES } from './config.js?v=71c52ce';
-import { Profile, ARENAS, CHALLENGES } from './profile.js?v=71c52ce';
-import { groundHeight, resolveSolids, setTerrainArena } from './terrain.js?v=71c52ce';
-import { setWorldArena } from './world.js?v=71c52ce';
-import { killMesh, clamp, rand, tmp, tmp2, flatPhong } from './utils.js?v=71c52ce';
-import { Audio } from './audio.js?v=71c52ce';
+} from './state.js?v=de9569f';
+import { CFG, STAGE_MULTS, DIFFICULTIES } from './config.js?v=de9569f';
+import { Profile, ARENAS, CHALLENGES } from './profile.js?v=de9569f';
+import { groundHeight, resolveSolids, setTerrainArena } from './terrain.js?v=de9569f';
+import { setWorldArena } from './world.js?v=de9569f';
+import { killMesh, clamp, rand, tmp, tmp2, flatPhong } from './utils.js?v=de9569f';
+import { Audio } from './audio.js?v=de9569f';
 import {
   showDamage, showAlert, updateBossArrow, updateLoadoutDisplay,
   syncSliceDisplays, triggerGameOver,
@@ -39,13 +39,15 @@ import {
   openPauseMenu, closePauseMenu,
   keys, joystickInput, camJoystickInput,
   applyCameraJoystick, tickHUD,
+  // (Settings imported below for remappable movement keys)
   setDamageEnemyForUI, setResetGameCb, setJumpDashCbs, setCallBossCb, setPauseTimerCbs,
   showStageClearScreen, setAdvanceStageCb, clearPendingStageClear,
   onIntroComplete, setBeginIntroCb,
   showTutorialStep, hideTutorial, setTutorialSkipCb,
   initUI,
   addCameraShake,
-} from './ui.js?v=71c52ce';
+} from './ui.js?v=de9569f';
+import { Settings } from './settings.js?v=de9569f';
 
 // Player animation state (module-level so it persists across frames)
 let _animState = 'idle';
@@ -1172,10 +1174,10 @@ function updateTutorial(dt) {
 function updatePlayer(dt) {
   applyCameraJoystick(dt);
   let mx = 0, mz = 0;
-  if (keys.KeyW || keys.ArrowUp)    mz -= 1;
-  if (keys.KeyS || keys.ArrowDown)  mz += 1;
-  if (keys.KeyA || keys.ArrowLeft)  mx -= 1;
-  if (keys.KeyD || keys.ArrowRight) mx += 1;
+  if (keys[Settings.getBind('up')]    || keys.ArrowUp)    mz -= 1;
+  if (keys[Settings.getBind('down')]  || keys.ArrowDown)  mz += 1;
+  if (keys[Settings.getBind('left')]  || keys.ArrowLeft)  mx -= 1;
+  if (keys[Settings.getBind('right')] || keys.ArrowRight) mx += 1;
   mx += joystickInput.x;
   mz += joystickInput.y;
   const mag = Math.hypot(mx, mz);
