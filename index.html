@@ -1714,12 +1714,8 @@
     background: var(--panel); border: 3px solid #000; box-shadow: 6px 6px 0 #000;
     padding: 14px 16px 16px; flex: 0 0 auto;
   }
-  #char-preview-wrap {
-    display: flex; align-items: center; gap: 6px;
-  }
-  #char-preview-canvas {
-    width: 180px; height: 300px; display: block;
-    background: var(--panel-2); border: 2px solid #000;
+  #char-select-nav {
+    display: flex; align-items: center; justify-content: center; gap: 12px;
   }
   .char-arrow {
     font-family: 'Press Start 2P', monospace; font-size: 13px;
@@ -2930,18 +2926,17 @@ window.addEventListener('load', () => {
       </div>
     </div>
 
-    <!-- Right column: character selector with rotating 3D preview -->
+    <!-- Right column: character selector — the picked hero previews on the big title hero -->
     <div id="char-select-panel">
       <div class="sel-title">CHOOSE YOUR HERO</div>
-      <div id="char-preview-wrap">
+      <div id="char-select-nav">
         <button class="char-arrow" id="char-prev-btn">◀</button>
-        <canvas id="char-preview-canvas" width="360" height="600"></canvas>
+        <div id="char-select-info">
+          <div id="char-select-badge"></div>
+          <div id="char-select-name"></div>
+          <div id="char-select-subdesc"></div>
+        </div>
         <button class="char-arrow" id="char-next-btn">▶</button>
-      </div>
-      <div id="char-select-info">
-        <div id="char-select-badge"></div>
-        <div id="char-select-name"></div>
-        <div id="char-select-subdesc"></div>
       </div>
       <button class="btn" id="char-select-btn"></button>
       <div id="char-select-dots"></div>
@@ -3358,6 +3353,6 @@ window.addEventListener('load', () => {
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
-<script type="module" src="src/js/main.js?v=d9ac5d3"></script>
+<script type="module" src="src/js/main.js?v=2cbd1e2"></script>
 </body>
 </html>
