@@ -9,12 +9,12 @@
 //   game.js        → damageEnemy, update, initGame
 //   main.js        → animate, splash, resize
 
-import { scene, camera, renderer, clock, composer, isMobile, tryEnterFullscreen, rearmFullscreenOnNextTap } from './renderer.js?v=9d86f96';
-import { gameState } from './state.js?v=9d86f96';
-import { initGame, update, updateTitleScene, updateIntroSweep } from './game.js?v=9d86f96';
-import './world.js?v=9d86f96'; // side-effect only: builds terrain scenery at load time
-import { Settings } from './settings.js?v=9d86f96';
-import { pollGamepad } from './ui.js?v=9d86f96';
+import { scene, camera, renderer, clock, composer, isMobile, tryEnterFullscreen, rearmFullscreenOnNextTap } from './renderer.js?v=4d7ddbc';
+import { gameState } from './state.js?v=4d7ddbc';
+import { initGame, update, updateTitleScene, updateIntroSweep } from './game.js?v=4d7ddbc';
+import './world.js?v=4d7ddbc'; // side-effect only: builds terrain scenery at load time
+import { Settings } from './settings.js?v=4d7ddbc';
+import { pollGamepad } from './ui.js?v=4d7ddbc';
 
 // ============================================================
 // WEBGL CONTEXT LOSS HANDLING
@@ -49,12 +49,27 @@ import { pollGamepad } from './ui.js?v=9d86f96';
 // ============================================================
 // RESIZE
 // ============================================================
+// Uniform menu scale (desktop only): scale the overlay UI to fit the window off
+// a 1080p reference (min of width/height ratios), so every window size looks
+// like the design proportionally scaled. Mobile keeps its own tuned @media
+// layout (scale stays 1). Applied via `zoom: var(--ui-scale)` on .overlay.
+function _applyUiScale() {
+  let s = 1;
+  if (!isMobile()) {
+    s = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
+    s = Math.max(0.45, Math.min(1.75, s));
+  }
+  document.documentElement.style.setProperty('--ui-scale', s.toFixed(3));
+}
+
 window.addEventListener('resize', () => {
   camera.aspect = window.innerWidth / window.innerHeight;
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
   if (composer) composer.setSize(window.innerWidth, window.innerHeight);
+  _applyUiScale();
 });
+_applyUiScale();
 
 // ============================================================
 // CLEAN-CAPTURE MODE — hide HUD / controls / menu for marketing shots.

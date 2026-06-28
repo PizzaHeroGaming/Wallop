@@ -279,8 +279,15 @@
   /* Overlays */
   .overlay {
     position: fixed; inset: 0; z-index: 20;
-    display: flex; align-items: center; justify-content: center;
+    /* `safe center` keeps content centered when it fits, but falls back to
+       top-alignment when it's taller than the window — so the top stays
+       reachable by scrolling instead of being clipped above scrollTop 0. */
+    display: flex; align-items: center; justify-content: safe center;
     flex-direction: column; gap: 16px;
+    /* Uniform UI scale (desktop): scales the whole menu to fit the window off a
+       1080p reference, so any window size looks like the design proportionally
+       scaled. Set by _applyUiScale() in main.js; stays 1 on mobile. */
+    zoom: var(--ui-scale, 1);
     /* Scroll the overlay itself when content exceeds the viewport — without this
        phones in landscape clip the bottom of the start/pause screens. */
     overflow-y: auto;
@@ -2674,7 +2681,7 @@
   @media (min-width: 760px) and (min-height: 600px) {
     #start-screen {
       align-items: flex-start;
-      justify-content: center;
+      justify-content: safe center;
       padding-left: clamp(56px, 8vw, 150px);
       gap: 24px;
     }
@@ -3524,6 +3531,6 @@ window.addEventListener('load', () => {
 <script src="src/vendor/three/UnrealBloomPass.js"></script>
 <script src="src/vendor/three/GLTFLoader.js"></script>
 <script src="src/vendor/three/SkeletonUtils.js"></script>
-<script type="module" src="src/js/main.js?v=9d86f96"></script>
+<script type="module" src="src/js/main.js?v=4d7ddbc"></script>
 </body>
 </html>
