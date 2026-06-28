@@ -31,19 +31,18 @@ npm run dist                   # → electron/dist/<platform>-unpacked/
 ```
 The unpacked folder is what you upload to Steam via SteamPipe.
 
-## ⚠️ BLOCKER before shipping: vendor Three.js for offline play
-`src/wallop.html` loads Three.js r128 **and its addons** from
-`cdnjs.cloudflare.com`. A Steam game must run **offline** — relying on a CDN
-means no internet = no game. Before release:
-1. Download r128 locally into `assets/vendor/three/`:
-   - `three.min.js`
-   - addons used: `GLTFLoader`, `EffectComposer`, `RenderPass`, `UnrealBloomPass`,
-     `ShaderPass`, `CopyShader`, `LuminosityHighPassShader`, `SkeletonUtils`
-     (check the `<script>` tags in `wallop.html` for the exact list).
-2. Swap the CDN `<script src="https://cdnjs...">` tags for the local
-   `assets/vendor/three/...` paths.
-3. Rebuild (`build-pages.py` + `build-www.py`) and re-test in `npm start`.
-Keep the web build on the CDN if you like, or vendor everywhere for consistency.
+## ✅ DONE: Three.js vendored for offline play
+`src/wallop.html` now loads Three.js r128 + all addons from
+**`src/vendor/three/`** (was cdnjs/jsdelivr) — the game runs fully offline, which
+a Steam build requires. `build-pages.py` rewrites `vendor/three/` →
+`src/vendor/three/` for the generated `index.html`. Vendored everywhere (web too,
+for PWA/offline). Verified: `THREE.REVISION === 128` + GLTFLoader/EffectComposer/
+UnrealBloomPass/SkeletonUtils all load locally, game renders clean.
+
+## Clean marketing captures
+Press **F9** (or load `?nohud=1`) to hide the HUD, mobile controls, and the title
+menu — for HUD-free, high-res store-capsule + trailer frames. Recomposite
+capsules from clean captures via `scripts/gen-steam-art.mjs`.
 
 ## Steamworks (after the $100 account + verification clears)
 - **Overlay + cloud + achievements:** integrate `steamworks.js` (Node bindings)
