@@ -15,7 +15,7 @@
 //   keyboard/mobile → tryJump, tryDash (game.js): use _jumpFn/_dashFn, set via setJumpDashCbs()
 //   openChest → presentChoiceScreen (this file): setOpenChestDeps is called in initUI()
 
-import { camera, renderer, isMobile, tryEnterFullscreen } from './renderer.js?v=2cbd1e2';
+import { camera, renderer, isMobile, tryEnterFullscreen } from './renderer.js?v=1506af5';
 import {
   player, enemies,
   tryInteract, setOpenChestDeps,
@@ -23,19 +23,19 @@ import {
   spawnParticle,
   CHARACTER_MODELS, _animClips, loadCharAsset,
   _applyCharacterModel,
-} from './entities.js?v=2cbd1e2';
-import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=2cbd1e2';
-import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=2cbd1e2';
-import { gameState, cam } from './state.js?v=2cbd1e2';
-import { Audio } from './audio.js?v=2cbd1e2';
-import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=2cbd1e2';
+} from './entities.js?v=1506af5';
+import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=1506af5';
+import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=1506af5';
+import { gameState, cam } from './state.js?v=1506af5';
+import { Audio } from './audio.js?v=1506af5';
+import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=1506af5';
 // VERSION lives on CFG.VERSION too — reading via property access doesn't
 // blow up if a cached older config.js is loaded without the named export
 const VERSION = CFG.VERSION || '0.0.0';
 // Slices granted per on-demand "watch ad for slices" view (daily-capped in Profile).
 const AD_SLICE_REWARD = 3;
-import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=2cbd1e2';
-import { tmp, tmp2 } from './utils.js?v=2cbd1e2';
+import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=1506af5';
+import { tmp, tmp2 } from './utils.js?v=1506af5';
 
 // ============================================================
 // INJECTION CALLBACKS (break circular deps)
@@ -1151,23 +1151,6 @@ function renderChallenges() {
   }
 }
 
-// Show/hide the dev-mode banner + swap About-screen login UI based on state.
-function refreshDevModeUI() {
-  const active = Profile.isInDevMode();
-  const banner = document.getElementById('dev-mode-banner');
-  if (banner) banner.style.display = active ? 'block' : 'none';
-  const loginBox = document.getElementById('dev-mode-login');
-  const exitBtn  = document.getElementById('dev-exit-btn');
-  const status   = document.getElementById('dev-mode-status');
-  if (loginBox) loginBox.style.display = active ? 'none' : 'flex';
-  if (exitBtn)  exitBtn.style.display  = active ? 'inline-block' : 'none';
-  if (status) {
-    status.textContent = active
-      ? 'Dev mode is active — everything is unlocked and slices are maxed. Exit to restore your real profile.'
-      : 'Unlock all characters, items, and slices for testing. All changes revert when you exit.';
-  }
-}
-
 let __armoryCurrentTab = 'characters';
 
 function renderArmoryGrid() {
@@ -1989,7 +1972,6 @@ export function initButtons() {
   document.getElementById('about-btn').addEventListener('click', () => {
     document.getElementById('start-screen').classList.add('hidden');
     document.getElementById('about-screen').classList.remove('hidden');
-    refreshDevModeUI();
   });
   const _closeAbout = () => {
     document.getElementById('about-screen').classList.add('hidden');
@@ -1998,37 +1980,6 @@ export function initButtons() {
   document.getElementById('about-close').addEventListener('click', _closeAbout);
   const _aboutBackTop = document.getElementById('about-back-top');
   if (_aboutBackTop) _aboutBackTop.addEventListener('click', _closeAbout);
-
-  // ── Dev mode (testing): login at the bottom of About screen ──
-  const devLoginBtn = document.getElementById('dev-login-btn');
-  const devExitBtn  = document.getElementById('dev-exit-btn');
-  const devUserEl   = document.getElementById('dev-user');
-  const devPassEl   = document.getElementById('dev-pass');
-  const devErrEl    = document.getElementById('dev-login-err');
-  const _postDevModeRefresh = () => {
-    refreshDevModeUI();
-    syncSliceDisplays();
-    try { renderArenaSelect(); } catch (e) {}
-    try { _refreshMobileArenaUI(); } catch (e) {}
-    try { _refreshCharSelectUI(); } catch (e) {}
-  };
-  if (devLoginBtn) devLoginBtn.addEventListener('click', () => {
-    const ok = Profile.enterDevMode((devUserEl?.value || '').trim(), devPassEl?.value || '');
-    if (!ok) {
-      if (devErrEl) devErrEl.textContent = 'Invalid credentials.';
-      return;
-    }
-    if (devErrEl) devErrEl.textContent = '';
-    if (devUserEl) devUserEl.value = '';
-    if (devPassEl) devPassEl.value = '';
-    _postDevModeRefresh();
-  });
-  if (devExitBtn) devExitBtn.addEventListener('click', () => {
-    Profile.exitDevMode();
-    _postDevModeRefresh();
-  });
-  // Initial banner sync on page load (in case dev mode persisted from a previous session)
-  refreshDevModeUI();
 
   // Exit
   document.getElementById('exit-btn').addEventListener('click', () => {

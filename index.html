@@ -304,15 +304,6 @@
     100% { opacity: 1; transform: scale(1); }
   }
 
-  /* Dev-mode banner — pinned at top-left, always-on while dev mode is active */
-  #dev-mode-banner {
-    position: fixed; top: 8px; left: 50%; transform: translateX(-50%);
-    z-index: 999999;
-    font-family: 'Press Start 2P', monospace; font-size: 9px; color: #fff;
-    background: var(--hot); border: 3px solid #000; box-shadow: 3px 3px 0 #000;
-    padding: 6px 12px; letter-spacing: 1px; pointer-events: none;
-    text-shadow: 1px 1px 0 #000;
-  }
   #title-block {
     display: flex; flex-direction: column; align-items: center; gap: 8px;
   }
@@ -367,6 +358,10 @@
   .btn.hot:hover { background: #ff6b8a; }
   .btn.dim { background: var(--panel-2); color: var(--ink-dim); border-color: #000; }
   .btn.dim:hover { background: var(--panel); color: var(--ink); }
+  .btn.secondary { background: var(--panel-2); color: var(--ink); }
+  .btn.secondary:hover { background: var(--panel); color: #fff; }
+  .btn.ghost { background: transparent; color: var(--ink-dim); }
+  .btn.ghost:hover { background: var(--panel-2); color: #fff; }
   .end-actions { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-top: 4px; }
   .end-actions .btn { font-size: 11px; padding: 12px 16px; }
 
@@ -2381,6 +2376,14 @@
     color: #ffffff !important;
     text-shadow: 1px 1px 0 #1a2a40 !important;
   }
+  /* Title-screen secondary nav (Challenges / Armory / About) + Exit: their base
+     rules set light text for a dark panel, but the cream wood-frame theme forces
+     a cream interior — so force dark brown text for strong contrast on cream. */
+  body .btn.secondary, body .btn.secondary:hover,
+  body .btn.ghost, body .btn.ghost:hover {
+    color: #241a0a !important;
+    text-shadow: none !important;
+  }
 
   /* (2) UNSELECTED arena cards (.arena-btn variants) — child .arena-btn-name
      and .arena-btn-hint had hard-coded light colors that disappear on cream.
@@ -2390,24 +2393,6 @@
   body .arena-btn .arena-btn-hint { color: #2a1a05 !important; }
   body .arena-btn.active .arena-btn-name,
   body .arena-btn.active .arena-btn-hint { color: #ffffff !important; text-shadow: 1px 1px 0 #5a0010 !important; }
-
-  /* (3) DEV MODE (TESTING) section in About — text was inheriting old
-     light colors meant for the dark theme.  Darken everything on cream. */
-  body #dev-mode-section .about-body,
-  body #dev-mode-section #dev-mode-status {
-    color: #2a1a05 !important;
-  }
-  body #dev-mode-section .about-heading { color: #b8501c !important; }
-  body #dev-mode-section #dev-user,
-  body #dev-mode-section #dev-pass {
-    background: #f5e9c8 !important;
-    color: #2a1a05 !important;
-    border-color: #6a3818 !important;
-  }
-  body #dev-mode-section #dev-user::placeholder,
-  body #dev-mode-section #dev-pass::placeholder {
-    color: #6a3818 !important; opacity: 0.7;
-  }
 
   /* (4) Patch log accordion content — bullets were inheriting var(--ink-dim)
      (light grey for dark theme) and disappeared on the cream BG. */
@@ -2676,12 +2661,83 @@
     #confirm-message { font-size: 18px; }
     #confirm-buttons .btn { font-size: 9px; padding: 10px 14px; }
   }
+
+  /* ============================================================
+     DESKTOP / LARGE-SCREEN TITLE SCREEN — AAA-style left column.
+     Scoped to desktop sizes so the mobile breakpoints (which already do a
+     left-anchored landscape layout) are untouched. Wordmark + dominant PLAY
+     + receded secondary nav + slim hero selector, anchored left over the
+     scrim; the live arena + hero showcase on the right.
+     ============================================================ */
+  @keyframes menuRise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes titleRise { from { opacity: 0; transform: translateX(-50%) translateY(-18px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+  @media (min-width: 760px) and (min-height: 600px) {
+    #start-screen {
+      align-items: flex-start;
+      justify-content: center;
+      padding-left: clamp(56px, 8vw, 150px);
+      gap: 24px;
+    }
+    /* Wordmark pinned to the top as the game's logo banner — big and bold so it
+       reads as THE title, not a label floating over the hero's head. */
+    #title-block {
+      position: absolute; top: clamp(18px, 4.5vh, 54px);
+      left: 50%; transform: translateX(-50%);
+      width: auto; align-items: center; gap: 6px; margin-left: 0;
+      animation-name: titleRise;
+    }
+    #title {
+      font-size: clamp(64px, 11vw, 132px); margin: 0; letter-spacing: 4px;
+      text-shadow:
+        7px 7px 0 #000,
+        12px 12px 0 rgba(0,0,0,0.35),
+        0 0 38px rgba(255,210,63,0.45);
+    }
+    #subtitle {
+      font-size: 24px; margin: 6px 0 0; letter-spacing: 4px; text-align: center;
+      color: var(--ink); opacity: 0.9; text-shadow: 2px 2px 0 #000;
+    }
+
+    #start-main {
+      flex-direction: column; align-items: flex-start; justify-content: flex-start;
+      flex-wrap: nowrap; gap: 16px; width: clamp(320px, 32vw, 440px); max-width: 440px;
+    }
+    #start-left { align-items: stretch; width: 100%; gap: 12px; flex: 0 0 auto; min-width: 0; }
+    .start-actions {
+      flex-direction: column; align-items: stretch; flex-wrap: nowrap;
+      gap: 10px; width: 100%; justify-content: flex-start;
+    }
+    /* Nav-list feel: labels left-aligned in the column */
+    .start-actions .btn { text-align: left; }
+    /* Dominant primary CTA */
+    #start-btn {
+      font-size: 26px; padding: 22px 28px; letter-spacing: 2px; box-shadow: 7px 7px 0 #000;
+    }
+    /* Secondary nav recedes (smaller than PLAY, but still clearly legible) */
+    .start-actions .btn.secondary { font-size: 15px; padding: 15px 22px; }
+    /* Exit: small, de-emphasized, not full width */
+    .start-actions .btn.ghost {
+      align-self: flex-start; font-size: 11px; padding: 9px 16px;
+      box-shadow: 3px 3px 0 #000; margin-top: 4px; text-align: center;
+    }
+    /* Hero selector sits in the column under the nav */
+    #char-select-panel { align-self: stretch; width: 100%; }
+    /* Subtle staggered entrance */
+    #title-block, .start-actions > .btn, #char-select-panel {
+      animation: menuRise 0.42s cubic-bezier(.2,.7,.3,1) both;
+    }
+    #title-block                           { animation-delay: 0.02s; }
+    .start-actions > .btn:nth-child(1)     { animation-delay: 0.10s; }
+    .start-actions > .btn:nth-child(2)     { animation-delay: 0.16s; }
+    .start-actions > .btn:nth-child(3)     { animation-delay: 0.22s; }
+    .start-actions > .btn:nth-child(4)     { animation-delay: 0.28s; }
+    .start-actions > .btn:nth-child(5)     { animation-delay: 0.34s; }
+    #char-select-panel                     { animation-delay: 0.40s; }
+  }
 </style>
 </head>
 <body>
 
-<!-- Dev mode banner — visible on every screen while dev mode is active -->
-<div id="dev-mode-banner" style="display:none;">🔧 DEV MODE</div>
 
 <!-- Rotate device hint (portrait phones only) -->
 <div id="rotate-hint">
@@ -2893,17 +2949,7 @@ window.addEventListener('load', () => {
   <div id="start-main">
     <!-- Left column: instructions + difficulty + action buttons -->
     <div id="start-left">
-      <div class="panel">
-        <h2>HOW TO SURVIVE</h2>
-        <ul>
-          <li><kbd>WASD</kbd> move &nbsp;·&nbsp; <kbd>SPACE</kbd> jump &nbsp;·&nbsp; <kbd>SHIFT</kbd> dash</li>
-          <li><kbd>MOUSE</kbd> rotate camera (click to lock)</li>
-          <li>Weapons fire automatically. Just don't die.</li>
-          <li>Grab gems to level up. Pick wild upgrades. Stack them.</li>
-          <li>Survive 10 minutes. The Boss arrives at the end.</li>
-        </ul>
-      </div>
-      <!-- Mobile-only compact character selector (shown instead of the 3D panel) -->
+      <!-- Mobile-only compact character selector (shown instead of the desktop panel) -->
       <div id="mob-char-select">
         <div class="sel-title">CHOOSE YOUR HERO</div>
         <div class="mob-char-row">
@@ -2918,11 +2964,11 @@ window.addEventListener('load', () => {
         <div id="mob-char-dots"></div>
       </div>
       <div class="start-actions">
-        <button class="btn hot" id="start-btn">▶ START RUN</button>
-        <button class="btn" id="challenges-btn">🏆 CHALLENGES</button>
-        <button class="btn" id="armory-btn">🍕 ARMORY</button>
-        <button class="btn" id="about-btn">📋 ABOUT</button>
-        <button class="btn" id="exit-btn">EXIT GAME</button>
+        <button class="btn hot" id="start-btn">▶ PLAY</button>
+        <button class="btn secondary" id="challenges-btn">🏆 CHALLENGES</button>
+        <button class="btn secondary" id="armory-btn">🍕 ARMORY</button>
+        <button class="btn secondary" id="about-btn">📋 ABOUT</button>
+        <button class="btn ghost" id="exit-btn">EXIT</button>
       </div>
     </div>
 
@@ -3042,6 +3088,16 @@ window.addEventListener('load', () => {
       <div class="about-heading">PATCH LOG</div>
 
       <details class="patch-entry" open>
+        <summary class="patch-ver">v0.9.1 — Polish Pass</summary>
+        <ul class="patch-list">
+          <li><strong>New title screen:</strong> A cleaner, more professional main menu — a big WALLOP logo up top, a focused PLAY-first menu column, and your selected hero shown center-stage over the live arena. The camera now slides the hero aside when you open "Configure Your Run."</li>
+          <li><strong>Sharper menu text:</strong> The Challenges / Armory / About buttons now read clearly against their background.</li>
+          <li><strong>Runs cooler:</strong> Frame rate is capped on mobile so the game stays smooth and steady instead of overheating your phone on high-refresh screens.</li>
+          <li><strong>Cleanup:</strong> Removed internal dev/testing tools from the public build.</li>
+        </ul>
+      </details>
+
+      <details class="patch-entry">
         <summary class="patch-ver">v0.9 — Rewards &amp; the Road to Android</summary>
         <ul class="patch-list">
           <li><strong>Watch ads for slices (mobile):</strong> At the end of a run you can watch one ad to DOUBLE the slices you earned that run, and the Armory has a new "+3 slices" button you can tap a few times a day for a steady top-up. Ad rewards are mobile-only — the PC build never shows them.</li>
@@ -3106,7 +3162,6 @@ window.addEventListener('load', () => {
           <li>Boost upgrades now cost progressively more slices per level (base × current level)</li>
           <li>Stage 2 + 3 enemy + boss scaling rebalanced upward (was too easy after stage 1 stripping)</li>
           <li>Mobile UI rebuilt: 3D char preview swapped for compact selector, landscape layout fits without scrolling, cache-busting on every deploy</li>
-          <li>Dev mode login for testing (About screen → DEV MODE section, user <code>Dev</code> / pass <code>password</code>) — snapshots your real profile, unlocks everything, reverts on exit</li>
           <li>Bug: in-game character model never actually swapped when you picked a new character — entities.js was checking <code>typeof Profile !== 'undefined'</code> as a global instead of importing it, so slug always fell back to <code>pizza_hero</code>. Fixed.</li>
           <li>Bug: enemies were tipping forward and laying flat when touching the player — <code>mesh.lookAt</code> target Y used the enemy's own chest height, so close horizontal distances pulled the model's forward axis nearly vertical. Now uses mesh world Y.</li>
           <li>Bug: defeating the Stage 1 or 2 boss was incorrectly ending the run as a Stage 3 victory — boss entity wasn't cleaned up before the early <code>return</code></li>
@@ -3179,24 +3234,6 @@ window.addEventListener('load', () => {
           <li>XP gems, gold coins, chest spawns</li>
         </ul>
       </details>
-    </div>
-
-    <!-- Dev mode: testing-only login that unlocks everything, reverts on exit.
-         Moved OUT of the patch-log section (was incorrectly nested inside). -->
-    <div class="about-section" id="dev-mode-section">
-      <div class="about-heading">DEV MODE (TESTING)</div>
-      <p class="about-body" id="dev-mode-status">
-        Unlock all characters, items, and slices for testing. All changes revert when you exit.
-      </p>
-      <div id="dev-mode-login" style="display:flex;flex-direction:column;gap:8px;max-width:280px;">
-        <input id="dev-user" type="text" placeholder="Username" autocomplete="off"
-          style="font-family:'VT323',monospace;font-size:18px;padding:8px 10px;background:var(--panel-2);color:var(--ink);border:3px solid #000;outline:none;" />
-        <input id="dev-pass" type="password" placeholder="Password" autocomplete="off"
-          style="font-family:'VT323',monospace;font-size:18px;padding:8px 10px;background:var(--panel-2);color:var(--ink);border:3px solid #000;outline:none;" />
-        <button class="btn" id="dev-login-btn" style="align-self:flex-start;">🔧 ENTER DEV MODE</button>
-        <div id="dev-login-err" style="font-family:'VT323',monospace;font-size:16px;color:var(--hot);min-height:18px;"></div>
-      </div>
-      <button class="btn hot" id="dev-exit-btn" style="display:none;">🔧 EXIT DEV MODE</button>
     </div>
 
     <button class="btn" id="about-close" style="margin-top:16px;">← BACK</button>
@@ -3353,6 +3390,6 @@ window.addEventListener('load', () => {
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
-<script type="module" src="src/js/main.js?v=2cbd1e2"></script>
+<script type="module" src="src/js/main.js?v=1506af5"></script>
 </body>
 </html>

@@ -1,6 +1,6 @@
 // game.js — core game logic: damageEnemy, update loop, player movement, spawning
 // Imports (acyclic — game.js is the top of the dep graph among game modules):
-import { scene, camera, renderer, composer, sun, clock, isMobile, tryEnterFullscreen, releasePtLight, setRendererArena } from './renderer.js?v=2cbd1e2';
+import { scene, camera, renderer, composer, sun, clock, isMobile, tryEnterFullscreen, releasePtLight, setRendererArena } from './renderer.js?v=1506af5';
 import {
   player,
   playerMixer, playerIdleAction, playerWalkAction, playerRunAction,
@@ -19,18 +19,18 @@ import {
   updateShieldOrbital, updateParticles,
   setDamageEnemyCb, setOnLevelUpReady,
   spawnGold, spawnSmokeCloud, makeEnemyMesh, ENEMY_DEFS,
-} from './entities.js?v=2cbd1e2';
-import { WEAPONS, ARMOR, TOMES, setDamageEnemyForWeapons, rebuildOrbits } from './weapons.js?v=2cbd1e2';
-import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=2cbd1e2';
+} from './entities.js?v=1506af5';
+import { WEAPONS, ARMOR, TOMES, setDamageEnemyForWeapons, rebuildOrbits } from './weapons.js?v=1506af5';
+import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=1506af5';
 import {
   gameState, cam,
-} from './state.js?v=2cbd1e2';
-import { CFG, STAGE_MULTS, DIFFICULTIES } from './config.js?v=2cbd1e2';
-import { Profile, ARENAS, CHALLENGES } from './profile.js?v=2cbd1e2';
-import { groundHeight, resolveSolids, setTerrainArena } from './terrain.js?v=2cbd1e2';
-import { setWorldArena } from './world.js?v=2cbd1e2';
-import { killMesh, clamp, rand, tmp, tmp2, flatPhong } from './utils.js?v=2cbd1e2';
-import { Audio } from './audio.js?v=2cbd1e2';
+} from './state.js?v=1506af5';
+import { CFG, STAGE_MULTS, DIFFICULTIES } from './config.js?v=1506af5';
+import { Profile, ARENAS, CHALLENGES } from './profile.js?v=1506af5';
+import { groundHeight, resolveSolids, setTerrainArena } from './terrain.js?v=1506af5';
+import { setWorldArena } from './world.js?v=1506af5';
+import { killMesh, clamp, rand, tmp, tmp2, flatPhong } from './utils.js?v=1506af5';
+import { Audio } from './audio.js?v=1506af5';
 import {
   showDamage, showAlert, updateBossArrow, updateLoadoutDisplay,
   syncSliceDisplays, triggerGameOver,
@@ -45,7 +45,7 @@ import {
   showTutorialStep, hideTutorial, setTutorialSkipCb,
   initUI,
   addCameraShake,
-} from './ui.js?v=2cbd1e2';
+} from './ui.js?v=1506af5';
 
 // Player animation state (module-level so it persists across frames)
 let _animState = 'idle';
@@ -1936,6 +1936,11 @@ export function applyArenaVisuals(slug) {
 }
 
 let _titleT = 0;
+// Horizontal lookAt target for the title camera, lerped each frame so the hero
+// slides smoothly between menu-centered and run-config-right. null = snap on
+// the first frame (no slide on initial show).
+let _titleLookX = null;
+let _runConfigEl = null;
 export function updateTitleScene(dt) {
   _titleT += dt;
   // Keep the live backdrop matched to the currently-selected arena (deduped).
@@ -1952,10 +1957,17 @@ export function updateTitleScene(dt) {
   const angle = 0.62 + Math.sin(_titleT * 0.18) * 0.04;
   const radius = 5.0, height = 1.95;
   camera.position.set(Math.sin(angle) * radius, height, Math.cos(angle) * radius);
-  // lookAt offset parks the hero in the open right-side field (~72% across,
-  // body fills ~66-82%), clear of the left button column. Tuned in-preview
-  // across 640/844/926 landscape widths.
-  camera.lookAt(-8.5, 1.6, 0);
+  // Hero placement slides between two poses:
+  //  - main menu (desktop): centered as the showcase (nav column sits to its left)
+  //  - run-config screen: shifted RIGHT, clear of the "configure your run" panel
+  //    (also the pose the intro sweep pans FROM, so the handoff is seamless)
+  //  - mobile: always right, clear of its button column
+  _runConfigEl = _runConfigEl || document.getElementById('run-config-screen');
+  const configuring = _runConfigEl && !_runConfigEl.classList.contains('hidden');
+  const targetLookX = (isMobile() || configuring) ? -8.5 : 0;
+  if (_titleLookX === null) _titleLookX = targetLookX;        // snap on first show
+  else _titleLookX += (targetLookX - _titleLookX) * Math.min(1, dt * 4); // ~0.25s slide
+  camera.lookAt(_titleLookX, 1.6, 0);
 
   if (player.group) {
     player.group.position.set(0, groundHeight(0, 0), 0);
