@@ -3139,6 +3139,16 @@ window.addEventListener('load', () => {
       <div class="about-heading">PATCH LOG</div>
 
       <details class="patch-entry" open>
+        <summary class="patch-ver">v0.9.2 — Settings + Data Controls</summary>
+        <ul class="patch-list">
+          <li><strong>Settings menu:</strong> a proper Settings screen from the title and pause menus — volume, accessibility toggles (screen shake, reduce flashes, damage numbers), and more.</li>
+          <li><strong>Erase save data:</strong> Settings → Data lets you permanently wipe your slices, unlocks, and settings on this device.</li>
+          <li><strong>Runs offline:</strong> the game no longer needs a connection to load (assets bundled locally).</li>
+          <li><strong>PC build groundwork:</strong> fullscreen/windowed modes, controller support, and rebindable keys for the desktop version.</li>
+        </ul>
+      </details>
+
+      <details class="patch-entry">
         <summary class="patch-ver">v0.9.1 — Polish Pass</summary>
         <ul class="patch-list">
           <li><strong>New title screen:</strong> A cleaner, more professional main menu — a big WALLOP logo up top, a focused PLAY-first menu column, and your selected hero shown center-stage over the live arena. The camera now slides the hero aside when you open "Configure Your Run."</li>
@@ -3427,7 +3437,7 @@ window.addEventListener('load', () => {
         <span id="set-audio-readout" class="set-readout">40%</span></div>
     </div>
 
-    <div class="settings-section">
+    <div class="settings-section" id="settings-controls">
       <div class="settings-h">CONTROLS</div>
       <div class="set-row"><label>Mouse sensitivity</label>
         <input type="range" id="set-mouse-sens" min="20" max="300" step="5">
@@ -3443,7 +3453,7 @@ window.addEventListener('load', () => {
         <input type="checkbox" id="set-vibration"></div>
     </div>
 
-    <div class="settings-section">
+    <div class="settings-section" id="settings-keybinds-section">
       <div class="settings-h">KEY BINDINGS</div>
       <div id="set-keybinds"></div>
       <div style="font-family:'VT323',monospace;font-size:15px;color:var(--ink-dim);margin-top:4px;">Arrow keys always work as movement. Click a key to rebind.</div>

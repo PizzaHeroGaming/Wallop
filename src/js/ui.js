@@ -15,7 +15,7 @@
 //   keyboard/mobile → tryJump, tryDash (game.js): use _jumpFn/_dashFn, set via setJumpDashCbs()
 //   openChest → presentChoiceScreen (this file): setOpenChestDeps is called in initUI()
 
-import { camera, renderer, isMobile, tryEnterFullscreen } from './renderer.js?v=3ec3f3a';
+import { camera, renderer, isMobile, tryEnterFullscreen } from './renderer.js?v=38a76d5';
 import {
   player, enemies,
   tryInteract, setOpenChestDeps,
@@ -23,20 +23,20 @@ import {
   spawnParticle,
   CHARACTER_MODELS, _animClips, loadCharAsset,
   _applyCharacterModel,
-} from './entities.js?v=3ec3f3a';
-import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=3ec3f3a';
-import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=3ec3f3a';
-import { gameState, cam } from './state.js?v=3ec3f3a';
-import { Audio } from './audio.js?v=3ec3f3a';
-import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=3ec3f3a';
+} from './entities.js?v=38a76d5';
+import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=38a76d5';
+import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=38a76d5';
+import { gameState, cam } from './state.js?v=38a76d5';
+import { Audio } from './audio.js?v=38a76d5';
+import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=38a76d5';
 // VERSION lives on CFG.VERSION too — reading via property access doesn't
 // blow up if a cached older config.js is loaded without the named export
 const VERSION = CFG.VERSION || '0.0.0';
 // Slices granted per on-demand "watch ad for slices" view (daily-capped in Profile).
 const AD_SLICE_REWARD = 3;
-import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=3ec3f3a';
-import { tmp, tmp2 } from './utils.js?v=3ec3f3a';
-import { Settings } from './settings.js?v=3ec3f3a';
+import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=38a76d5';
+import { tmp, tmp2 } from './utils.js?v=38a76d5';
+import { Settings } from './settings.js?v=38a76d5';
 
 // ============================================================
 // INJECTION CALLBACKS (break circular deps)
@@ -2211,6 +2211,12 @@ function _syncSettingsUI() {
   const desktop = !!window.WallopDesktop;
   const dispSec = document.getElementById('settings-display');
   if (dispSec) dispSec.style.display = desktop ? '' : 'none';
+  // Controls (mouse/controller) + key bindings are irrelevant on touch — hide on mobile.
+  const kbInput = !isMobile();
+  const ctrlSec = document.getElementById('settings-controls');
+  if (ctrlSec) ctrlSec.style.display = kbInput ? '' : 'none';
+  const kbSec = document.getElementById('settings-keybinds-section');
+  if (kbSec) kbSec.style.display = kbInput ? '' : 'none';
 
   const modeSel = document.getElementById('set-display-mode');
   if (modeSel) modeSel.value = Settings.get('displayMode');
