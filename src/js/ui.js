@@ -15,7 +15,7 @@
 //   keyboard/mobile → tryJump, tryDash (game.js): use _jumpFn/_dashFn, set via setJumpDashCbs()
 //   openChest → presentChoiceScreen (this file): setOpenChestDeps is called in initUI()
 
-import { camera, renderer, isMobile, tryEnterFullscreen } from './renderer.js?v=6a59398';
+import { camera, renderer, isMobile, tryEnterFullscreen } from './renderer.js?v=5f4711d';
 import {
   player, enemies,
   tryInteract, setOpenChestDeps,
@@ -23,20 +23,20 @@ import {
   spawnParticle,
   CHARACTER_MODELS, _animClips, loadCharAsset,
   _applyCharacterModel,
-} from './entities.js?v=6a59398';
-import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=6a59398';
-import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=6a59398';
-import { gameState, cam } from './state.js?v=6a59398';
-import { Audio } from './audio.js?v=6a59398';
-import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=6a59398';
+} from './entities.js?v=5f4711d';
+import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=5f4711d';
+import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=5f4711d';
+import { gameState, cam } from './state.js?v=5f4711d';
+import { Audio } from './audio.js?v=5f4711d';
+import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=5f4711d';
 // VERSION lives on CFG.VERSION too — reading via property access doesn't
 // blow up if a cached older config.js is loaded without the named export
 const VERSION = CFG.VERSION || '0.0.0';
 // Slices granted per on-demand "watch ad for slices" view (daily-capped in Profile).
 const AD_SLICE_REWARD = 3;
-import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=6a59398';
-import { tmp, tmp2 } from './utils.js?v=6a59398';
-import { Settings } from './settings.js?v=6a59398';
+import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=5f4711d';
+import { tmp, tmp2 } from './utils.js?v=5f4711d';
+import { Settings } from './settings.js?v=5f4711d';
 
 // ============================================================
 // INJECTION CALLBACKS (break circular deps)
@@ -2340,6 +2340,25 @@ function initSettings() {
   document.getElementById('set-screenshake')?.addEventListener('change', e => Settings.set('screenShake', e.target.checked));
   document.getElementById('set-reduceflashes')?.addEventListener('change', e => Settings.set('reduceFlashes', e.target.checked));
   document.getElementById('set-damagenums')?.addEventListener('change', e => Settings.set('damageNumbers', e.target.checked));
+
+  // Erase all local data (slices, unlocks, settings). Satisfies the Play Data
+  // Safety "users can delete their data" path — everything is local, no server.
+  document.getElementById('set-erase-data')?.addEventListener('click', () => {
+    showConfirm({
+      title: 'ERASE ALL DATA?',
+      message: 'This permanently deletes your slices, unlocks, characters, and settings on this device. This cannot be undone.',
+      confirmLabel: 'ERASE',
+      cancelLabel: 'CANCEL',
+      onConfirm: () => {
+        try {
+          localStorage.removeItem('wallop_profile_v1');
+          localStorage.removeItem('wallop_settings_v1');
+          localStorage.removeItem('wallop_dev_snapshot_v1');
+        } catch (e) {}
+        location.reload();
+      },
+    });
+  });
 
   _applyDisplaySettings(); // apply the saved display mode on boot (Electron)
 }
