@@ -1,10 +1,10 @@
-import { CFG, IS_MOBILE_EARLY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=d9ac5d3';
-import { scene, camera, isMobile, tryEnterFullscreen, renderer, acquirePtLight, releasePtLight } from './renderer.js?v=d9ac5d3';
-import { groundHeight, addSolid, resolveSolids, solidProps } from './terrain.js?v=d9ac5d3';
-import { killMesh, clamp, rand, tmp, tmp2, flatPhong, smoothPhong } from './utils.js?v=d9ac5d3';
-import { gameState } from './state.js?v=d9ac5d3';
-import { Profile } from './profile.js?v=d9ac5d3';
-import { Audio } from './audio.js?v=d9ac5d3';
+import { CFG, IS_MOBILE_EARLY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=5b24f03';
+import { scene, camera, isMobile, tryEnterFullscreen, renderer, acquirePtLight, releasePtLight } from './renderer.js?v=5b24f03';
+import { groundHeight, addSolid, resolveSolids, solidProps } from './terrain.js?v=5b24f03';
+import { killMesh, clamp, rand, tmp, tmp2, flatPhong, smoothPhong } from './utils.js?v=5b24f03';
+import { gameState } from './state.js?v=5b24f03';
+import { Profile } from './profile.js?v=5b24f03';
+import { Audio } from './audio.js?v=5b24f03';
 
 // ============================================================
 // PLAYER
@@ -304,8 +304,10 @@ function _bindAnimActions(mixer) {
   if (playerIdleAction) playerIdleAction.play();
 }
 
-export function _applyCharacterModel() {
-  const slug = Profile.get().equippedCharacter || 'pizza_hero';
+export function _applyCharacterModel(slugOverride) {
+  // slugOverride lets the start-screen selector live-preview a not-yet-equipped
+  // character on the big title hero; with no arg it loads the equipped one.
+  const slug = slugOverride || Profile.get().equippedCharacter || 'pizza_hero';
   // Skip-load fast path: already loaded AND the player.group actually has that model
   // attached.  We tag the root we added with userData._wallop_charSlug so we can
   // verify the current visible model matches the equipped slug — without this,

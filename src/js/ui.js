@@ -15,7 +15,7 @@
 //   keyboard/mobile → tryJump, tryDash (game.js): use _jumpFn/_dashFn, set via setJumpDashCbs()
 //   openChest → presentChoiceScreen (this file): setOpenChestDeps is called in initUI()
 
-import { camera, renderer, isMobile, tryEnterFullscreen } from './renderer.js?v=d9ac5d3';
+import { camera, renderer, isMobile, tryEnterFullscreen } from './renderer.js?v=5b24f03';
 import {
   player, enemies,
   tryInteract, setOpenChestDeps,
@@ -23,19 +23,19 @@ import {
   spawnParticle,
   CHARACTER_MODELS, _animClips, loadCharAsset,
   _applyCharacterModel,
-} from './entities.js?v=d9ac5d3';
-import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=d9ac5d3';
-import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=d9ac5d3';
-import { gameState, cam } from './state.js?v=d9ac5d3';
-import { Audio } from './audio.js?v=d9ac5d3';
-import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=d9ac5d3';
+} from './entities.js?v=5b24f03';
+import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=5b24f03';
+import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=5b24f03';
+import { gameState, cam } from './state.js?v=5b24f03';
+import { Audio } from './audio.js?v=5b24f03';
+import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=5b24f03';
 // VERSION lives on CFG.VERSION too — reading via property access doesn't
 // blow up if a cached older config.js is loaded without the named export
 const VERSION = CFG.VERSION || '0.0.0';
 // Slices granted per on-demand "watch ad for slices" view (daily-capped in Profile).
 const AD_SLICE_REWARD = 3;
-import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=d9ac5d3';
-import { tmp, tmp2 } from './utils.js?v=d9ac5d3';
+import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=5b24f03';
+import { tmp, tmp2 } from './utils.js?v=5b24f03';
 
 // ============================================================
 // INJECTION CALLBACKS (break circular deps)
@@ -1883,10 +1883,10 @@ export function initButtons() {
     document.getElementById('armory-screen').classList.add('hidden');
     document.getElementById('start-screen').classList.remove('hidden');
     document.getElementById('armory-detail').classList.add('hidden');
-    // Sync char select panel to any character change made in the Armory
+    // Sync char selector + the big title hero to any change made in the Armory
     const equipped = Profile.get().equippedCharacter || 'pizza_hero';
     const idx = _charOrder.indexOf(equipped);
-    if (idx >= 0) { _charSelIdx = idx; _loadPreviewChar(equipped); }
+    if (idx >= 0) { _charSelIdx = idx; _applyCharacterModel(equipped).catch(() => {}); }
     _refreshCharSelectUI();
   });
 
@@ -2160,155 +2160,48 @@ function _syncAllAudioControlUIs() {
 }
 
 // ============================================================
-// START-SCREEN CHARACTER SELECTOR + ROTATING 3D PREVIEW
+// START-SCREEN CHARACTER SELECTOR
 // ============================================================
-let _previewRenderer = null;
-let _previewScene    = null;
-let _previewCamera   = null;
-let _previewMixer    = null;
-let _previewGroup    = null;
-let _previewRafId    = null;
-let _previewLastT    = 0;
-
+// The chosen character previews live on the big title hero (player.group) —
+// no separate 3D panel renderer (removed; it was a second WebGL context).
 const _charOrder = ['pizza_hero', 'frost_baker', 'oven_knight', 'crust_runner', 'anchovy_archer', 'stealth_slice'];
 let _charSelIdx = 0;
 
 function initCharSelect() {
-  const canvas = document.getElementById('char-preview-canvas');
-  if (!canvas) return;
-
-  // Build a lightweight Three.js renderer just for the character preview.
-  // Pass false to setSize so Three.js does NOT inject inline width/height styles —
-  // inline styles would override media-query CSS rules and break mobile layout.
-  _previewRenderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
-  _previewRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-  _previewRenderer.outputEncoding = THREE.sRGBEncoding;
-  _previewRenderer.toneMapping    = THREE.ACESFilmicToneMapping;
-
-  _previewScene = new THREE.Scene();
-  const ambient = new THREE.AmbientLight(0xffffff, 0.7);
-  _previewScene.add(ambient);
-  const key = new THREE.DirectionalLight(0xfff8e0, 1.4);
-  key.position.set(2, 5, 4);
-  _previewScene.add(key);
-  const rim = new THREE.DirectionalLight(0x4488ff, 0.6);
-  rim.position.set(-3, 2, -3);
-  _previewScene.add(rim);
-
-  // Camera pulled back far enough that the full model fits on any canvas size.
-  // lookAt at model mid-body (y≈1.0) for vertical centering.
-  _previewCamera = new THREE.PerspectiveCamera(34, 1, 0.1, 50);
-  _previewCamera.position.set(0, 1.2, 6.5);
-  _previewCamera.lookAt(0, 1.0, 0);
-
-  // ResizeObserver keeps the renderer resolution and camera aspect ratio in sync
-  // with whatever CSS size the canvas is currently displayed at.  Without this,
-  // changing breakpoints (orientation change, responsive CSS) leaves the backing
-  // store at the old size, causing the model to appear cropped or distorted.
-  const _syncPreviewSize = () => {
-    const w = canvas.clientWidth;
-    const h = canvas.clientHeight;
-    if (!w || !h) return;
-    const dpr = Math.min(window.devicePixelRatio, 2);
-    _previewRenderer.setSize(w * dpr, h * dpr, false);
-    _previewCamera.aspect = w / h;
-    _previewCamera.updateProjectionMatrix();
-  };
-  _syncPreviewSize();
-  if (typeof ResizeObserver !== 'undefined') {
-    new ResizeObserver(_syncPreviewSize).observe(canvas);
-  }
-
-  _previewGroup = new THREE.Group();
-  _previewScene.add(_previewGroup);
-
-  // Seed index to currently equipped character
+  // Seed index to the currently equipped character and show it on the big hero.
   const equipped = Profile.get().equippedCharacter || 'pizza_hero';
   _charSelIdx = Math.max(0, _charOrder.indexOf(equipped));
-
   _refreshCharSelectUI();
-  _loadPreviewChar(_charOrder[_charSelIdx]);
+  _applyCharacterModel(equipped).catch(() => {});
 
-  // Navigation arrows — desktop panel
-  document.getElementById('char-prev-btn').addEventListener('click', () => {
-    _charSelIdx = (_charSelIdx - 1 + _charOrder.length) % _charOrder.length;
-    _loadPreviewChar(_charOrder[_charSelIdx]);
+  // Cycle: preview the new character live on the big title hero (player.group).
+  // Not equipped until the player taps SELECT.
+  const _cycle = (delta) => {
+    _charSelIdx = (_charSelIdx + delta + _charOrder.length) % _charOrder.length;
+    _applyCharacterModel(_charOrder[_charSelIdx]).catch(() => {});
     _refreshCharSelectUI();
-  });
-  document.getElementById('char-next-btn').addEventListener('click', () => {
-    _charSelIdx = (_charSelIdx + 1) % _charOrder.length;
-    _loadPreviewChar(_charOrder[_charSelIdx]);
-    _refreshCharSelectUI();
-  });
+  };
+  const _wireArrow = (id, delta) => {
+    const el = document.getElementById(id);
+    if (el) el.addEventListener('click', () => _cycle(delta));
+  };
+  _wireArrow('char-prev-btn', -1);   // desktop panel
+  _wireArrow('char-next-btn', +1);
+  _wireArrow('mob-char-prev', -1);   // mobile compact selector
+  _wireArrow('mob-char-next', +1);
 
-  // Navigation arrows — mobile compact selector
-  const _mobPrev = document.getElementById('mob-char-prev');
-  const _mobNext = document.getElementById('mob-char-next');
-  if (_mobPrev) _mobPrev.addEventListener('click', () => {
-    _charSelIdx = (_charSelIdx - 1 + _charOrder.length) % _charOrder.length;
-    _loadPreviewChar(_charOrder[_charSelIdx]);
-    _refreshCharSelectUI();
-  });
-  if (_mobNext) _mobNext.addEventListener('click', () => {
-    _charSelIdx = (_charSelIdx + 1) % _charOrder.length;
-    _loadPreviewChar(_charOrder[_charSelIdx]);
-    _refreshCharSelectUI();
-  });
-
-  // Pick a character: update Profile + preload its in-game model so the
-  // visual swap is ready before the next run starts (avoids a race where
-  // resetGame's _applyCharacterModel sees a stale cache and skips).
+  // SELECT: equip the cycled character (persists) and lock it onto the hero.
   function _pickCharacter() {
     const slug = _charOrder[_charSelIdx];
     if (!Profile.isUnlocked(slug)) return;
     Profile.setEquippedCharacter(slug);
     _refreshCharSelectUI();
-    _applyCharacterModel().catch(() => {}); // fire-and-forget; resetGame will re-call if needed
+    _applyCharacterModel(slug).catch(() => {});
   }
-  document.getElementById('char-select-btn').addEventListener('click', _pickCharacter);
+  const _selBtn = document.getElementById('char-select-btn');
+  if (_selBtn) _selBtn.addEventListener('click', _pickCharacter);
   const _mobSelectBtn = document.getElementById('mob-char-btn');
   if (_mobSelectBtn) _mobSelectBtn.addEventListener('click', _pickCharacter);
-
-  // Render loop
-  function _previewLoop(t) {
-    _previewRafId = requestAnimationFrame(_previewLoop);
-    const dt = Math.min(0.05, (t - _previewLastT) / 1000);
-    _previewLastT = t;
-    if (_previewGroup) _previewGroup.rotation.y += dt * 0.75;
-    if (_previewMixer) _previewMixer.update(dt);
-    _previewRenderer.render(_previewScene, _previewCamera);
-  }
-  requestAnimationFrame(_previewLoop);
-}
-
-function _loadPreviewChar(slug) {
-  loadCharAsset(slug).then(gltf => {
-    if (!_previewGroup) return;
-    // Clear old model
-    while (_previewGroup.children.length) {
-      const child = _previewGroup.children[0];
-      _previewGroup.remove(child);
-      child.traverse(c => {
-        if (c.geometry) c.geometry.dispose();
-        if (c.material) {
-          if (Array.isArray(c.material)) c.material.forEach(m => m.dispose());
-          else c.material.dispose();
-        }
-      });
-    }
-    const model = THREE.SkeletonUtils.clone(gltf.scene);
-    model.scale.setScalar(1.0);
-    _previewGroup.rotation.y = 0;
-    _previewGroup.add(model);
-
-    if (_previewMixer) { _previewMixer.stopAllAction(); _previewMixer = null; }
-    _previewMixer = new THREE.AnimationMixer(model);
-    // Use the shared animation clips loaded by entities.js (may be null briefly on cold start)
-    if (_animClips) {
-      const idle = _animClips.find(c => c.name === 'Idle_A');
-      if (idle) _previewMixer.clipAction(idle).play();
-    }
-  }).catch(() => {});
 }
 
 function _refreshCharSelectUI() {
