@@ -9,11 +9,12 @@
 //   game.js        → damageEnemy, update, initGame
 //   main.js        → animate, splash, resize
 
-import { scene, camera, renderer, clock, composer, isMobile, tryEnterFullscreen, rearmFullscreenOnNextTap } from './renderer.js?v=7f82992';
-import { gameState } from './state.js?v=7f82992';
-import { initGame, update, updateTitleScene, updateIntroSweep } from './game.js?v=7f82992';
-import './world.js?v=7f82992'; // side-effect only: builds terrain scenery at load time
-import { Settings } from './settings.js?v=7f82992';
+import { scene, camera, renderer, clock, composer, isMobile, tryEnterFullscreen, rearmFullscreenOnNextTap } from './renderer.js?v=d183fdc';
+import { gameState } from './state.js?v=d183fdc';
+import { initGame, update, updateTitleScene, updateIntroSweep } from './game.js?v=d183fdc';
+import './world.js?v=d183fdc'; // side-effect only: builds terrain scenery at load time
+import { Settings } from './settings.js?v=d183fdc';
+import { pollGamepad } from './ui.js?v=d183fdc';
 
 // ============================================================
 // WEBGL CONTEXT LOSS HANDLING
@@ -127,6 +128,7 @@ function animate(now) {
   _lastFrameT = now;
   if (renderer.getContext().isContextLost && renderer.getContext().isContextLost()) return;
   const dt = Math.min(0.05, clock.getDelta());
+  pollGamepad(dt); // controller input → same vectors the mobile sticks feed
   update(dt);
   // Live title-screen backdrop: orbit the hero while sitting on the start menu
   // (and the run-config screen, which keeps state === 'start').

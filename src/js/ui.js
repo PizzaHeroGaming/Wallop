@@ -15,7 +15,7 @@
 //   keyboard/mobile → tryJump, tryDash (game.js): use _jumpFn/_dashFn, set via setJumpDashCbs()
 //   openChest → presentChoiceScreen (this file): setOpenChestDeps is called in initUI()
 
-import { camera, renderer, isMobile, tryEnterFullscreen } from './renderer.js?v=7f82992';
+import { camera, renderer, isMobile, tryEnterFullscreen } from './renderer.js?v=d183fdc';
 import {
   player, enemies,
   tryInteract, setOpenChestDeps,
@@ -23,20 +23,20 @@ import {
   spawnParticle,
   CHARACTER_MODELS, _animClips, loadCharAsset,
   _applyCharacterModel,
-} from './entities.js?v=7f82992';
-import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=7f82992';
-import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=7f82992';
-import { gameState, cam } from './state.js?v=7f82992';
-import { Audio } from './audio.js?v=7f82992';
-import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=7f82992';
+} from './entities.js?v=d183fdc';
+import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=d183fdc';
+import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=d183fdc';
+import { gameState, cam } from './state.js?v=d183fdc';
+import { Audio } from './audio.js?v=d183fdc';
+import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=d183fdc';
 // VERSION lives on CFG.VERSION too — reading via property access doesn't
 // blow up if a cached older config.js is loaded without the named export
 const VERSION = CFG.VERSION || '0.0.0';
 // Slices granted per on-demand "watch ad for slices" view (daily-capped in Profile).
 const AD_SLICE_REWARD = 3;
-import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=7f82992';
-import { tmp, tmp2 } from './utils.js?v=7f82992';
-import { Settings } from './settings.js?v=7f82992';
+import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=d183fdc';
+import { tmp, tmp2 } from './utils.js?v=d183fdc';
+import { Settings } from './settings.js?v=d183fdc';
 
 // ============================================================
 // INJECTION CALLBACKS (break circular deps)
@@ -260,6 +260,7 @@ export function damagePlayer(dmg, attacker) {
   player.hurtFlash = 0.3;
   player.invuln = 0.5;
   addCameraShake(Math.min(2.5, final * 0.04 + 0.4));
+  vibrateController(140, 0.5, 0.3); // controller rumble on taking a hit
   if (!Settings.get('reduceFlashes')) {
     document.getElementById('flash').classList.add('hit');
     setTimeout(() => document.getElementById('flash').classList.remove('hit'), 120);
@@ -1500,6 +1501,58 @@ export function applyCameraJoystick(dt) {
   if (!camJoystickInput.x && !camJoystickInput.y) return;
   cam.yaw   -= camJoystickInput.x * 1.6 * dt;
   cam.pitch  = Math.max(0.2, Math.min(1.1, cam.pitch + camJoystickInput.y * 1.2 * dt));
+}
+
+// ============================================================
+// CONTROLLER (Gamepad API)
+// ============================================================
+// Feeds the SAME joystickInput / camJoystickInput vectors the mobile thumbsticks
+// use, so movement + camera "just work" via the existing pipeline. Buttons are
+// edge-triggered into the existing jump/dash/interact/pause hooks. Polled once
+// per frame from the animate loop (main.js).
+const _padPrev = [];
+function _dz(v, d = 0.18) { return Math.abs(v) < d ? 0 : v; }
+
+export function vibrateController(ms = 120, strong = 0.4, weak = 0.2) {
+  if (!Settings.get('vibration') || !Settings.get('controllerEnabled')) return;
+  const pads = navigator.getGamepads ? navigator.getGamepads() : [];
+  for (const p of pads) {
+    if (p && p.vibrationActuator) {
+      try { p.vibrationActuator.playEffect('dual-rumble', { duration: ms, strongMagnitude: strong, weakMagnitude: weak }); } catch (e) {}
+      break;
+    }
+  }
+}
+
+export function pollGamepad(dt) {
+  if (!Settings.get('controllerEnabled')) return;
+  const pads = navigator.getGamepads ? navigator.getGamepads() : [];
+  let gp = null;
+  for (const p of pads) { if (p && p.connected) { gp = p; break; } }
+  if (!gp) return;
+  const playing = gameState.state === 'playing';
+  if (playing) {
+    joystickInput.x = _dz(gp.axes[0] || 0);  // left stick → movement (signs match WASD)
+    joystickInput.y = _dz(gp.axes[1] || 0);
+    const sens = Settings.get('stickSensitivity') || 1;
+    const invY = Settings.get('invertY') ? -1 : 1;
+    camJoystickInput.x = _dz(gp.axes[2] || 0) * sens;        // right stick → camera
+    camJoystickInput.y = _dz(gp.axes[3] || 0) * sens * invY;
+  } else {
+    joystickInput.x = 0; joystickInput.y = 0;
+    camJoystickInput.x = 0; camJoystickInput.y = 0;
+  }
+  const btn  = (i) => !!(gp.buttons[i] && gp.buttons[i].pressed);
+  const edge = (i) => { const p = btn(i); const was = _padPrev[i]; _padPrev[i] = p; return p && !was; };
+  if (playing) {
+    if (edge(0) && _jumpFn) _jumpFn();                 // A → jump
+    if ((edge(1) || edge(5)) && _dashFn) _dashFn();    // B / RB → dash
+    if (edge(2)) tryInteract();                         // X → interact / use
+  } else { edge(0); edge(1); edge(5); edge(2); }        // keep edge cache fresh across states
+  if (edge(9)) {                                         // Start → pause toggle
+    if (gameState.state === 'playing') openPauseMenu();
+    else if (gameState.state === 'paused') closePauseMenu();
+  }
 }
 
 // ============================================================
