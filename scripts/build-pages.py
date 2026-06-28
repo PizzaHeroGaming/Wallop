@@ -81,6 +81,9 @@ def main():
         html = fp.read()
     # Point the entry script at the new path with cache-buster
     html = html.replace('src="js/main.js"', f'src="src/js/main.js?v={sha}"')
+    # Vendored Three.js lives under src/vendor/three/; rewrite the src-relative
+    # paths in wallop.html to root-relative for the generated index.html.
+    html = html.replace('src="vendor/three/', 'src="src/vendor/three/')
     # Inject no-cache meta tags if missing
     if 'http-equiv="Cache-Control"' not in html:
         nocache = ('\n  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />'

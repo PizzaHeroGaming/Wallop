@@ -9,10 +9,10 @@
 //   game.js        → damageEnemy, update, initGame
 //   main.js        → animate, splash, resize
 
-import { scene, camera, renderer, clock, composer, isMobile, tryEnterFullscreen, rearmFullscreenOnNextTap } from './renderer.js?v=2253bbd';
-import { gameState } from './state.js?v=2253bbd';
-import { initGame, update, updateTitleScene, updateIntroSweep } from './game.js?v=2253bbd';
-import './world.js?v=2253bbd'; // side-effect only: builds terrain scenery at load time
+import { scene, camera, renderer, clock, composer, isMobile, tryEnterFullscreen, rearmFullscreenOnNextTap } from './renderer.js?v=b88ca1b';
+import { gameState } from './state.js?v=b88ca1b';
+import { initGame, update, updateTitleScene, updateIntroSweep } from './game.js?v=b88ca1b';
+import './world.js?v=b88ca1b'; // side-effect only: builds terrain scenery at load time
 
 // ============================================================
 // WEBGL CONTEXT LOSS HANDLING
@@ -53,6 +53,18 @@ window.addEventListener('resize', () => {
   renderer.setSize(window.innerWidth, window.innerHeight);
   if (composer) composer.setSize(window.innerWidth, window.innerHeight);
 });
+
+// ============================================================
+// CLEAN-CAPTURE MODE — hide HUD / controls / menu for marketing shots.
+// Toggle with F9, or load with ?nohud=1. CSS lives in wallop.html (.hud-hidden).
+// ============================================================
+(function setupHudToggle() {
+  const p = new URLSearchParams(location.search);
+  if (p.has('nohud') && p.get('nohud') !== '0') document.body.classList.add('hud-hidden');
+  window.addEventListener('keydown', (e) => {
+    if (e.code === 'F9') { e.preventDefault(); document.body.classList.toggle('hud-hidden'); }
+  });
+})();
 
 // ============================================================
 // FULLSCREEN / MOBILE SETUP
