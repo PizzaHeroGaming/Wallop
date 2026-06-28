@@ -2670,7 +2670,7 @@
      scrim; the live arena + hero showcase on the right.
      ============================================================ */
   @keyframes menuRise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
-  @keyframes titleRise { from { opacity: 0; transform: translateX(-50%) translateY(-18px); } to { opacity: 1; transform: translateX(-50%) translateY(0); } }
+  @keyframes titleRise { from { opacity: 0; transform: translateY(-18px); } to { opacity: 1; transform: translateY(0); } }
   @media (min-width: 760px) and (min-height: 600px) {
     #start-screen {
       align-items: flex-start;
@@ -2682,8 +2682,10 @@
        reads as THE title, not a label floating over the hero's head. */
     #title-block {
       position: absolute; top: clamp(18px, 4.5vh, 54px);
-      left: 50%; transform: translateX(-50%);
-      width: auto; align-items: center; gap: 6px; margin-left: 0;
+      /* Center transform-independently (left:0/right:0 + margin auto) so the
+         entrance animation's translateY can't knock it off-center. */
+      left: 0; right: 0; margin-left: auto; margin-right: auto; width: fit-content;
+      align-items: center; gap: 6px;
       animation-name: titleRise;
     }
     #title {
@@ -3390,6 +3392,6 @@ window.addEventListener('load', () => {
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/postprocessing/UnrealBloomPass.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/loaders/GLTFLoader.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/utils/SkeletonUtils.js"></script>
-<script type="module" src="src/js/main.js?v=e3d3331"></script>
+<script type="module" src="src/js/main.js?v=20c26b8"></script>
 </body>
 </html>
