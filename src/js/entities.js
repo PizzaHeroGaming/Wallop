@@ -1,10 +1,10 @@
-import { CFG, IS_MOBILE_EARLY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=49ba77a';
-import { scene, camera, isMobile, tryEnterFullscreen, renderer, acquirePtLight, releasePtLight } from './renderer.js?v=49ba77a';
-import { groundHeight, addSolid, resolveSolids, solidProps } from './terrain.js?v=49ba77a';
-import { killMesh, clamp, rand, tmp, tmp2, flatPhong, smoothPhong } from './utils.js?v=49ba77a';
-import { gameState } from './state.js?v=49ba77a';
-import { Profile } from './profile.js?v=49ba77a';
-import { Audio } from './audio.js?v=49ba77a';
+import { CFG, IS_MOBILE_EARLY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=1ee1c3f';
+import { scene, camera, isMobile, tryEnterFullscreen, renderer, acquirePtLight, releasePtLight } from './renderer.js?v=1ee1c3f';
+import { groundHeight, addSolid, resolveSolids, solidProps } from './terrain.js?v=1ee1c3f';
+import { killMesh, clamp, rand, tmp, tmp2, flatPhong, smoothPhong } from './utils.js?v=1ee1c3f';
+import { gameState } from './state.js?v=1ee1c3f';
+import { Profile } from './profile.js?v=1ee1c3f';
+import { Audio } from './audio.js?v=1ee1c3f';
 
 // ============================================================
 // PLAYER
@@ -364,6 +364,11 @@ Promise.all([
   _loadGLB('assets/characters/general.glb'),
 ]).then(([moveGltf, genGltf]) => {
   _animClips = [...moveGltf.animations, ...genGltf.animations];
+  // If a player model already loaded before the clips arrived (a load-order race
+  // the model can win on the local-file desktop build, where it loads instantly),
+  // re-bind so the idle actually plays instead of leaving the hero in T-pose —
+  // _applyCharacterModel()'s "already loaded" fast-path would otherwise skip it.
+  if (playerMixer) _bindAnimActions(playerMixer);
   return _applyCharacterModel();
 }).catch(err => console.error('[WALLOP] Animation load failed:', err));
 
