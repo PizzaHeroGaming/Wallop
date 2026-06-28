@@ -1,5 +1,5 @@
-import { CFG, IS_MOBILE_EARLY } from './config.js?v=5ec5aef';
-import { ARENAS } from './profile.js?v=5ec5aef';
+import { CFG, IS_MOBILE_EARLY } from './config.js?v=26072dc';
+import { ARENAS } from './profile.js?v=26072dc';
 
 // ============================================================
 // THREE.JS SETUP
@@ -204,6 +204,16 @@ export const clock = new THREE.Clock();
 // Mobile detection helper (runtime)
 export function isMobile() {
   return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) || ('ontouchstart' in window && window.innerWidth < 900);
+}
+
+// Steam / premium desktop build detection. The Electron wrapper sets
+// window.__WALLOP_STEAM = true (via preload); we also sniff the Electron UA as a
+// fallback. The free web build and mobile build both return false, so this is
+// the single switch for premium behaviour (no ads — already gated by isMobile —
+// plus the 2x slice economy that replaces mobile's ad-bonuses).
+export function isSteamBuild() {
+  if (typeof window === 'undefined') return false;
+  return !!window.__WALLOP_STEAM || /electron/i.test(navigator.userAgent || '');
 }
 
 // =====================================================================

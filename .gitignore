@@ -41,3 +41,7 @@ Thumbs.db
 
 # Generated icon sources (rasterized from assets/icons/icon.svg by scripts/gen-icon-sources.js)
 cap-resources/
+
+# Brand font binaries used only by scripts/gen-steam-art.mjs — re-downloadable
+# (see the curl commands / comments). Keeps font binaries out of the repo.
+store/.fonts/

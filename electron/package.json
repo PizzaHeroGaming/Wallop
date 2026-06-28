@@ -1,0 +1,28 @@
+{
+  "name": "wallop-desktop",
+  "version": "0.9.1",
+  "description": "WALLOP — desktop (Steam) build wrapper",
+  "main": "main.js",
+  "author": "Pizza Hero Gaming",
+  "license": "UNLICENSED",
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder"
+  },
+  "devDependencies": {
+    "electron": "^31.7.6",
+    "electron-builder": "^24.13.3"
+  },
+  "build": {
+    "appId": "com.pizzaherogaming.wallop",
+    "productName": "WALLOP",
+    "directories": { "output": "dist" },
+    "files": ["main.js", "preload.js", "package.json"],
+    "extraResources": [
+      { "from": "../www", "to": "game" }
+    ],
+    "win": { "target": "dir" },
+    "linux": { "target": "dir" },
+    "mac": { "target": "dir" }
+  }
+}
