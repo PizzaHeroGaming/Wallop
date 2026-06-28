@@ -15,7 +15,7 @@
 //   keyboard/mobile → tryJump, tryDash (game.js): use _jumpFn/_dashFn, set via setJumpDashCbs()
 //   openChest → presentChoiceScreen (this file): setOpenChestDeps is called in initUI()
 
-import { camera, renderer, isMobile, tryEnterFullscreen } from './renderer.js?v=4cdb3d9';
+import { camera, renderer, isMobile, tryEnterFullscreen } from './renderer.js?v=813e591';
 import {
   player, enemies,
   tryInteract, setOpenChestDeps,
@@ -23,19 +23,20 @@ import {
   spawnParticle,
   CHARACTER_MODELS, _animClips, loadCharAsset,
   _applyCharacterModel,
-} from './entities.js?v=4cdb3d9';
-import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=4cdb3d9';
-import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=4cdb3d9';
-import { gameState, cam } from './state.js?v=4cdb3d9';
-import { Audio } from './audio.js?v=4cdb3d9';
-import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=4cdb3d9';
+} from './entities.js?v=813e591';
+import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=813e591';
+import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=813e591';
+import { gameState, cam } from './state.js?v=813e591';
+import { Audio } from './audio.js?v=813e591';
+import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=813e591';
 // VERSION lives on CFG.VERSION too — reading via property access doesn't
 // blow up if a cached older config.js is loaded without the named export
 const VERSION = CFG.VERSION || '0.0.0';
 // Slices granted per on-demand "watch ad for slices" view (daily-capped in Profile).
 const AD_SLICE_REWARD = 3;
-import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=4cdb3d9';
-import { tmp, tmp2 } from './utils.js?v=4cdb3d9';
+import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=813e591';
+import { tmp, tmp2 } from './utils.js?v=813e591';
+import { Settings } from './settings.js?v=813e591';
 
 // ============================================================
 // INJECTION CALLBACKS (break circular deps)
@@ -186,6 +187,7 @@ const _dmgPool = [];
 })();
 
 export function showDamage(worldPos, val, crit) {
+  if (!Settings.get('damageNumbers')) return;
   tmp.copy(worldPos);
   tmp.y += 1;
   tmp.project(camera);
@@ -210,6 +212,7 @@ export function showDamage(worldPos, val, crit) {
 // cameraShake accumulator: game.js applies it to camera each frame via cam.shake
 // We expose an addShake helper so damagePlayer / triggerBossPhase can add to it.
 export function addCameraShake(amount) {
+  if (!Settings.get('screenShake')) return;
   cam.shake = (cam.shake || 0) + amount;
 }
 
@@ -257,8 +260,10 @@ export function damagePlayer(dmg, attacker) {
   player.hurtFlash = 0.3;
   player.invuln = 0.5;
   addCameraShake(Math.min(2.5, final * 0.04 + 0.4));
-  document.getElementById('flash').classList.add('hit');
-  setTimeout(() => document.getElementById('flash').classList.remove('hit'), 120);
+  if (!Settings.get('reduceFlashes')) {
+    document.getElementById('flash').classList.add('hit');
+    setTimeout(() => document.getElementById('flash').classList.remove('hit'), 120);
+  }
   if (player.hp <= 0) {
     if (player.phoenixRevive) {
       player.phoenixRevive = false;
@@ -1509,9 +1514,13 @@ export function initInput() {
     if (e.code === 'KeyE'      && gameState.state === 'playing') tryInteract();
     if (e.code === 'Escape') {
       const confirmOv = document.getElementById('confirm-overlay');
+      const settingsOv = document.getElementById('settings-screen');
       if (confirmOv && !confirmOv.classList.contains('hidden')) {
         // A confirmation is open — ESC cancels it instead of toggling pause.
         document.getElementById('confirm-cancel-btn')?.click();
+      } else if (settingsOv && !settingsOv.classList.contains('hidden')) {
+        // Settings open — ESC goes back (to pause or start), never resumes play.
+        closeSettings();
       } else if (gameState.state === 'playing') openPauseMenu();
       else if (gameState.state === 'paused')  closePauseMenu();
     }
@@ -1536,8 +1545,10 @@ export function initInput() {
   });
   document.addEventListener('mousemove', e => {
     if (!_mouseLocked) return;
-    cam.yaw   -= e.movementX * 0.0028;
-    cam.pitch  = Math.max(0.2, Math.min(1.1, cam.pitch + e.movementY * 0.0025));
+    const sens = Settings.get('mouseSensitivity') || 1;
+    const invY = Settings.get('invertY') ? -1 : 1;
+    cam.yaw   -= e.movementX * 0.0028 * sens;
+    cam.pitch  = Math.max(0.2, Math.min(1.1, cam.pitch + e.movementY * 0.0025 * sens * invY));
   });
 }
 
@@ -2049,6 +2060,7 @@ export function initUI() {
   initButtons();
   initCharSelect();
   initAudioControls();
+  initSettings();
 
   // Tutorial SKIP button — reports back to game.js's tutorial state machine
   const _tutSkip = document.getElementById('tut-skip-btn');
@@ -2068,6 +2080,7 @@ export function initUI() {
 function initAudioControls() {
   _bindAudioControlSet({ muteId: 'audio-muted-toggle', sliderId: 'audio-volume-slider', readoutId: 'audio-volume-readout' });
   _bindAudioControlSet({ muteId: 'pause-audio-muted', sliderId: 'pause-audio-volume',  readoutId: 'pause-audio-readout' });
+  _bindAudioControlSet({ muteId: 'set-audio-muted',   sliderId: 'set-audio-volume',    readoutId: 'set-audio-readout' });
 }
 
 function _bindAudioControlSet({ muteId, sliderId, readoutId }) {
@@ -2099,6 +2112,7 @@ function _syncAllAudioControlUIs() {
   const sets = [
     { muteId: 'audio-muted-toggle', sliderId: 'audio-volume-slider', readoutId: 'audio-volume-readout' },
     { muteId: 'pause-audio-muted', sliderId: 'pause-audio-volume',  readoutId: 'pause-audio-readout' },
+    { muteId: 'set-audio-muted',   sliderId: 'set-audio-volume',    readoutId: 'set-audio-readout' },
   ];
   for (const s of sets) {
     const muteBox = document.getElementById(s.muteId);
@@ -2108,6 +2122,125 @@ function _syncAllAudioControlUIs() {
     if (slider)  slider.value    = Math.round(Audio.getVolume() * 100);
     if (readout) readout.textContent = (slider ? slider.value : Math.round(Audio.getVolume() * 100)) + '%';
   }
+}
+
+// ============================================================
+// SETTINGS MENU
+// ============================================================
+let _settingsOrigin = 'start'; // 'start' | 'pause'
+
+// Push display settings to the Electron wrapper (no-op on web/mobile).
+function _applyDisplaySettings() {
+  const wd = window.WallopDesktop;
+  if (!wd) return;
+  const mode = Settings.get('displayMode');
+  try { wd.setDisplayMode(mode); } catch (e) {}
+  if (mode === 'windowed') {
+    const res = Settings.get('resolution');
+    if (res && res !== 'native') {
+      const [w, h] = res.split('x').map(Number);
+      if (w && h) { try { wd.setResolution(w, h); } catch (e) {} }
+    }
+  }
+}
+
+function _setRangeUI(id, readoutId, mult) {
+  const el = document.getElementById(id);
+  if (el) el.value = Math.round((mult || 1) * 100);
+  const r = document.getElementById(readoutId);
+  if (r) r.textContent = (mult || 1).toFixed(1) + '×';
+}
+function _setCheckUI(id, val) { const el = document.getElementById(id); if (el) el.checked = !!val; }
+
+function _syncSettingsUI() {
+  const desktop = !!window.WallopDesktop;
+  const dispSec = document.getElementById('settings-display');
+  if (dispSec) dispSec.style.display = desktop ? '' : 'none';
+
+  const modeSel = document.getElementById('set-display-mode');
+  if (modeSel) modeSel.value = Settings.get('displayMode');
+  const resSel = document.getElementById('set-resolution');
+  if (resSel && !resSel._filled) {
+    const list = ['native', '1280x720', '1600x900', '1920x1080', '2560x1440', '3840x2160'];
+    resSel.innerHTML = list.map(r => `<option value="${r}">${r === 'native' ? 'Native (display)' : r}</option>`).join('');
+    resSel._filled = true;
+  }
+  if (resSel) resSel.value = Settings.get('resolution');
+  const resRow = document.getElementById('set-resolution-row');
+  if (resRow) resRow.style.display = (Settings.get('displayMode') === 'windowed') ? '' : 'none';
+  const fpsSel = document.getElementById('set-fpscap');
+  if (fpsSel) fpsSel.value = String(Settings.get('fpsCap'));
+
+  _setRangeUI('set-mouse-sens', 'set-mouse-readout', Settings.get('mouseSensitivity'));
+  _setCheckUI('set-invert-y', Settings.get('invertY'));
+  _setCheckUI('set-controller', Settings.get('controllerEnabled'));
+  _setRangeUI('set-stick-sens', 'set-stick-readout', Settings.get('stickSensitivity'));
+  _setCheckUI('set-vibration', Settings.get('vibration'));
+
+  _setCheckUI('set-screenshake', Settings.get('screenShake'));
+  _setCheckUI('set-reduceflashes', Settings.get('reduceFlashes'));
+  _setCheckUI('set-damagenums', Settings.get('damageNumbers'));
+
+  _syncAllAudioControlUIs();
+}
+
+function openSettings(origin) {
+  _settingsOrigin = origin || 'start';
+  if (_settingsOrigin === 'pause') document.getElementById('pause-screen').classList.add('hidden');
+  else document.getElementById('start-screen').classList.add('hidden');
+  _syncSettingsUI();
+  document.getElementById('settings-screen').classList.remove('hidden');
+}
+
+function closeSettings() {
+  document.getElementById('settings-screen').classList.add('hidden');
+  if (_settingsOrigin === 'pause') document.getElementById('pause-screen').classList.remove('hidden');
+  else document.getElementById('start-screen').classList.remove('hidden');
+}
+
+function _bindSettingRange(id, readoutId, key) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.addEventListener('input', () => {
+    const mult = (parseInt(el.value, 10) || 100) / 100;
+    Settings.set(key, mult);
+    const r = document.getElementById(readoutId);
+    if (r) r.textContent = mult.toFixed(1) + '×';
+  });
+}
+
+function initSettings() {
+  document.getElementById('settings-btn')?.addEventListener('click', () => openSettings('start'));
+  document.getElementById('settings-pause-btn')?.addEventListener('click', () => openSettings('pause'));
+  document.getElementById('settings-back')?.addEventListener('click', closeSettings);
+  document.getElementById('settings-reset')?.addEventListener('click', () => {
+    Settings.reset(); _applyDisplaySettings(); _syncSettingsUI();
+  });
+
+  document.getElementById('set-display-mode')?.addEventListener('change', e => {
+    Settings.set('displayMode', e.target.value);
+    const resRow = document.getElementById('set-resolution-row');
+    if (resRow) resRow.style.display = (e.target.value === 'windowed') ? '' : 'none';
+    _applyDisplaySettings();
+  });
+  document.getElementById('set-resolution')?.addEventListener('change', e => {
+    Settings.set('resolution', e.target.value); _applyDisplaySettings();
+  });
+  document.getElementById('set-fpscap')?.addEventListener('change', e => {
+    Settings.set('fpsCap', parseInt(e.target.value, 10) || 0);
+  });
+
+  _bindSettingRange('set-mouse-sens', 'set-mouse-readout', 'mouseSensitivity');
+  document.getElementById('set-invert-y')?.addEventListener('change', e => Settings.set('invertY', e.target.checked));
+  document.getElementById('set-controller')?.addEventListener('change', e => Settings.set('controllerEnabled', e.target.checked));
+  _bindSettingRange('set-stick-sens', 'set-stick-readout', 'stickSensitivity');
+  document.getElementById('set-vibration')?.addEventListener('change', e => Settings.set('vibration', e.target.checked));
+
+  document.getElementById('set-screenshake')?.addEventListener('change', e => Settings.set('screenShake', e.target.checked));
+  document.getElementById('set-reduceflashes')?.addEventListener('change', e => Settings.set('reduceFlashes', e.target.checked));
+  document.getElementById('set-damagenums')?.addEventListener('change', e => Settings.set('damageNumbers', e.target.checked));
+
+  _applyDisplaySettings(); // apply the saved display mode on boot (Electron)
 }
 
 // ============================================================

@@ -9,10 +9,11 @@
 //   game.js        → damageEnemy, update, initGame
 //   main.js        → animate, splash, resize
 
-import { scene, camera, renderer, clock, composer, isMobile, tryEnterFullscreen, rearmFullscreenOnNextTap } from './renderer.js?v=4cdb3d9';
-import { gameState } from './state.js?v=4cdb3d9';
-import { initGame, update, updateTitleScene, updateIntroSweep } from './game.js?v=4cdb3d9';
-import './world.js?v=4cdb3d9'; // side-effect only: builds terrain scenery at load time
+import { scene, camera, renderer, clock, composer, isMobile, tryEnterFullscreen, rearmFullscreenOnNextTap } from './renderer.js?v=813e591';
+import { gameState } from './state.js?v=813e591';
+import { initGame, update, updateTitleScene, updateIntroSweep } from './game.js?v=813e591';
+import './world.js?v=813e591'; // side-effect only: builds terrain scenery at load time
+import { Settings } from './settings.js?v=813e591';
 
 // ============================================================
 // WEBGL CONTEXT LOSS HANDLING
@@ -111,10 +112,17 @@ try {
 // real gameplay benefit. Cap mobile to 60fps by skipping the extra vsync ticks;
 // desktop stays uncapped (lets a future high-refresh PC/Steam build run free).
 // dt comes from the clock, so capping doesn't change game speed.
-const _FRAME_MS = isMobile() ? (1000 / 60) : 0;
+// Mobile is always capped to 60 (heat/battery). Desktop honors the player's
+// FPS-cap setting (0 = unlimited) so the Steam build can run free or be limited.
+function _frameMs() {
+  if (isMobile()) return 1000 / 60;
+  const cap = Settings.get('fpsCap') || 0;
+  return cap ? 1000 / cap : 0;
+}
 let _lastFrameT = 0;
 function animate(now) {
   requestAnimationFrame(animate);
+  const _FRAME_MS = _frameMs();
   if (_FRAME_MS && (now - _lastFrameT) < _FRAME_MS - 0.5) return; // skip extra ticks on high-refresh panels
   _lastFrameT = now;
   if (renderer.getContext().isContextLost && renderer.getContext().isContextLost()) return;

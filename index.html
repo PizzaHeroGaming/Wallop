@@ -2734,7 +2734,8 @@
     .start-actions > .btn:nth-child(3)     { animation-delay: 0.22s; }
     .start-actions > .btn:nth-child(4)     { animation-delay: 0.28s; }
     .start-actions > .btn:nth-child(5)     { animation-delay: 0.34s; }
-    #char-select-panel                     { animation-delay: 0.40s; }
+    .start-actions > .btn:nth-child(6)     { animation-delay: 0.40s; }
+    #char-select-panel                     { animation-delay: 0.44s; }
   }
 
   /* Clean-capture mode (marketing screenshots / trailer) — hides the gameplay
@@ -2744,6 +2745,35 @@
   body.hud-hidden #hud,
   body.hud-hidden #mobile-controls,
   body.hud-hidden #start-screen { display: none !important; }
+
+  /* ===== Settings menu ===== */
+  #settings-panel {
+    background: var(--panel); border: 4px solid #000; box-shadow: 8px 8px 0 #000;
+    padding: 22px 26px; width: min(540px, 92vw); margin: auto;
+  }
+  .settings-title {
+    font-family: 'Press Start 2P', monospace; font-size: 22px; color: var(--accent);
+    text-align: center; margin-bottom: 16px; text-shadow: 3px 3px 0 #000;
+  }
+  .settings-section { margin-bottom: 18px; }
+  .settings-h {
+    font-family: 'Press Start 2P', monospace; font-size: 12px; color: var(--hot);
+    border-bottom: 2px solid #000; padding-bottom: 6px; margin-bottom: 8px; letter-spacing: 1px;
+  }
+  .set-row {
+    display: flex; align-items: center; gap: 12px; padding: 6px 2px;
+    font-family: 'VT323', monospace; font-size: 19px; color: var(--ink);
+  }
+  .set-row > label { flex: 1; }
+  .set-row select, .set-row input[type=range] { flex: 1.2; min-width: 0; }
+  .set-row input[type=checkbox] { width: 20px; height: 20px; cursor: pointer; accent-color: var(--hot); }
+  .set-row select {
+    font-family: 'VT323', monospace; font-size: 17px; padding: 4px 8px;
+    background: var(--panel-2); color: var(--ink); border: 2px solid #000; cursor: pointer;
+  }
+  .set-readout { min-width: 48px; text-align: right; color: var(--accent); }
+  #settings-buttons { display: flex; gap: 12px; justify-content: center; margin-top: 10px; flex-wrap: wrap; }
+  #settings-buttons .btn { font-size: 12px; padding: 12px 18px; }
 </style>
 </head>
 <body>
@@ -2977,6 +3007,7 @@ window.addEventListener('load', () => {
         <button class="btn hot" id="start-btn">▶ PLAY</button>
         <button class="btn secondary" id="challenges-btn">🏆 CHALLENGES</button>
         <button class="btn secondary" id="armory-btn">🍕 ARMORY</button>
+        <button class="btn secondary" id="settings-btn">⚙ SETTINGS</button>
         <button class="btn secondary" id="about-btn">📋 ABOUT</button>
         <button class="btn ghost" id="exit-btn">EXIT</button>
       </div>
@@ -3336,10 +3367,87 @@ window.addEventListener('load', () => {
   <div id="pause-buttons">
     <button class="btn" id="resume-btn">RESUME</button>
     <button class="btn" id="call-boss-btn" style="display:none">⚔️ CALL THE BOSS — 50💰</button>
+    <button class="btn" id="settings-pause-btn">⚙ SETTINGS</button>
     <button class="btn" id="restart-pause-btn">RESTART</button>
     <button class="btn hot" id="menu-pause-btn">MAIN MENU</button>
   </div>
   <div id="pause-hint">[ESC] resume</div>
+</div>
+
+<!-- ============================================================
+     SETTINGS — reachable from the pause menu and the start screen.
+     Display section is desktop/Electron-only (hidden when window.WallopDesktop
+     is absent). All values persist via settings.js / the Audio module.
+     ============================================================ -->
+<div id="settings-screen" class="overlay hidden" style="overflow-y:auto;">
+  <div id="settings-panel">
+    <div class="settings-title">SETTINGS</div>
+
+    <div class="settings-section" id="settings-display" style="display:none;">
+      <div class="settings-h">DISPLAY</div>
+      <div class="set-row">
+        <label>Display mode</label>
+        <select id="set-display-mode">
+          <option value="fullscreen">Fullscreen</option>
+          <option value="borderless">Borderless window</option>
+          <option value="windowed">Windowed</option>
+        </select>
+      </div>
+      <div class="set-row" id="set-resolution-row">
+        <label>Resolution</label>
+        <select id="set-resolution"></select>
+      </div>
+      <div class="set-row">
+        <label>Frame rate cap</label>
+        <select id="set-fpscap">
+          <option value="0">Unlimited</option>
+          <option value="60">60 FPS</option>
+          <option value="120">120 FPS</option>
+          <option value="144">144 FPS</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-h">AUDIO</div>
+      <div class="set-row"><label>Mute</label>
+        <input type="checkbox" id="set-audio-muted"></div>
+      <div class="set-row"><label>Master volume</label>
+        <input type="range" id="set-audio-volume" min="0" max="100" step="1">
+        <span id="set-audio-readout" class="set-readout">40%</span></div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-h">CONTROLS</div>
+      <div class="set-row"><label>Mouse sensitivity</label>
+        <input type="range" id="set-mouse-sens" min="20" max="300" step="5">
+        <span id="set-mouse-readout" class="set-readout">1.0×</span></div>
+      <div class="set-row"><label>Invert look (Y)</label>
+        <input type="checkbox" id="set-invert-y"></div>
+      <div class="set-row"><label>Controller</label>
+        <input type="checkbox" id="set-controller"></div>
+      <div class="set-row" id="set-stick-row"><label>Stick look speed</label>
+        <input type="range" id="set-stick-sens" min="20" max="300" step="5">
+        <span id="set-stick-readout" class="set-readout">1.0×</span></div>
+      <div class="set-row"><label>Vibration</label>
+        <input type="checkbox" id="set-vibration"></div>
+    </div>
+
+    <div class="settings-section">
+      <div class="settings-h">ACCESSIBILITY</div>
+      <div class="set-row"><label>Screen shake</label>
+        <input type="checkbox" id="set-screenshake"></div>
+      <div class="set-row"><label>Reduce flashes</label>
+        <input type="checkbox" id="set-reduceflashes"></div>
+      <div class="set-row"><label>Damage numbers</label>
+        <input type="checkbox" id="set-damagenums"></div>
+    </div>
+
+    <div id="settings-buttons">
+      <button class="btn" id="settings-reset">RESET TO DEFAULTS</button>
+      <button class="btn hot" id="settings-back">← BACK</button>
+    </div>
+  </div>
 </div>
 
 <!-- Reusable confirmation modal (e.g. RESTART / MAIN MENU mid-run).
@@ -3404,6 +3512,6 @@ window.addEventListener('load', () => {
 <script src="src/vendor/three/UnrealBloomPass.js"></script>
 <script src="src/vendor/three/GLTFLoader.js"></script>
 <script src="src/vendor/three/SkeletonUtils.js"></script>
-<script type="module" src="src/js/main.js?v=4cdb3d9"></script>
+<script type="module" src="src/js/main.js?v=813e591"></script>
 </body>
 </html>

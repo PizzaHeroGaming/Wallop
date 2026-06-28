@@ -10,7 +10,7 @@
 // Packaged: serves the bundled `game/` (assembled by build-www.py → ../www,
 //   copied via extraResources).
 
-const { app, BrowserWindow, protocol, net, Menu } = require('electron');
+const { app, BrowserWindow, protocol, net, Menu, ipcMain } = require('electron');
 const path = require('path');
 const { pathToFileURL } = require('url');
 
@@ -39,11 +39,14 @@ function createWindow() {
   Menu.setApplicationMenu(null); // no menu bar in the shipped game
   win.loadURL('wallop://local/index.html');
 
-  // F11 toggles fullscreen; Esc leaves it (quality-of-life on desktop).
+  // F11 toggles fullscreen. Esc is intentionally NOT intercepted — the game uses
+  // it to pause / open the menu (and to release pointer lock). Fullscreen mode is
+  // owned by the in-game Settings menu, not the OS Esc key.
   win.webContents.on('before-input-event', (e, input) => {
-    if (input.type !== 'keyDown') return;
-    if (input.key === 'F11') { win.setFullScreen(!win.isFullScreen()); e.preventDefault(); }
-    else if (input.key === 'Escape' && win.isFullScreen()) { win.setFullScreen(false); e.preventDefault(); }
+    if (input.type === 'keyDown' && input.key === 'F11') {
+      win.setFullScreen(!win.isFullScreen());
+      e.preventDefault();
+    }
   });
 }
 
@@ -58,6 +61,29 @@ app.whenReady().then(() => {
       return new Response('Not found', { status: 404 });
     }
     return net.fetch(pathToFileURL(filePath).toString());
+  });
+
+  // Display controls driven by the in-game Settings menu.
+  ipcMain.handle('wallop:setDisplayMode', (e, mode) => {
+    const win = BrowserWindow.getAllWindows()[0];
+    if (!win) return;
+    if (mode === 'fullscreen') {
+      win.setFullScreen(true);
+    } else if (mode === 'borderless') {
+      win.setFullScreen(false);
+      win.maximize();
+    } else { // windowed
+      win.setFullScreen(false);
+      win.unmaximize();
+      win.center();
+    }
+  });
+  ipcMain.handle('wallop:setResolution', (e, w, h) => {
+    const win = BrowserWindow.getAllWindows()[0];
+    if (!win || win.isFullScreen()) return; // resolution only applies windowed
+    win.unmaximize();
+    win.setSize(Math.round(w), Math.round(h));
+    win.center();
   });
 
   createWindow();
