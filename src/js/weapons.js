@@ -1,4 +1,4 @@
-import { scene, acquirePtLight, releasePtLight } from './renderer.js?v=9d19de6';
+import { scene, acquirePtLight, releasePtLight } from './renderer.js?v=3242020';
 import { player, enemies, projectiles, orbitals, auraInstances,
          spawnProjectile, spawnParticle, spawnSmokeCloud,
          makeSparkMesh, makeFireballMesh, makeBoomerangMesh,
@@ -6,9 +6,9 @@ import { player, enemies, projectiles, orbitals, auraInstances,
          _cloneWeaponMesh,
          _thunderWandMesh, _thunderWandAngle, set_thunderWandMesh, set_thunderWandAngle,
          _staffMesh, _staffAngle, set_staffMesh, set_staffAngle,
-       } from './entities.js?v=9d19de6';
-import { clamp, rand } from './utils.js?v=9d19de6';
-import { cam } from './state.js?v=9d19de6';
+       } from './entities.js?v=3242020';
+import { clamp, rand } from './utils.js?v=3242020';
+import { cam } from './state.js?v=3242020';
 
 // damageEnemy is injected from game.js (circular dep breaker)
 let _damageEnemy = null;
@@ -1167,7 +1167,11 @@ defWeapon('deep_dish', {
     const sz = (w.sizeMult || 1) * 1.9 * player.projectileMult;
     const dx = t.pos.x - player.pos.x, dz = t.pos.z - player.pos.z;
     const d = Math.hypot(dx, dz) || 1;
-    const mesh = makePizzaMesh(); mesh.scale.setScalar(sz);
+    // Pass sz INTO makePizzaMesh so it scales the pizza's base prop scale (0.30),
+    // matching the starter's `makePizzaMesh(projectileMult)` convention and the
+    // collision radius below (sz*0.4). Using setScalar(sz) here overwrote the
+    // base scale → the pizza rendered ~6x the starter (giant-pizza bug).
+    const mesh = makePizzaMesh(sz);
     spawnProjectile({ pos: player.pos.clone().add(new THREE.Vector3(0, 1.0, 0)), vel: new THREE.Vector3(dx/d * 5.5, 0, dz/d * 5.5),
       damage: dmg, radius: sz * 0.4,
       pierce: 99, lifetime: 2.8, mesh, spinAxis: new THREE.Vector3(0, 1, 0), knockback: 5,
