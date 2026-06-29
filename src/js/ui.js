@@ -15,7 +15,7 @@
 //   keyboard/mobile → tryJump, tryDash (game.js): use _jumpFn/_dashFn, set via setJumpDashCbs()
 //   openChest → presentChoiceScreen (this file): setOpenChestDeps is called in initUI()
 
-import { camera, renderer, isMobile, tryEnterFullscreen } from './renderer.js?v=41d86de';
+import { camera, renderer, isMobile, tryEnterFullscreen } from './renderer.js?v=2e65e27';
 import {
   player, enemies,
   tryInteract, setOpenChestDeps,
@@ -23,20 +23,20 @@ import {
   spawnParticle,
   CHARACTER_MODELS, _animClips, loadCharAsset,
   _applyCharacterModel,
-} from './entities.js?v=41d86de';
-import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=41d86de';
-import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=41d86de';
-import { gameState, cam } from './state.js?v=41d86de';
-import { Audio } from './audio.js?v=41d86de';
-import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=41d86de';
+} from './entities.js?v=2e65e27';
+import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=2e65e27';
+import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=2e65e27';
+import { gameState, cam } from './state.js?v=2e65e27';
+import { Audio } from './audio.js?v=2e65e27';
+import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=2e65e27';
 // VERSION lives on CFG.VERSION too — reading via property access doesn't
 // blow up if a cached older config.js is loaded without the named export
 const VERSION = CFG.VERSION || '0.0.0';
 // Slices granted per on-demand "watch ad for slices" view (daily-capped in Profile).
 const AD_SLICE_REWARD = 3;
-import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=41d86de';
-import { tmp, tmp2 } from './utils.js?v=41d86de';
-import { Settings } from './settings.js?v=41d86de';
+import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=2e65e27';
+import { tmp, tmp2 } from './utils.js?v=2e65e27';
+import { Settings } from './settings.js?v=2e65e27';
 
 // ============================================================
 // INJECTION CALLBACKS (break circular deps)
@@ -837,6 +837,9 @@ function hideChoiceActions() {
 }
 
 export function showLevelUp() {
+  // Only valid mid-run (an XP overflow during play) or while chaining level-ups.
+  // If the run has ended or we're at the menu, never pop a level-up screen.
+  if (gameState.state !== 'playing' && gameState.state !== 'levelup') return;
   // Generate offers BEFORE touching state / pointer lock. When everything is
   // maxed (no offers), we heal and bail without ever changing gameState or
   // releasing the mouse — otherwise the exitPointerLock fired here would
@@ -869,6 +872,10 @@ export function showLevelUp() {
 
 export function onLevelUpDone() {
   document.getElementById('levelup-screen').classList.add('hidden');
+  // Guard: if the run already ended (victory/gameover) or we exited to the menu
+  // while a level-up was still open — e.g. a challenge-complete or stage win
+  // fired its game-over during the level-up — do NOT resurrect gameplay.
+  if (gameState.state !== 'levelup') return;
   if (player.xp >= player.xpToNext) {
     setTimeout(processPendingLevelUp, 50);
     return;
@@ -894,12 +901,14 @@ export function onLevelUpDone() {
 }
 
 export function processPendingLevelUp() {
+  // Don't process pending level-ups for a run that already ended / exited.
+  if (gameState.state !== 'levelup' && gameState.state !== 'playing') return;
   if (player.xp >= player.xpToNext) {
     player.xp       -= player.xpToNext;
     player.level++;
     player.xpToNext  = Math.floor(5 + player.level * 2.2 + Math.pow(player.level, 1.4));
     showLevelUp();
-  } else {
+  } else if (gameState.state === 'levelup') {
     gameState.state = 'playing';
   }
 }
@@ -926,6 +935,10 @@ function _flushGameOverInterstitial() {
 export function triggerGameOver(victory) {
   _bossArrowEl.style.display = 'none';
   gameState.state = victory ? 'victory' : 'gameover';
+  // Tear down any in-flight level-up so a pending pick can't flip state back to
+  // 'playing' after the run has ended (the "playing behind the menu" bug).
+  document.getElementById('levelup-screen').classList.add('hidden');
+  _pendingStageClearStage = null;
   Audio.play(victory ? 'victory' : 'player_death');
   Audio.stopMusic();
   const ov    = document.getElementById('gameover-screen');
