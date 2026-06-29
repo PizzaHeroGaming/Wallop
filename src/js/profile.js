@@ -428,6 +428,16 @@ export const Profile = (function () {
     _ensureArenaProgress();
     return _state.arenaProgress[slug] || { clearedStages: { 1: false, 2: false, 3: false }, bestDifficulty: null };
   }
+  // Per-arena difficulty gating. Easy + Normal are always available; Hard
+  // unlocks once you've fully cleared Normal on that arena, Extreme once you've
+  // cleared Hard on it. Uses the per-arena bestDifficulty already tracked by
+  // recordArenaClear.
+  function isDifficultyUnlocked(arenaSlug, difficulty) {
+    const rank = _DIFFICULTY_RANK[difficulty] ?? _DIFFICULTY_RANK.normal;
+    if (rank <= _DIFFICULTY_RANK.normal) return true;        // easy + normal: always
+    const best = _DIFFICULTY_RANK[getArenaProgress(arenaSlug).bestDifficulty] ?? -1;
+    return best >= rank - 1;                                  // hard←normal, extreme←hard
+  }
   function recordStageClear(arenaSlug, stageNum) {
     _ensureArenaProgress();
     const ap = _state.arenaProgress[arenaSlug];
@@ -513,7 +523,7 @@ export const Profile = (function () {
     get, save, isUnlocked, unlock, spendSlices, addSlices,
     getBoostLevel, setBoostLevel, setEquippedCharacter,
     clearStage, isStageCleared,
-    isArenaUnlocked, getArenaProgress, recordStageClear, recordArenaClear,
+    isArenaUnlocked, getArenaProgress, isDifficultyUnlocked, recordStageClear, recordArenaClear,
     getNextArena, setEquippedArena, getEquippedArena,
     addItemKill, getItemKills,
     reset,

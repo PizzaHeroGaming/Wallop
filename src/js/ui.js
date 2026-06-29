@@ -15,7 +15,7 @@
 //   keyboard/mobile → tryJump, tryDash (game.js): use _jumpFn/_dashFn, set via setJumpDashCbs()
 //   openChest → presentChoiceScreen (this file): setOpenChestDeps is called in initUI()
 
-import { camera, renderer, isMobile, tryEnterFullscreen } from './renderer.js?v=ef4c224';
+import { camera, renderer, isMobile, tryEnterFullscreen } from './renderer.js?v=c4c734c';
 import {
   player, enemies,
   tryInteract, setOpenChestDeps,
@@ -23,20 +23,20 @@ import {
   spawnParticle,
   CHARACTER_MODELS, _animClips, loadCharAsset,
   _applyCharacterModel,
-} from './entities.js?v=ef4c224';
-import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=ef4c224';
-import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=ef4c224';
-import { gameState, cam } from './state.js?v=ef4c224';
-import { Audio } from './audio.js?v=ef4c224';
-import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=ef4c224';
+} from './entities.js?v=c4c734c';
+import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=c4c734c';
+import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=c4c734c';
+import { gameState, cam } from './state.js?v=c4c734c';
+import { Audio } from './audio.js?v=c4c734c';
+import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=c4c734c';
 // VERSION lives on CFG.VERSION too — reading via property access doesn't
 // blow up if a cached older config.js is loaded without the named export
 const VERSION = CFG.VERSION || '0.0.0';
 // Slices granted per on-demand "watch ad for slices" view (daily-capped in Profile).
 const AD_SLICE_REWARD = 3;
-import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=ef4c224';
-import { tmp, tmp2 } from './utils.js?v=ef4c224';
-import { Settings } from './settings.js?v=ef4c224';
+import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=c4c734c';
+import { tmp, tmp2 } from './utils.js?v=c4c734c';
+import { Settings } from './settings.js?v=c4c734c';
 
 // ============================================================
 // INJECTION CALLBACKS (break circular deps)
@@ -1714,19 +1714,32 @@ export function initMobile() {
 // ============================================================
 let _selectedDiff = 'normal';
 
+// Difficulty one rank below `key` (the prerequisite to unlock it), for the hint.
+const _DIFF_ORDER = ['easy', 'normal', 'hard', 'extreme'];
+function _diffPrereqLabel(key) {
+  const prev = _DIFF_ORDER[_DIFF_ORDER.indexOf(key) - 1];
+  return DIFFICULTIES[prev]?.label || 'the previous difficulty';
+}
+
 function renderDiffSelect() {
   const diffBtns = document.getElementById('diff-btns');
   if (!diffBtns) return;
-  diffBtns.innerHTML = Object.entries(DIFFICULTIES).map(([key, d]) =>
-    `<button class="diff-btn${key === _selectedDiff ? ' active' : ''}" data-diff="${key}">${d.label}</button>`
-  ).join('');
+  // If the current pick is locked for the selected arena, fall back to Normal.
+  if (!Profile.isDifficultyUnlocked(_selectedArena, _selectedDiff)) _selectedDiff = 'normal';
+  diffBtns.innerHTML = Object.entries(DIFFICULTIES).map(([key, d]) => {
+    const unlocked = Profile.isDifficultyUnlocked(_selectedArena, key);
+    const cls = `diff-btn${key === _selectedDiff ? ' active' : ''}${unlocked ? '' : ' locked'}`;
+    const label = unlocked ? d.label : `🔒 ${d.label}`;
+    const title = unlocked ? '' : ` title="Beat ${_diffPrereqLabel(key)} on this arena to unlock"`;
+    return `<button class="${cls}" data-diff="${key}"${title}>${label}</button>`;
+  }).join('');
 }
 
 function initDiffSelect() {
   renderDiffSelect();
   document.getElementById('diff-btns').addEventListener('click', e => {
     const btn = e.target.closest('[data-diff]');
-    if (!btn) return;
+    if (!btn || btn.classList.contains('locked')) return; // can't pick a locked difficulty
     _selectedDiff = btn.dataset.diff;
     document.querySelectorAll('.diff-btn').forEach(b => b.classList.toggle('active', b === btn));
   });
@@ -1784,6 +1797,7 @@ function _setSelectedArena(slug) {
   gameState.arena = slug;
   renderArenaSelect();
   _refreshMobileArenaUI();
+  renderDiffSelect(); // difficulty unlocks are per-arena — refresh the locks
 }
 
 function initArenaSelect() {
@@ -1840,7 +1854,7 @@ export function initButtons() {
   if (_playBtn) _playBtn.addEventListener('click', () => {
     document.getElementById('run-config-screen').classList.add('hidden');
     document.getElementById('hud').style.display = 'none'; // stay hidden through the cinematic
-    gameState.difficulty = _selectedDiff;
+    gameState.difficulty = Profile.isDifficultyUnlocked(_selectedArena, _selectedDiff) ? _selectedDiff : 'normal';
     gameState.activeChallenge = null; // normal run — clear any leftover challenge
     tryEnterFullscreen();
     // Cinematic sweep: camera orbits behind the hero, then the run begins
@@ -1977,7 +1991,7 @@ export function initButtons() {
     document.getElementById('challenges-screen').classList.add('hidden');
     document.getElementById('hud').style.display = 'block';
     gameState.activeChallenge = id;
-    gameState.difficulty = _selectedDiff;
+    gameState.difficulty = Profile.isDifficultyUnlocked(_selectedArena, _selectedDiff) ? _selectedDiff : 'normal';
     tryEnterFullscreen();
     if (_resetGameFn) _resetGameFn();
     if (!isMobile()) renderer.domElement.requestPointerLock();

@@ -1670,6 +1670,8 @@
   .diff-btn[data-diff="extreme"] { color: var(--hot); }
   .diff-btn[data-diff="hard"].active    { border-color: #ff8c00; background: rgba(255,140,0,0.08); }
   .diff-btn[data-diff="extreme"].active { border-color: var(--hot); background: rgba(255,56,100,0.08); }
+  .diff-btn.locked { opacity: 0.4; filter: grayscale(1); cursor: not-allowed; }
+  .diff-btn.locked:hover { transform: none; box-shadow: 3px 3px 0 #000; }
 
   /* Arena selector — desktop cards */
   .arena-row { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; width: 100%; }
@@ -3548,6 +3550,6 @@ window.addEventListener('load', () => {
 <script src="src/vendor/three/UnrealBloomPass.js"></script>
 <script src="src/vendor/three/GLTFLoader.js"></script>
 <script src="src/vendor/three/SkeletonUtils.js"></script>
-<script type="module" src="src/js/main.js?v=ef4c224"></script>
+<script type="module" src="src/js/main.js?v=c4c734c"></script>
 </body>
 </html>
