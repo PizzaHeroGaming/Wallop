@@ -15,7 +15,7 @@
 //   keyboard/mobile → tryJump, tryDash (game.js): use _jumpFn/_dashFn, set via setJumpDashCbs()
 //   openChest → presentChoiceScreen (this file): setOpenChestDeps is called in initUI()
 
-import { camera, renderer, isMobile, tryEnterFullscreen } from './renderer.js?v=b46e4bf';
+import { camera, renderer, isMobile, tryEnterFullscreen } from './renderer.js?v=92d96d3';
 import {
   player, enemies,
   tryInteract, setOpenChestDeps,
@@ -23,20 +23,20 @@ import {
   spawnParticle,
   CHARACTER_MODELS, _animClips, loadCharAsset,
   _applyCharacterModel,
-} from './entities.js?v=b46e4bf';
-import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=b46e4bf';
-import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=b46e4bf';
-import { gameState, cam } from './state.js?v=b46e4bf';
-import { Audio } from './audio.js?v=b46e4bf';
-import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=b46e4bf';
+} from './entities.js?v=92d96d3';
+import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=92d96d3';
+import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=92d96d3';
+import { gameState, cam } from './state.js?v=92d96d3';
+import { Audio } from './audio.js?v=92d96d3';
+import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=92d96d3';
 // VERSION lives on CFG.VERSION too — reading via property access doesn't
 // blow up if a cached older config.js is loaded without the named export
 const VERSION = CFG.VERSION || '0.0.0';
 // Slices granted per on-demand "watch ad for slices" view (daily-capped in Profile).
 const AD_SLICE_REWARD = 3;
-import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=b46e4bf';
-import { tmp, tmp2 } from './utils.js?v=b46e4bf';
-import { Settings } from './settings.js?v=b46e4bf';
+import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=92d96d3';
+import { tmp, tmp2 } from './utils.js?v=92d96d3';
+import { Settings } from './settings.js?v=92d96d3';
 
 // ============================================================
 // INJECTION CALLBACKS (break circular deps)
@@ -1211,6 +1211,19 @@ function renderArmoryGrid() {
         const can = Profile.get().slices >= nextCost;
         footerHtml = `<div class="boost-level">LEVEL ${lvl} / ${max}</div><div class="cost ${can ? '' : 'unaffordable'}">🍕 ${nextCost} SLICES</div>`;
       }
+    } else if (!unlocked && entry.characterUnique) {
+      // Kill-gated signature item: show the kill grind, not just the slice price.
+      const equippedChar = Profile.get().equippedCharacter || 'pizza_hero';
+      const kills     = Profile.getItemKills(entry.gameRef || entry.slug);
+      const threshold = entry.killThreshold || 7500;
+      if (equippedChar === entry.characterUnique) {
+        footerHtml = `<div class="cost">⭐ YOUR EXCLUSIVE</div>`;
+      } else if (kills >= threshold) {
+        const can = Profile.get().slices >= (entry.sliceCost || 0);
+        footerHtml = `<div class="cost ${can ? '' : 'unaffordable'}">🍕 ${entry.sliceCost} SLICES</div>`;
+      } else {
+        footerHtml = `<div class="cost">🏆 ${(threshold - kills).toLocaleString()} KILLS LEFT</div>`;
+      }
     } else if (!unlocked && entry.sliceCost) {
       const can = Profile.get().slices >= entry.sliceCost;
       footerHtml = `<div class="cost ${can ? '' : 'unaffordable'}">🍕 ${entry.sliceCost} SLICES</div>`;
@@ -1264,12 +1277,14 @@ function openArmoryDetail(entry, cat) {
           <div style="font-family:'VT323',monospace;color:var(--ink-dim);font-size:14px;text-align:center;margin-top:6px;">Unlocks for all characters permanently</div>`;
       } else {
         // Still grinding toward kill threshold
+        const remaining = threshold - kills;
         actionsHtml = `
-          <div style="font-family:'VT323',monospace;color:var(--ink-dim);font-size:15px;text-align:center;margin-bottom:8px;">Earn ${threshold} kills while this item is equipped</div>
+          <div style="font-family:'VT323',monospace;color:var(--ink-dim);font-size:15px;text-align:center;margin-bottom:8px;">Earn kills with this item equipped to unlock</div>
           <div style="background:#0d1126;height:14px;border-radius:3px;border:2px solid #000;overflow:hidden;">
             <div style="background:linear-gradient(90deg,#ffd23f,#ff8c00);height:100%;width:${pct}%;transition:width 0.3s;"></div>
           </div>
-          <div style="font-family:'VT323',monospace;color:var(--ink-dim);font-size:15px;text-align:center;margin-top:6px;">${kills} / ${threshold} kills &nbsp;·&nbsp; ${pct}%</div>`;
+          <div style="font-family:'Press Start 2P',monospace;color:var(--accent);font-size:13px;text-align:center;margin-top:8px;">${remaining.toLocaleString()} KILLS LEFT</div>
+          <div style="font-family:'VT323',monospace;color:var(--ink-dim);font-size:14px;text-align:center;margin-top:4px;">${kills.toLocaleString()} / ${threshold.toLocaleString()} &nbsp;·&nbsp; ${pct}%</div>`;
       }
     } else if (entry.placeholder && !entry.sliceCost) {
       actionsHtml = `<button class="unlock-btn" disabled>COMING SOON</button>`;
