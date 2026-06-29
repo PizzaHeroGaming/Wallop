@@ -1,4 +1,4 @@
-import { scene } from './renderer.js?v=95f8936';
+import { scene } from './renderer.js?v=f19434c';
 
 // ============================================================
 // HELPERS
