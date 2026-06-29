@@ -2409,6 +2409,10 @@
   body .patch-list li { color: #2a1a05 !important; }
   body summary.patch-ver { color: #b8501c !important; }
   body details.patch-entry[open] summary.patch-ver { color: #c8102e !important; }
+  /* Section labels (DIFFICULTY / ARENA / CHOOSE YOUR HERO) are yellow by default,
+     which is illegible on the cream wood-frame panels — match the other cream-panel
+     headings (orange-brown). */
+  body .sel-title { color: #b8501c !important; }
   /* ===== end Kenney UI pack overrides ===== */
 
   /* ============================================================
@@ -3567,6 +3571,6 @@ window.addEventListener('load', () => {
 <script src="src/vendor/three/UnrealBloomPass.js"></script>
 <script src="src/vendor/three/GLTFLoader.js"></script>
 <script src="src/vendor/three/SkeletonUtils.js"></script>
-<script type="module" src="src/js/main.js?v=7630a56"></script>
+<script type="module" src="src/js/main.js?v=6779f72"></script>
 </body>
 </html>
