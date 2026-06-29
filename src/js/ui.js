@@ -15,7 +15,7 @@
 //   keyboard/mobile → tryJump, tryDash (game.js): use _jumpFn/_dashFn, set via setJumpDashCbs()
 //   openChest → presentChoiceScreen (this file): setOpenChestDeps is called in initUI()
 
-import { camera, renderer, isMobile, tryEnterFullscreen } from './renderer.js?v=7a418d1';
+import { camera, renderer, isMobile, tryEnterFullscreen } from './renderer.js?v=cfed536';
 import {
   player, enemies,
   tryInteract, setOpenChestDeps,
@@ -23,20 +23,20 @@ import {
   spawnParticle,
   CHARACTER_MODELS, _animClips, loadCharAsset,
   _applyCharacterModel,
-} from './entities.js?v=7a418d1';
-import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=7a418d1';
-import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=7a418d1';
-import { gameState, cam } from './state.js?v=7a418d1';
-import { Audio } from './audio.js?v=7a418d1';
-import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=7a418d1';
+} from './entities.js?v=cfed536';
+import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=cfed536';
+import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=cfed536';
+import { gameState, cam } from './state.js?v=cfed536';
+import { Audio } from './audio.js?v=cfed536';
+import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=cfed536';
 // VERSION lives on CFG.VERSION too — reading via property access doesn't
 // blow up if a cached older config.js is loaded without the named export
 const VERSION = CFG.VERSION || '0.0.0';
 // Slices granted per on-demand "watch ad for slices" view (daily-capped in Profile).
 const AD_SLICE_REWARD = 3;
-import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=7a418d1';
-import { tmp, tmp2 } from './utils.js?v=7a418d1';
-import { Settings } from './settings.js?v=7a418d1';
+import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=cfed536';
+import { tmp, tmp2 } from './utils.js?v=cfed536';
+import { Settings } from './settings.js?v=cfed536';
 
 // ============================================================
 // INJECTION CALLBACKS (break circular deps)
@@ -1309,12 +1309,21 @@ function openArmoryDetail(entry, cat) {
     btn.addEventListener('click', () => {
       const action = btn.dataset.action;
       if (action === 'unlock') {
-        if (Profile.spendSlices(entry.sliceCost)) {
-          Profile.unlock(entry.slug);
-          syncSliceDisplays();
-          renderArmoryGrid();
-          openArmoryDetail(entry, cat);
-        }
+        const cost = entry.sliceCost || 0;
+        if (Profile.get().slices < cost) return;
+        showConfirm({
+          title: 'UNLOCK?',
+          message: `Spend 🍕 ${cost} slices to unlock ${entry.name}?`,
+          confirmLabel: 'UNLOCK', cancelLabel: 'CANCEL',
+          onConfirm: () => {
+            if (Profile.spendSlices(cost)) {
+              Profile.unlock(entry.slug);
+              syncSliceDisplays();
+              renderArmoryGrid();
+              openArmoryDetail(entry, cat);
+            }
+          },
+        });
       } else if (action === 'equip') {
         Profile.setEquippedCharacter(entry.slug);
         _applyCharacterModel().catch(() => {}); // preload model for next run
@@ -1323,12 +1332,20 @@ function openArmoryDetail(entry, cat) {
       } else if (action === 'boost') {
         const lvl  = Profile.getBoostLevel(entry.slug);
         const cost = boostCostAtLevel(entry, lvl);
-        if (lvl < (entry.maxLevel || 1) && Profile.spendSlices(cost)) {
-          Profile.setBoostLevel(entry.slug, lvl + 1);
-          syncSliceDisplays();
-          renderArmoryGrid();
-          openArmoryDetail(entry, cat);
-        }
+        if (lvl >= (entry.maxLevel || 1) || Profile.get().slices < cost) return;
+        showConfirm({
+          title: 'UPGRADE?',
+          message: `Spend 🍕 ${cost} slices to upgrade ${entry.name} to Lv ${lvl + 1}?`,
+          confirmLabel: 'UPGRADE', cancelLabel: 'CANCEL',
+          onConfirm: () => {
+            if (Profile.spendSlices(cost)) {
+              Profile.setBoostLevel(entry.slug, lvl + 1);
+              syncSliceDisplays();
+              renderArmoryGrid();
+              openArmoryDetail(entry, cat);
+            }
+          },
+        });
       } else if (action === 'close') {
         detail.classList.add('hidden');
       }
@@ -2430,10 +2447,30 @@ function initCharSelect() {
   // SELECT: equip the cycled character (persists) and lock it onto the hero.
   function _pickCharacter() {
     const slug = _charOrder[_charSelIdx];
-    if (!Profile.isUnlocked(slug)) return;
-    Profile.setEquippedCharacter(slug);
-    _refreshCharSelectUI();
-    _applyCharacterModel(slug).catch(() => {});
+    if (Profile.isUnlocked(slug)) {
+      Profile.setEquippedCharacter(slug);
+      _refreshCharSelectUI();
+      _applyCharacterModel(slug).catch(() => {});
+      return;
+    }
+    // Locked → buy it with slices (confirm first), then auto-equip.
+    const entry = CATALOG.characters.find(c => c.slug === slug);
+    const cost  = entry?.sliceCost || 0;
+    if (!cost || Profile.get().slices < cost) return; // unaffordable (button is disabled anyway)
+    showConfirm({
+      title: 'UNLOCK CHARACTER?',
+      message: `Spend 🍕 ${cost} slices to unlock ${entry.name}?`,
+      confirmLabel: 'UNLOCK', cancelLabel: 'CANCEL',
+      onConfirm: () => {
+        if (Profile.spendSlices(cost)) {
+          Profile.unlock(slug);
+          Profile.setEquippedCharacter(slug);
+          syncSliceDisplays();
+          _refreshCharSelectUI();
+          _applyCharacterModel(slug).catch(() => {});
+        }
+      },
+    });
   }
   const _selBtn = document.getElementById('char-select-btn');
   if (_selBtn) _selBtn.addEventListener('click', _pickCharacter);
@@ -2462,10 +2499,20 @@ function _refreshCharSelectUI() {
       btn.classList.remove('dim');
       btn.classList.add('hot');
     } else {
-      btn.textContent = `🔒 ${entry.sliceCost || '?'} SLICES`;
-      btn.disabled    = true;
-      btn.classList.add('dim');
-      btn.classList.remove('hot');
+      // Locked — purchasable from here if the player can afford it.
+      const cost = entry.sliceCost || 0;
+      const canAfford = cost && Profile.get().slices >= cost;
+      if (canAfford) {
+        btn.textContent = `UNLOCK — 🍕 ${cost}`;
+        btn.disabled    = false;
+        btn.classList.remove('dim');
+        btn.classList.add('hot');
+      } else {
+        btn.textContent = `🔒 ${cost || '?'} SLICES`;
+        btn.disabled    = true;
+        btn.classList.add('dim');
+        btn.classList.remove('hot');
+      }
     }
   }
 
