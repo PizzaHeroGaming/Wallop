@@ -10,11 +10,52 @@
 //   main.js        → animate, splash, resize
 
 import { scene, camera, renderer, clock, composer, isMobile, tryEnterFullscreen, rearmFullscreenOnNextTap } from './renderer.js?v=8700610';
-import { gameState } from './state.js?v=8700610';
+import { gameState, cam } from './state.js?v=8700610';
 import { initGame, update, updateTitleScene, updateIntroSweep } from './game.js?v=8700610';
 import './world.js?v=8700610'; // side-effect only: builds terrain scenery at load time
 import { Settings } from './settings.js?v=8700610';
-import { pollGamepad } from './ui.js?v=8700610';
+import { pollGamepad, applyOffer } from './ui.js?v=8700610';
+import { spawnEnemy, enemies, player, ENEMY_DEFS } from './entities.js?v=8700610';
+import { WEAPONS, ARMOR, TOMES } from './weapons.js?v=8700610';
+
+// ── Marketing capture hook (only on the local capture server) ──
+// Lets the headless capture scripts stage a late-game, full-loadout swarm for
+// store screenshots — impossible to reach naturally under slow headless WebGL.
+// Locked to ?cap=1 AND localhost:8123 (the capture server) so it can NEVER run
+// in any shipped build (Pages, Capacitor localhost:80, Electron wallop://) —
+// it grants god-mode + full gear, so this must stay un-shippable.
+if (new URLSearchParams(location.search).has('cap') && location.port === '8123') {
+  window.__cap = {
+    setTime(t = 510) {                                   // jump the run clock (≈8:30)
+      gameState.gameTime = t;
+      // Suppress the two mini-bosses (clutter). Do NOT touch bossSpawned — that
+      // flag drives the win-check and would instant-trigger the victory screen.
+      gameState.miniboss1Spawned = gameState.miniboss2Spawned = true;
+    },
+    heal() { player.maxHp = Math.max(player.maxHp, 99999); player.hp = player.maxHp; },
+    gear() {
+      for (const id of Object.keys(WEAPONS)) if (!player.weapons.find(w => w.id === id)) applyOffer({ kind: 'weapon-new', weaponId: id, rarity: 'common' });
+      for (const w of [...player.weapons]) for (let i = 0; i < 2; i++) { try { applyOffer({ kind: 'weapon-up', weaponId: w.id, rarity: 'common' }); } catch (e) {} }
+      for (const id of Object.keys(ARMOR)) if (!player.armor_items.find(a => a.id === id)) applyOffer({ kind: 'armor-new', armorId: id, rarity: 'common' });
+      for (const id of Object.keys(TOMES)) if (!player.tomes.find(t => t.id === id)) applyOffer({ kind: 'tome-new', tomeId: id, rarity: 'common' });
+    },
+    swarm(n = 70) {
+      const types = Object.keys(ENEMY_DEFS).filter(k => ENEMY_DEFS[k].spawnTime < 9999);
+      const start = enemies.length;
+      for (let i = 0; i < n; i++) spawnEnemy(types[i % types.length]);
+      for (let i = start; i < enemies.length; i++) {            // pull them into a tight ring around the hero
+        const e = enemies[i], a = Math.random() * Math.PI * 2, d = 2.5 + Math.random() * 7.5;
+        e.pos.x = player.pos.x + Math.cos(a) * d;
+        e.pos.z = player.pos.z + Math.sin(a) * d;
+        e.mesh.position.copy(e.pos);
+        e.hp = e.maxHp = 1e7;          // tanky so the swarm persists through the volley (capture only)
+        e.contactCd = 999;             // don't chip the (already invincible) hero
+      }
+      return enemies.length;
+    },
+    tilt(p) { cam.pitch = p; },        // steeper downward angle for the swarm composition
+  };
+}
 
 // ============================================================
 // WEBGL CONTEXT LOSS HANDLING
