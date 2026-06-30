@@ -112,4 +112,53 @@ await composite(`${SHOTS}/01-swarm.png`, 1920, 1080,
   svg(1920, 1080, `<rect width="1920" height="1080" fill="#080a18" opacity="0.62"/>`),
   'steam/page-background-1920x1080.png', 'centre');
 
+// ── STORE CAPSULES (current Steam dimensions) ──
+// Reusable scrim defs: bottom-up + top-down darkening + radial vignette.
+const scrims = (w, h) => `
+  <linearGradient id="sb" x1="0" y1="0" x2="0" y2="1"><stop offset="40%" stop-color="#080a18" stop-opacity="0"/><stop offset="100%" stop-color="#080a18" stop-opacity="0.92"/></linearGradient>
+  <linearGradient id="st" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#080a18" stop-opacity="0.8"/><stop offset="100%" stop-color="#080a18" stop-opacity="0"/></linearGradient>
+  <radialGradient id="sv" cx="50%" cy="45%" r="70%"><stop offset="55%" stop-color="#080a18" stop-opacity="0"/><stop offset="100%" stop-color="#080a18" stop-opacity="0.55"/></radialGradient>`;
+
+// 5. Header capsule 920×430 — action bg + bold logo
+await composite(`${SHOTS}/01-swarm.png`, 920, 430,
+  svg(920, 430, `<defs>${GRAD('gh')}${scrims(920,430)}</defs>
+    <rect width="920" height="430" fill="url(#sv)"/>
+    <rect width="920" height="120" fill="url(#st)"/>
+    <rect y="250" width="920" height="180" fill="url(#sb)"/>
+    ${wordmarkGroup({ cx: 460, cy: 200, targetW: 720, gradId: 'gh' })}
+    ${taglineGroup({ text: 'smash. survive. snowball.', cx: 460, cy: 320, targetW: 430 })}`),
+  'steam/header-capsule-920x430.png', 'centre');
+
+// 6. Main capsule 1232×706 — dramatic boss key art + logo
+await composite(`${SHOTS}/02-boss.png`, 1232, 706,
+  svg(1232, 706, `<defs>${GRAD('gm')}${scrims(1232,706)}</defs>
+    <rect width="1232" height="706" fill="url(#sv)"/>
+    <rect width="1232" height="180" fill="url(#st)"/>
+    <rect y="430" width="1232" height="276" fill="url(#sb)"/>
+    ${wordmarkGroup({ cx: 616, cy: 300, targetW: 920, gradId: 'gm' })}
+    ${taglineGroup({ text: 'smash. survive. snowball.', cx: 616, cy: 450, targetW: 560 })}`),
+  'steam/main-capsule-1232x706.png', 'centre');
+
+// 7. Vertical capsule 748×896 — portrait box art (logo lower third)
+await composite(`${SHOTS}/01-swarm.png`, 748, 896,
+  svg(748, 896, `<defs>${GRAD('gvc')}${scrims(748,896)}</defs>
+    <rect width="748" height="896" fill="url(#sv)"/>
+    <rect width="748" height="150" fill="url(#st)"/>
+    <rect y="470" width="748" height="426" fill="url(#sb)"/>
+    ${wordmarkGroup({ cx: 374, cy: 650, targetW: 620, gradId: 'gvc' })}
+    ${taglineGroup({ text: 'smash. survive. snowball.', cx: 374, cy: 770, targetW: 440 })}`),
+  'steam/vertical-capsule-748x896.png', 'top');
+
+// 8. Small capsule 462×174 — logo-dominant on a clean branded background
+//    (Steam requires the logo to nearly fill + stay legible at the smallest size)
+{
+  const w = 462, h = 174;
+  await sharp(svg(w, h, `<defs>${GRAD('gs')}
+      <radialGradient id="bg" cx="50%" cy="45%" r="75%"><stop offset="0%" stop-color="#1b2452"/><stop offset="100%" stop-color="#0a0d1e"/></radialGradient></defs>
+    <rect width="${w}" height="${h}" fill="url(#bg)"/>
+    ${wordmarkGroup({ cx: w/2, cy: h/2, targetW: 420, gradId: 'gs' })}`))
+    .png().toFile('steam/small-capsule-462x174.png');
+  console.log('wrote steam/small-capsule-462x174.png');
+}
+
 console.log('done');
