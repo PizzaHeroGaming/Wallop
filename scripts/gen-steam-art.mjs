@@ -181,4 +181,14 @@ await composite(HERO, 748, 896,
   console.log('wrote steam/small-capsule-462x174.png');
 }
 
+// 9. Client icons (Installation → Client Images): Shortcut Icon 512 PNG + App
+//    Icon 184 JPG. Solid navy bg — the App Icon has no alpha, so any
+//    transparency would convert to solid black.
+{
+  const ico = fs.readFileSync('assets/icons/icon.svg');
+  await sharp(ico, { density: 400 }).resize(512, 512).flatten({ background: '#0d1126' }).png().toFile('steam/shortcut-icon-512.png');
+  await sharp(ico, { density: 400 }).resize(184, 184).flatten({ background: '#0d1126' }).jpeg({ quality: 95 }).toFile('steam/app-icon-184.jpg');
+  console.log('wrote steam/shortcut-icon-512.png + steam/app-icon-184.jpg');
+}
+
 console.log('done');
