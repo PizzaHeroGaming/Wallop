@@ -102,12 +102,13 @@ await composite(ACTION, 3840, 1240,
     ${taglineGroup({ text: 'smash. survive. snowball.', cx: 1920, cy: 800, targetW: 760 })}`),
   'steam/library-hero-3840x1240.png', 'centre');
 
-// 3. Library logo (transparent wordmark, ~1400×640)
+// 3. Library logo — transparent wordmark, 1280×720 (Steam's required size),
+//    with margin so the mark doesn't run to the edges.
 {
-  const w = 1400, h = 640;
-  await sharp(svg(w, h, `<defs>${GRAD('g3')}</defs>${wordmarkGroup({ cx: w/2, cy: h/2, targetW: 1240, gradId: 'g3' })}`))
-    .png().toFile('steam/library-logo.png');
-  console.log('wrote steam/library-logo.png');
+  const w = 1280, h = 720;
+  await sharp(svg(w, h, `<defs>${GRAD('g3')}</defs>${wordmarkGroup({ cx: w/2, cy: h/2, targetW: 1040, gradId: 'g3' })}`))
+    .png().toFile('steam/library-logo-1280x720.png');
+  console.log('wrote steam/library-logo-1280x720.png');
 }
 
 // 4. Page background 1438×810 — ambient, no text/logo (Steam tints it blue +
