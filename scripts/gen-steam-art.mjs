@@ -110,10 +110,11 @@ await composite(ACTION, 3840, 1240,
   console.log('wrote steam/library-logo.png');
 }
 
-// 4. Page background 1920×1080 — darkened atmosphere
-await composite(ACTION, 1920, 1080,
-  svg(1920, 1080, `<rect width="1920" height="1080" fill="#080a18" opacity="0.6"/>`),
-  'steam/page-background-1920x1080.png', 'centre');
+// 4. Page background 1438×810 — ambient, no text/logo (Steam tints it blue +
+//    fades the edges automatically, so keep it low-contrast and quiet).
+await composite(ACTION, 1438, 810,
+  svg(1438, 810, `<rect width="1438" height="810" fill="#080a18" opacity="0.5"/>`),
+  'steam/page-background-1438x810.png', 'centre');
 
 // 5. Header capsule 920×430 — action bg + bold logo
 await composite(ACTION, 920, 430,
