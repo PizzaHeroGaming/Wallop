@@ -44,13 +44,18 @@ Press **F9** (or load `?nohud=1`) to hide the HUD, mobile controls, and the titl
 menu — for HUD-free, high-res store-capsule + trailer frames. Recomposite
 capsules from clean captures via `scripts/gen-steam-art.mjs`.
 
-## Steamworks (after the $100 account + verification clears)
+## Steamworks (account LIVE as of 2026-06-29)
+- **App ID: `4910280`** (Steamworks admin → WALLOP). Store packages: WALLOP 1704714,
+  Beta Testing 1704713, Developer Comp 1704712; store item 1235588.
+- **`electron/steam_appid.txt`** holds the App ID so `npm start` dev can init the
+  SDK without launching through Steam. Must ship next to the packaged .exe too
+  (add to electron-builder `extraResources`/`files` when the SDK is wired).
 - **Overlay + cloud + achievements:** integrate `steamworks.js` (Node bindings)
   in `electron/main.js`; expose unlock/cloud calls to the game via preload
   (mirror the achievement list in [[project_play_closed_testing]]'s PGS plan).
+  Achievements must first be defined in the Steamworks dashboard (API names).
 - **Steam Cloud** can back the same Profile JSON as the PGS Saved Games path —
   one serialization, two backends chosen by build.
-- Set the real Steam **App ID** (a `steam_appid.txt` next to the exe for dev).
 - No ads ever on Steam (already gated) — keep it that way for the premium promise.
 
 ## Status / verification gap
