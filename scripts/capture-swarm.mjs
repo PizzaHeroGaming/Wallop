@@ -67,5 +67,18 @@ for (let i = 1; i <= 5; i++) {
   console.log(`wrote swarm-${i}.png`, JSON.stringify(st));
 }
 
+// Clean ultrawide frame for the Library Hero (3840x1240) — NO HUD, NO logo
+// (Steam layers the logo separately). Match the hero aspect (~3.1:1) so there's
+// almost no vertical cropping, and hide the HUD with F9.
+await page.setViewport({ width: 3072, height: 992, deviceScaleFactor: 1 });
+await sleep(900);
+await page.evaluate(() => { window.__cap.heal(); window.__cap.tilt(1.0); window.__cap.swarm(60); });
+await sleep(1500);
+await dismissLevelUp();
+await page.keyboard.press('F9'); // hide HUD
+await sleep(600);
+await page.screenshot({ path: 'steam/raw/swarm-hero.png' });
+console.log('wrote steam/raw/swarm-hero.png (clean ultrawide, no HUD)');
+
 await browser.close();
 console.log('done');

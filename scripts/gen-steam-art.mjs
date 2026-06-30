@@ -73,8 +73,9 @@ async function composite(base, w, h, overlay, out, position = 'centre') {
 }
 
 // Clean, HUD-free 1440p captures from scripts/capture-shots.mjs.
-const HERO = 'steam/raw/hero.png';      // hero front-and-center on the arena
-const ACTION = 'steam/raw/action4.png'; // gameplay: pizzas flying on the arena
+const HERO = 'steam/raw/hero.png';        // hero front-and-center on the arena
+const ACTION = 'steam/raw/action4.png';   // gameplay: pizzas flying on the arena
+const HERO_SWARM = 'steam/raw/swarm-hero.png'; // clean ultrawide swarm (no HUD)
 
 // Shared scrim defs (bottom-up + top-down darkening + radial vignette).
 const scrims = () => `
@@ -93,13 +94,13 @@ await composite(HERO, 600, 900,
     ${wordmarkGroup({ cx: 300, cy: 730, targetW: 560, gradId: 'g1' })}`),
   'steam/library-capsule-600x900.png', 'centre');
 
-// 2. Library hero 3840×1240 — wide action banner
-await composite(ACTION, 3840, 1240,
-  svg(3840, 1240, `<defs>${GRAD('g2')}${scrims()}</defs>
-    <rect width="3840" height="1240" fill="url(#sv)"/>
-    <rect width="3840" height="320" fill="url(#st)"/>
-    <rect y="760" width="3840" height="480" fill="url(#sb)"/>
-    ${wordmarkGroup({ cx: 1920, cy: 600, targetW: 1700, gradId: 'g2' })}`),
+// 2. Library hero 3840×1240 — clean swarm key art. Steam rule: NO text or logos
+//    (the logo is layered separately via the placement tool). Gentle vignette
+//    only; hero sits in the centered 860×380 safe area.
+await composite(HERO_SWARM, 3840, 1240,
+  svg(3840, 1240, `<defs>
+      <radialGradient id="vig" cx="50%" cy="50%" r="72%"><stop offset="56%" stop-color="#080a18" stop-opacity="0"/><stop offset="100%" stop-color="#080a18" stop-opacity="0.5"/></radialGradient></defs>
+    <rect width="3840" height="1240" fill="url(#vig)"/>`),
   'steam/library-hero-3840x1240.png', 'centre');
 
 // 3. Library logo — transparent wordmark, 1280×720 (Steam's required size),
