@@ -126,6 +126,16 @@ await composite(ACTION, 920, 430,
     ${wordmarkGroup({ cx: 460, cy: 215, targetW: 720, gradId: 'gh' })}`),
   'steam/header-capsule-920x430.png', 'centre');
 
+// 5b. Library header 920×430 — client-library banner. Steam: match the Library
+// Capsule branding (hero key art) with a clearly legible logo in the lower band.
+await composite(HERO, 920, 430,
+  svg(920, 430, `<defs>${GRAD('glh')}${scrims()}</defs>
+    <rect width="920" height="430" fill="url(#sv)"/>
+    <rect width="920" height="110" fill="url(#st)"/>
+    <rect y="230" width="920" height="200" fill="url(#sb)"/>
+    ${wordmarkGroup({ cx: 460, cy: 330, targetW: 660, gradId: 'glh' })}`),
+  'steam/library-header-920x430.png', 'centre');
+
 // 6. Main capsule 1232×706 — hero key art, logo lower third
 await composite(HERO, 1232, 706,
   svg(1232, 706, `<defs>${GRAD('gm')}${scrims()}</defs>
