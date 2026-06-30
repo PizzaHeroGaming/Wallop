@@ -82,14 +82,15 @@ const scrims = () => `
   <linearGradient id="st" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#080a18" stop-opacity="0.78"/><stop offset="100%" stop-color="#080a18" stop-opacity="0"/></linearGradient>
   <radialGradient id="sv" cx="50%" cy="44%" r="72%"><stop offset="52%" stop-color="#080a18" stop-opacity="0"/><stop offset="100%" stop-color="#080a18" stop-opacity="0.5"/></radialGradient>`;
 
-// 1. Library capsule 600×900 — portrait box art, hero key art, logo lower third
+// 1. Library capsule 600×900 — portrait box art, hero key art, big logo lower
+//    third. Steam rule: logo must fill ≥1/3 of the image AND no text but the logo
+//    (so NO tagline here). Logo spans nearly full width to read as prominent.
 await composite(HERO, 600, 900,
   svg(600, 900, `<defs>${GRAD('g1')}${scrims()}</defs>
     <rect width="600" height="900" fill="url(#sv)"/>
     <rect width="600" height="150" fill="url(#st)"/>
-    <rect y="480" width="600" height="420" fill="url(#sb)"/>
-    ${wordmarkGroup({ cx: 300, cy: 720, targetW: 500, gradId: 'g1' })}
-    ${taglineGroup({ text: 'smash. survive. snowball.', cx: 300, cy: 815, targetW: 360 })}`),
+    <rect y="470" width="600" height="430" fill="url(#sb)"/>
+    ${wordmarkGroup({ cx: 300, cy: 730, targetW: 560, gradId: 'g1' })}`),
   'steam/library-capsule-600x900.png', 'centre');
 
 // 2. Library hero 3840×1240 — wide action banner
@@ -98,8 +99,7 @@ await composite(ACTION, 3840, 1240,
     <rect width="3840" height="1240" fill="url(#sv)"/>
     <rect width="3840" height="320" fill="url(#st)"/>
     <rect y="760" width="3840" height="480" fill="url(#sb)"/>
-    ${wordmarkGroup({ cx: 1920, cy: 560, targetW: 1700, gradId: 'g2' })}
-    ${taglineGroup({ text: 'smash. survive. snowball.', cx: 1920, cy: 800, targetW: 760 })}`),
+    ${wordmarkGroup({ cx: 1920, cy: 600, targetW: 1700, gradId: 'g2' })}`),
   'steam/library-hero-3840x1240.png', 'centre');
 
 // 3. Library logo — transparent wordmark, 1280×720 (Steam's required size),
@@ -123,8 +123,7 @@ await composite(ACTION, 920, 430,
     <rect width="920" height="430" fill="url(#sv)"/>
     <rect width="920" height="120" fill="url(#st)"/>
     <rect y="250" width="920" height="180" fill="url(#sb)"/>
-    ${wordmarkGroup({ cx: 460, cy: 195, targetW: 700, gradId: 'gh' })}
-    ${taglineGroup({ text: 'smash. survive. snowball.', cx: 460, cy: 310, targetW: 420 })}`),
+    ${wordmarkGroup({ cx: 460, cy: 215, targetW: 720, gradId: 'gh' })}`),
   'steam/header-capsule-920x430.png', 'centre');
 
 // 6. Main capsule 1232×706 — hero key art, logo lower third
@@ -133,8 +132,7 @@ await composite(HERO, 1232, 706,
     <rect width="1232" height="706" fill="url(#sv)"/>
     <rect width="1232" height="150" fill="url(#st)"/>
     <rect y="380" width="1232" height="326" fill="url(#sb)"/>
-    ${wordmarkGroup({ cx: 616, cy: 530, targetW: 880, gradId: 'gm' })}
-    ${taglineGroup({ text: 'smash. survive. snowball.', cx: 616, cy: 635, targetW: 520 })}`),
+    ${wordmarkGroup({ cx: 616, cy: 560, targetW: 900, gradId: 'gm' })}`),
   'steam/main-capsule-1232x706.png', 'centre');
 
 // 7. Vertical capsule 748×896 — portrait box art (logo lower third)
@@ -143,8 +141,7 @@ await composite(HERO, 748, 896,
     <rect width="748" height="896" fill="url(#sv)"/>
     <rect width="748" height="150" fill="url(#st)"/>
     <rect y="470" width="748" height="426" fill="url(#sb)"/>
-    ${wordmarkGroup({ cx: 374, cy: 700, targetW: 620, gradId: 'gvc' })}
-    ${taglineGroup({ text: 'smash. survive. snowball.', cx: 374, cy: 800, targetW: 440 })}`),
+    ${wordmarkGroup({ cx: 374, cy: 740, targetW: 640, gradId: 'gvc' })}`),
   'steam/vertical-capsule-748x896.png', 'centre');
 
 // 8. Small capsule 462×174 — logo-dominant on a clean branded background
