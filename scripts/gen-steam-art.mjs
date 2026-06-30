@@ -99,16 +99,31 @@ await composite(HERO, 600, 900,
 //    only; hero sits in the centered 860×380 safe area.
 await composite(HERO_SWARM, 3840, 1240,
   svg(3840, 1240, `<defs>
-      <radialGradient id="vig" cx="50%" cy="50%" r="72%"><stop offset="56%" stop-color="#080a18" stop-opacity="0"/><stop offset="100%" stop-color="#080a18" stop-opacity="0.5"/></radialGradient></defs>
-    <rect width="3840" height="1240" fill="url(#vig)"/>`),
+      <radialGradient id="vig" cx="50%" cy="50%" r="72%"><stop offset="56%" stop-color="#080a18" stop-opacity="0"/><stop offset="100%" stop-color="#080a18" stop-opacity="0.5"/></radialGradient>
+      <radialGradient id="bl" cx="0%" cy="100%" r="65%"><stop offset="0%" stop-color="#080a18" stop-opacity="0.8"/><stop offset="60%" stop-color="#080a18" stop-opacity="0.35"/><stop offset="100%" stop-color="#080a18" stop-opacity="0"/></radialGradient></defs>
+    <rect width="3840" height="1240" fill="url(#vig)"/>
+    <rect width="3840" height="1240" fill="url(#bl)"/>`),
   'steam/library-hero-3840x1240.png', 'centre');
 
-// 3. Library logo — transparent wordmark, 1280×720 (Steam's required size),
-//    with margin so the mark doesn't run to the edges.
+// 3. Library logo — transparent wordmark, 1280×720 (Steam's required size).
+//    Soft dark glow behind the letters so it stays legible against a bright/busy
+//    hero background (Steam suggests a drop shadow for exactly this).
 {
-  const w = 1280, h = 720;
-  await sharp(svg(w, h, `<defs>${GRAD('g3')}</defs>${wordmarkGroup({ cx: w/2, cy: h/2, targetW: 1040, gradId: 'g3' })}`))
-    .png().toFile('steam/library-logo-1280x720.png');
+  const w = 1280, h = 720, targetW = 1040;
+  const tp = textPath(PS, 'WALLOP', 100);
+  const scale = targetW / tp.w;
+  const drawW = tp.w * scale, drawH = tp.h * scale;
+  const ox = w / 2 - drawW / 2 - tp.x1 * scale;
+  const oy = h / 2 - drawH / 2 - tp.y1 * scale;
+  const inner = `<defs>${GRAD('g3')}
+      <filter id="lglow" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="11"/></filter></defs>
+    <g transform="translate(${ox.toFixed(1)},${oy.toFixed(1)}) scale(${scale.toFixed(4)})">
+      <path d="${tp.d}" fill="#000" filter="url(#lglow)"/>
+      <path d="${tp.d}" fill="#000" filter="url(#lglow)"/>
+      <path d="${tp.d}" fill="#000" filter="url(#lglow)"/>
+      <path d="${tp.d}" fill="url(#g3)" stroke="#000" stroke-width="6" stroke-linejoin="round"/>
+    </g>`;
+  await sharp(svg(w, h, inner)).png().toFile('steam/library-logo-1280x720.png');
   console.log('wrote steam/library-logo-1280x720.png');
 }
 
