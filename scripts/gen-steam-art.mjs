@@ -72,31 +72,34 @@ async function composite(base, w, h, overlay, out, position = 'centre') {
   console.log('wrote', out);
 }
 
-const SHOTS = 'steam/screenshots';
+// Clean, HUD-free 1440p captures from scripts/capture-shots.mjs.
+const HERO = 'steam/raw/hero.png';      // hero front-and-center on the arena
+const ACTION = 'steam/raw/action4.png'; // gameplay: pizzas flying on the arena
 
-// 1. Library capsule 600×900 (portrait box art)
-await composite(`${SHOTS}/02-boss.png`, 600, 900,
-  svg(600, 900, `<defs>${GRAD('g1')}
-    <linearGradient id="sc1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#080a18" stop-opacity="0"/><stop offset="55%" stop-color="#080a18" stop-opacity="0.82"/><stop offset="100%" stop-color="#080a18" stop-opacity="0.97"/></linearGradient>
-    <linearGradient id="sctop1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#080a18" stop-opacity="0.95"/><stop offset="100%" stop-color="#080a18" stop-opacity="0"/></linearGradient></defs>
-    <rect width="600" height="900" fill="#0d1126" opacity="0.18"/>
-    <rect x="0" y="0" width="600" height="170" fill="url(#sctop1)"/>
-    <rect x="0" y="430" width="600" height="470" fill="url(#sc1)" />
-    ${wordmarkGroup({ cx: 300, cy: 600, targetW: 500, gradId: 'g1' })}
-    ${taglineGroup({ text: 'smash. survive. snowball.', cx: 300, cy: 720, targetW: 360 })}`),
-  'steam/library-capsule-600x900.png', 'top');
+// Shared scrim defs (bottom-up + top-down darkening + radial vignette).
+const scrims = () => `
+  <linearGradient id="sb" x1="0" y1="0" x2="0" y2="1"><stop offset="38%" stop-color="#080a18" stop-opacity="0"/><stop offset="100%" stop-color="#080a18" stop-opacity="0.94"/></linearGradient>
+  <linearGradient id="st" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#080a18" stop-opacity="0.78"/><stop offset="100%" stop-color="#080a18" stop-opacity="0"/></linearGradient>
+  <radialGradient id="sv" cx="50%" cy="44%" r="72%"><stop offset="52%" stop-color="#080a18" stop-opacity="0"/><stop offset="100%" stop-color="#080a18" stop-opacity="0.5"/></radialGradient>`;
 
-// 2. Library hero 3840×1240 (ultrawide banner)
-await composite(`${SHOTS}/01-swarm.png`, 3840, 1240,
-  svg(3840, 1240, `<defs>${GRAD('g2')}
-    <linearGradient id="sc2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#080a18" stop-opacity="0.1"/><stop offset="100%" stop-color="#080a18" stop-opacity="0.8"/></linearGradient>
-    <linearGradient id="sctop2" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#080a18" stop-opacity="0.92"/><stop offset="100%" stop-color="#080a18" stop-opacity="0"/></linearGradient>
-    <radialGradient id="vig" cx="50%" cy="48%" r="62%"><stop offset="62%" stop-color="#080a18" stop-opacity="0"/><stop offset="100%" stop-color="#080a18" stop-opacity="0.6"/></radialGradient></defs>
-    <rect width="3840" height="1240" fill="url(#sc2)"/>
-    <rect x="0" y="0" width="3840" height="360" fill="url(#sctop2)"/>
-    <rect width="3840" height="1240" fill="url(#vig)"/>
-    ${wordmarkGroup({ cx: 1920, cy: 580, targetW: 1700, gradId: 'g2' })}
-    ${taglineGroup({ text: 'smash. survive. snowball.', cx: 1920, cy: 820, targetW: 760 })}`),
+// 1. Library capsule 600×900 — portrait box art, hero key art, logo lower third
+await composite(HERO, 600, 900,
+  svg(600, 900, `<defs>${GRAD('g1')}${scrims()}</defs>
+    <rect width="600" height="900" fill="url(#sv)"/>
+    <rect width="600" height="150" fill="url(#st)"/>
+    <rect y="480" width="600" height="420" fill="url(#sb)"/>
+    ${wordmarkGroup({ cx: 300, cy: 720, targetW: 500, gradId: 'g1' })}
+    ${taglineGroup({ text: 'smash. survive. snowball.', cx: 300, cy: 815, targetW: 360 })}`),
+  'steam/library-capsule-600x900.png', 'centre');
+
+// 2. Library hero 3840×1240 — wide action banner
+await composite(ACTION, 3840, 1240,
+  svg(3840, 1240, `<defs>${GRAD('g2')}${scrims()}</defs>
+    <rect width="3840" height="1240" fill="url(#sv)"/>
+    <rect width="3840" height="320" fill="url(#st)"/>
+    <rect y="760" width="3840" height="480" fill="url(#sb)"/>
+    ${wordmarkGroup({ cx: 1920, cy: 560, targetW: 1700, gradId: 'g2' })}
+    ${taglineGroup({ text: 'smash. survive. snowball.', cx: 1920, cy: 800, targetW: 760 })}`),
   'steam/library-hero-3840x1240.png', 'centre');
 
 // 3. Library logo (transparent wordmark, ~1400×640)
@@ -107,50 +110,42 @@ await composite(`${SHOTS}/01-swarm.png`, 3840, 1240,
   console.log('wrote steam/library-logo.png');
 }
 
-// 4. Page background 1920×1080 (darkened atmosphere, faint logo)
-await composite(`${SHOTS}/01-swarm.png`, 1920, 1080,
-  svg(1920, 1080, `<rect width="1920" height="1080" fill="#080a18" opacity="0.62"/>`),
+// 4. Page background 1920×1080 — darkened atmosphere
+await composite(ACTION, 1920, 1080,
+  svg(1920, 1080, `<rect width="1920" height="1080" fill="#080a18" opacity="0.6"/>`),
   'steam/page-background-1920x1080.png', 'centre');
 
-// ── STORE CAPSULES (current Steam dimensions) ──
-// Reusable scrim defs: bottom-up + top-down darkening + radial vignette.
-const scrims = (w, h) => `
-  <linearGradient id="sb" x1="0" y1="0" x2="0" y2="1"><stop offset="40%" stop-color="#080a18" stop-opacity="0"/><stop offset="100%" stop-color="#080a18" stop-opacity="0.92"/></linearGradient>
-  <linearGradient id="st" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#080a18" stop-opacity="0.8"/><stop offset="100%" stop-color="#080a18" stop-opacity="0"/></linearGradient>
-  <radialGradient id="sv" cx="50%" cy="45%" r="70%"><stop offset="55%" stop-color="#080a18" stop-opacity="0"/><stop offset="100%" stop-color="#080a18" stop-opacity="0.55"/></radialGradient>`;
-
 // 5. Header capsule 920×430 — action bg + bold logo
-await composite(`${SHOTS}/01-swarm.png`, 920, 430,
-  svg(920, 430, `<defs>${GRAD('gh')}${scrims(920,430)}</defs>
+await composite(ACTION, 920, 430,
+  svg(920, 430, `<defs>${GRAD('gh')}${scrims()}</defs>
     <rect width="920" height="430" fill="url(#sv)"/>
     <rect width="920" height="120" fill="url(#st)"/>
     <rect y="250" width="920" height="180" fill="url(#sb)"/>
-    ${wordmarkGroup({ cx: 460, cy: 200, targetW: 720, gradId: 'gh' })}
-    ${taglineGroup({ text: 'smash. survive. snowball.', cx: 460, cy: 320, targetW: 430 })}`),
+    ${wordmarkGroup({ cx: 460, cy: 195, targetW: 700, gradId: 'gh' })}
+    ${taglineGroup({ text: 'smash. survive. snowball.', cx: 460, cy: 310, targetW: 420 })}`),
   'steam/header-capsule-920x430.png', 'centre');
 
-// 6. Main capsule 1232×706 — dramatic boss key art + logo
-await composite(`${SHOTS}/02-boss.png`, 1232, 706,
-  svg(1232, 706, `<defs>${GRAD('gm')}${scrims(1232,706)}</defs>
+// 6. Main capsule 1232×706 — hero key art, logo lower third
+await composite(HERO, 1232, 706,
+  svg(1232, 706, `<defs>${GRAD('gm')}${scrims()}</defs>
     <rect width="1232" height="706" fill="url(#sv)"/>
-    <rect width="1232" height="180" fill="url(#st)"/>
-    <rect y="430" width="1232" height="276" fill="url(#sb)"/>
-    ${wordmarkGroup({ cx: 616, cy: 300, targetW: 920, gradId: 'gm' })}
-    ${taglineGroup({ text: 'smash. survive. snowball.', cx: 616, cy: 450, targetW: 560 })}`),
+    <rect width="1232" height="150" fill="url(#st)"/>
+    <rect y="380" width="1232" height="326" fill="url(#sb)"/>
+    ${wordmarkGroup({ cx: 616, cy: 530, targetW: 880, gradId: 'gm' })}
+    ${taglineGroup({ text: 'smash. survive. snowball.', cx: 616, cy: 635, targetW: 520 })}`),
   'steam/main-capsule-1232x706.png', 'centre');
 
 // 7. Vertical capsule 748×896 — portrait box art (logo lower third)
-await composite(`${SHOTS}/01-swarm.png`, 748, 896,
-  svg(748, 896, `<defs>${GRAD('gvc')}${scrims(748,896)}</defs>
+await composite(HERO, 748, 896,
+  svg(748, 896, `<defs>${GRAD('gvc')}${scrims()}</defs>
     <rect width="748" height="896" fill="url(#sv)"/>
     <rect width="748" height="150" fill="url(#st)"/>
     <rect y="470" width="748" height="426" fill="url(#sb)"/>
-    ${wordmarkGroup({ cx: 374, cy: 650, targetW: 620, gradId: 'gvc' })}
-    ${taglineGroup({ text: 'smash. survive. snowball.', cx: 374, cy: 770, targetW: 440 })}`),
-  'steam/vertical-capsule-748x896.png', 'top');
+    ${wordmarkGroup({ cx: 374, cy: 700, targetW: 620, gradId: 'gvc' })}
+    ${taglineGroup({ text: 'smash. survive. snowball.', cx: 374, cy: 800, targetW: 440 })}`),
+  'steam/vertical-capsule-748x896.png', 'centre');
 
 // 8. Small capsule 462×174 — logo-dominant on a clean branded background
-//    (Steam requires the logo to nearly fill + stay legible at the smallest size)
 {
   const w = 462, h = 174;
   await sharp(svg(w, h, `<defs>${GRAD('gs')}
