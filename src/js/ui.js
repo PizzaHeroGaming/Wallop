@@ -15,7 +15,7 @@
 //   keyboard/mobile → tryJump, tryDash (game.js): use _jumpFn/_dashFn, set via setJumpDashCbs()
 //   openChest → presentChoiceScreen (this file): setOpenChestDeps is called in initUI()
 
-import { camera, renderer, isMobile, tryEnterFullscreen } from './renderer.js?v=aad437f';
+import { camera, renderer, isMobile, tryEnterFullscreen } from './renderer.js?v=4e56808';
 import {
   player, enemies,
   tryInteract, setOpenChestDeps,
@@ -23,20 +23,20 @@ import {
   spawnParticle,
   CHARACTER_MODELS, _animClips, loadCharAsset,
   _applyCharacterModel,
-} from './entities.js?v=aad437f';
-import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=aad437f';
-import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=aad437f';
-import { gameState, cam } from './state.js?v=aad437f';
-import { Audio } from './audio.js?v=aad437f';
-import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=aad437f';
+} from './entities.js?v=4e56808';
+import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=4e56808';
+import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=4e56808';
+import { gameState, cam } from './state.js?v=4e56808';
+import { Audio } from './audio.js?v=4e56808';
+import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=4e56808';
 // VERSION lives on CFG.VERSION too — reading via property access doesn't
 // blow up if a cached older config.js is loaded without the named export
 const VERSION = CFG.VERSION || '0.0.0';
 // Slices granted per on-demand "watch ad for slices" view (daily-capped in Profile).
 const AD_SLICE_REWARD = 3;
-import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=aad437f';
-import { tmp, tmp2 } from './utils.js?v=aad437f';
-import { Settings } from './settings.js?v=aad437f';
+import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=4e56808';
+import { tmp, tmp2 } from './utils.js?v=4e56808';
+import { Settings } from './settings.js?v=4e56808';
 
 // ============================================================
 // INJECTION CALLBACKS (break circular deps)
@@ -1626,11 +1626,36 @@ function _gpSetFocus(el) {
     try { _gpFocusEl.scrollIntoView({ block: 'nearest', inline: 'nearest' }); } catch (e) {}
   }
 }
+// Preferred first-focus per menu (so a pad lands on the obvious control, not the
+// close ✕). Falls back to the first focusable if the selector matches nothing.
+const _GP_DEFAULT_FOCUS = {
+  'armory-screen': '.armory-tab.active, .armory-tab',
+  'pause-screen': '#resume-btn',
+  'run-config-screen': '#run-config-play-btn',
+  'gameover-screen': 'button',
+  'stage-clear-screen': 'button',
+  'start-screen': '#start-btn',
+};
 function _gpEnsureFocus(root) {
   const list = _gpFocusables(root);
   if (!list.length) { _gpClearFocus(); return null; }
-  if (!_gpFocusEl || !root.contains(_gpFocusEl) || !_gpVisible(_gpFocusEl)) _gpSetFocus(list[0]);
+  if (!_gpFocusEl || !root.contains(_gpFocusEl) || !_gpVisible(_gpFocusEl)) {
+    let def = null;
+    const sel = _GP_DEFAULT_FOCUS[root.id];
+    if (sel) def = [...root.querySelectorAll(sel)].filter(_gpVisible).find(e => list.includes(e));
+    _gpSetFocus(def || list[0]);
+  }
   return _gpFocusEl;
+}
+// LB/RB cycle tabbed screens (Armory). Keeps focus on the active tab so bumpers
+// keep working; D-pad down then drops into the tab's content.
+function _gpTabCycle(root, dir) {
+  const tabs = [...root.querySelectorAll('.armory-tab')].filter(_gpVisible);
+  if (tabs.length < 2) return;
+  let i = tabs.findIndex(t => t.classList.contains('active'));
+  if (i < 0) i = 0;
+  tabs[(i + dir + tabs.length) % tabs.length].click();
+  _gpSetFocus([...root.querySelectorAll('.armory-tab.active')].filter(_gpVisible)[0] || tabs[0]);
 }
 function _gpMove(dir) {
   const root = _gpActiveRoot();
@@ -1759,14 +1784,17 @@ function _updateGpHints(gp) {
   if (!gp || !root) { _hideGpHints(); return; }
   const t = _padType(gp);
   const adjustable = _gpIsAdjustable(_gpFocusEl);
-  const key = t + '|' + root.id + (adjustable ? '|adj' : '');
+  const hasTabs = root.querySelector('.armory-tab');
+  const key = t + '|' + root.id + (adjustable ? '|adj' : '') + (hasTabs ? '|tab' : '');
   if (key === _hintKey) { el.classList.remove('hidden'); return; }
   _hintKey = key;
+  const bump = { ps: ['L1', 'R1'], xbox: ['LB', 'RB'], switch: ['L', 'R'] }[t] || ['LB', 'RB'];
   el.innerHTML =
     (adjustable ? '<span class="gp-dpad">◀▶</span><span class="lbl">Adjust</span>' : '') +
     _glyph(t, 'confirm') + '<span class="lbl">Select</span>' +
     _glyph(t, 'back') + '<span class="lbl">Back</span>' +
-    '<span class="gp-dpad">✜</span><span class="lbl">Navigate</span>';
+    '<span class="gp-dpad">✜</span><span class="lbl">Navigate</span>' +
+    (hasTabs ? `<span class="gp-glyph wide">${bump[0]}</span><span class="gp-glyph wide">${bump[1]}</span><span class="lbl">Tabs</span>` : '');
   el.classList.remove('hidden');
 }
 
@@ -1818,7 +1846,7 @@ export function pollGamepad(dt) {
     if (edge(2)) tryInteract();                         // X → interact / use
     _padNavDir = null;
   } else {
-    edge(2); edge(5);                                   // keep gameplay-button cache fresh
+    edge(2);                                            // keep interact cache fresh (unused in menus)
     const root = _gpActiveRoot();
     if (root) {                                         // a menu is open → navigate it
       _gpEnsureFocus(root);
@@ -1834,8 +1862,10 @@ export function pollGamepad(dt) {
       _padNavDir = dir;
       if (edge(0)) gpMenuNav('confirm');               // A → activate
       if (edge(1)) gpMenuNav('back');                  // B → back/cancel
+      if (edge(4)) _gpTabCycle(root, -1);              // LB → previous tab
+      if (edge(5)) _gpTabCycle(root, 1);               // RB → next tab
     } else {
-      edge(0); edge(1); edge(12); edge(13); edge(14); edge(15);
+      edge(0); edge(1); edge(4); edge(5); edge(12); edge(13); edge(14); edge(15);
       _gpClearFocus();
       _padNavDir = null;
     }
