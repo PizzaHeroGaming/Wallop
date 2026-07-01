@@ -2125,8 +2125,14 @@
     text-transform: uppercase;
   }
   #gp-hints.hidden { display: none; }
-  /* Scrollable menus: reserve room so the bottom rows clear the hint bar. */
-  body #settings-screen, body #about-screen, body #challenges-screen { padding-bottom: 58px; }
+  /* When the hint bar is visible, lift overlays so their bottom content clears
+     it. --gp-pad is computed in _updateGpHints in overlay units (it accounts for
+     the .overlay `zoom: var(--ui-scale)`), so it's pixel-accurate at any scale. */
+  body.gp-hints-visible .overlay,
+  body.gp-hints-visible #confirm-overlay {
+    padding-bottom: var(--gp-pad, 84px) !important;   /* physical space to scroll into */
+    scroll-padding-bottom: var(--gp-pad, 84px) !important; /* keep focus above the bar on scrollIntoView */
+  }
   #gp-hints span.lbl { margin: 0 12px 0 2px; color: var(--ink-dim); }
   #gp-hints .gp-glyph {
     display: inline-flex; align-items: center; justify-content: center;
@@ -3611,6 +3617,6 @@ window.addEventListener('load', () => {
 <script src="src/vendor/three/UnrealBloomPass.js"></script>
 <script src="src/vendor/three/GLTFLoader.js"></script>
 <script src="src/vendor/three/SkeletonUtils.js"></script>
-<script type="module" src="src/js/main.js?v=6049494"></script>
+<script type="module" src="src/js/main.js?v=138e4f9"></script>
 </body>
 </html>
