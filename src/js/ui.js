@@ -15,7 +15,7 @@
 //   keyboard/mobile → tryJump, tryDash (game.js): use _jumpFn/_dashFn, set via setJumpDashCbs()
 //   openChest → presentChoiceScreen (this file): setOpenChestDeps is called in initUI()
 
-import { camera, renderer, isMobile, tryEnterFullscreen } from './renderer.js?v=b36634b';
+import { camera, renderer, isMobile, tryEnterFullscreen } from './renderer.js?v=d39988c';
 import {
   player, enemies,
   tryInteract, setOpenChestDeps,
@@ -23,20 +23,20 @@ import {
   spawnParticle,
   CHARACTER_MODELS, _animClips, loadCharAsset,
   _applyCharacterModel,
-} from './entities.js?v=b36634b';
-import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=b36634b';
-import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=b36634b';
-import { gameState, cam } from './state.js?v=b36634b';
-import { Audio } from './audio.js?v=b36634b';
-import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=b36634b';
+} from './entities.js?v=d39988c';
+import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=d39988c';
+import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=d39988c';
+import { gameState, cam } from './state.js?v=d39988c';
+import { Audio } from './audio.js?v=d39988c';
+import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=d39988c';
 // VERSION lives on CFG.VERSION too — reading via property access doesn't
 // blow up if a cached older config.js is loaded without the named export
 const VERSION = CFG.VERSION || '0.0.0';
 // Slices granted per on-demand "watch ad for slices" view (daily-capped in Profile).
 const AD_SLICE_REWARD = 3;
-import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=b36634b';
-import { tmp, tmp2 } from './utils.js?v=b36634b';
-import { Settings } from './settings.js?v=b36634b';
+import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=d39988c';
+import { tmp, tmp2 } from './utils.js?v=d39988c';
+import { Settings } from './settings.js?v=d39988c';
 
 // ============================================================
 // INJECTION CALLBACKS (break circular deps)

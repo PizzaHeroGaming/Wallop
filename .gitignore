@@ -9,6 +9,8 @@ npm-debug.log*
 .claude/cache/
 .claude/sessions/
 .claude/local-*
+.claude/worktrees/
+.claude/launch.json
 
 # Capacitor / native wrappers
 # android/ IS committed — we customize the manifest (landscape lock, AdMob App
