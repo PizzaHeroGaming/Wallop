@@ -35,9 +35,13 @@ activate/back (`_gpRehome`). One generic model covers every overlay
 (`_GP_OVERLAYS`): start, run-config, level-up/chest cards, pause, game-over,
 Armory (tabs→grid→detail), Settings, confirm. Verified end-to-end: start → PLAY →
 run-config → PLAY starts a run; Escape → pause → navigate.
-- **Remaining polish:** per-menu *default* focus (e.g. open Armory on the first
-  tab, not the ✕); let arrows adjust Settings sliders/checkboxes when one is
-  focused; bumper (LB/RB) tab-switching in the Armory.
+- **✅ Also done:** Settings sliders/checkboxes/dropdowns are focusable and
+  operable (✕ toggles, ◀▶ adjusts/cycles; native dropdowns cycle in place, never
+  opened); two-pass "nearest band → most aligned" nav goes row-by-row in lists and
+  stays aligned in grids; per-menu default focus (Armory→active tab, pause→Resume,
+  run-config→Play, etc.); LB/RB cycle Armory tabs; adaptive interact prompt, pause
+  hint, and tutorial move/look text.
+- **Remaining polish:** rebind-screen glyphs; in-game HUD action glyphs.
 
 ### B. Controller glyphs — ✅ menu hints DONE (2026-06-30)
 - `_padType()` detects PS (DualSense/DualShock) / Xbox / Switch / generic from the
