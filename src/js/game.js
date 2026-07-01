@@ -1,6 +1,6 @@
 // game.js — core game logic: damageEnemy, update loop, player movement, spawning
 // Imports (acyclic — game.js is the top of the dep graph among game modules):
-import { scene, camera, renderer, composer, sun, clock, isMobile, isSteamBuild, tryEnterFullscreen, releasePtLight, setRendererArena } from './renderer.js?v=d39988c';
+import { scene, camera, renderer, composer, sun, clock, isMobile, isSteamBuild, tryEnterFullscreen, releasePtLight, setRendererArena } from './renderer.js?v=f772663';
 import {
   player,
   playerMixer, playerIdleAction, playerWalkAction, playerRunAction,
@@ -19,18 +19,18 @@ import {
   updateShieldOrbital, updateParticles,
   setDamageEnemyCb, setOnLevelUpReady,
   spawnGold, spawnSmokeCloud, makeEnemyMesh, ENEMY_DEFS,
-} from './entities.js?v=d39988c';
-import { WEAPONS, ARMOR, TOMES, setDamageEnemyForWeapons, rebuildOrbits } from './weapons.js?v=d39988c';
-import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=d39988c';
+} from './entities.js?v=f772663';
+import { WEAPONS, ARMOR, TOMES, setDamageEnemyForWeapons, rebuildOrbits } from './weapons.js?v=f772663';
+import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=f772663';
 import {
   gameState, cam,
-} from './state.js?v=d39988c';
-import { CFG, STAGE_MULTS, DIFFICULTIES } from './config.js?v=d39988c';
-import { Profile, ARENAS, CHALLENGES } from './profile.js?v=d39988c';
-import { groundHeight, resolveSolids, setTerrainArena } from './terrain.js?v=d39988c';
-import { setWorldArena } from './world.js?v=d39988c';
-import { killMesh, clamp, rand, tmp, tmp2, flatPhong } from './utils.js?v=d39988c';
-import { Audio } from './audio.js?v=d39988c';
+} from './state.js?v=f772663';
+import { CFG, STAGE_MULTS, DIFFICULTIES } from './config.js?v=f772663';
+import { Profile, ARENAS, CHALLENGES } from './profile.js?v=f772663';
+import { groundHeight, resolveSolids, setTerrainArena } from './terrain.js?v=f772663';
+import { setWorldArena } from './world.js?v=f772663';
+import { killMesh, clamp, rand, tmp, tmp2, flatPhong } from './utils.js?v=f772663';
+import { Audio } from './audio.js?v=f772663';
 import {
   showDamage, showAlert, updateBossArrow, updateLoadoutDisplay,
   syncSliceDisplays, triggerGameOver,
@@ -46,8 +46,8 @@ import {
   showTutorialStep, hideTutorial, setTutorialSkipCb,
   initUI,
   addCameraShake,
-} from './ui.js?v=d39988c';
-import { Settings } from './settings.js?v=d39988c';
+} from './ui.js?v=f772663';
+import { Settings } from './settings.js?v=f772663';
 
 // Player animation state (module-level so it persists across frames)
 let _animState = 'idle';
