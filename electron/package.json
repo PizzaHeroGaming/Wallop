@@ -16,12 +16,24 @@
   "build": {
     "appId": "com.pizzaherogaming.wallop",
     "productName": "WALLOP",
-    "directories": { "output": "dist" },
+    "directories": { "output": "dist", "buildResources": "build" },
     "files": ["main.js", "preload.js", "package.json"],
     "extraResources": [
       { "from": "../www", "to": "game" }
     ],
-    "win": { "target": "dir" },
+    "win": {
+      "target": ["nsis", "dir"],
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "WALLOP",
+      "artifactName": "WALLOP-Setup-${version}.${ext}"
+    },
     "linux": { "target": "dir" },
     "mac": { "target": "dir" }
   }
