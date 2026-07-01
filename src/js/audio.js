@@ -13,7 +13,7 @@
 //   2. Add an entry to SFX (slug → { file, vol?, throttle?, channel? }).
 //   3. Call Audio.play('your_slug') from wherever the trigger fires.
 
-import { Profile } from './profile.js?v=f772663';
+import { Profile } from './profile.js?v=bf0b70d';
 
 const _UI_BASE  = 'assets/kenney_ui-audio/Audio/';
 const _RPG_BASE = 'assets/kenney_rpg-audio/Audio/';
