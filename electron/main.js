@@ -37,6 +37,7 @@ function createWindow() {
     },
   });
   Menu.setApplicationMenu(null); // no menu bar in the shipped game
+  if (!app.isPackaged) win.webContents.session.clearCache(); // dev: always load fresh modules
   win.loadURL('wallop://local/index.html');
 
   // F11 toggles fullscreen. Esc is intentionally NOT intercepted — the game uses
@@ -45,6 +46,10 @@ function createWindow() {
   win.webContents.on('before-input-event', (e, input) => {
     if (input.type === 'keyDown' && input.key === 'F11') {
       win.setFullScreen(!win.isFullScreen());
+      e.preventDefault();
+    }
+    if (input.type === 'keyDown' && input.key === 'F12') {
+      win.webContents.toggleDevTools();
       e.preventDefault();
     }
   });

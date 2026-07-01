@@ -15,7 +15,7 @@
 //   keyboard/mobile → tryJump, tryDash (game.js): use _jumpFn/_dashFn, set via setJumpDashCbs()
 //   openChest → presentChoiceScreen (this file): setOpenChestDeps is called in initUI()
 
-import { camera, renderer, isMobile, tryEnterFullscreen } from './renderer.js?v=f772663';
+import { camera, renderer, isMobile, tryEnterFullscreen } from './renderer.js?v=94f2ca9';
 import {
   player, enemies,
   tryInteract, setOpenChestDeps,
@@ -23,20 +23,20 @@ import {
   spawnParticle,
   CHARACTER_MODELS, _animClips, loadCharAsset,
   _applyCharacterModel,
-} from './entities.js?v=f772663';
-import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=f772663';
-import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=f772663';
-import { gameState, cam } from './state.js?v=f772663';
-import { Audio } from './audio.js?v=f772663';
-import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=f772663';
+} from './entities.js?v=94f2ca9';
+import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=94f2ca9';
+import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=94f2ca9';
+import { gameState, cam } from './state.js?v=94f2ca9';
+import { Audio } from './audio.js?v=94f2ca9';
+import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=94f2ca9';
 // VERSION lives on CFG.VERSION too — reading via property access doesn't
 // blow up if a cached older config.js is loaded without the named export
 const VERSION = CFG.VERSION || '0.0.0';
 // Slices granted per on-demand "watch ad for slices" view (daily-capped in Profile).
 const AD_SLICE_REWARD = 3;
-import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=f772663';
-import { tmp, tmp2 } from './utils.js?v=f772663';
-import { Settings } from './settings.js?v=f772663';
+import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=94f2ca9';
+import { tmp, tmp2 } from './utils.js?v=94f2ca9';
+import { Settings } from './settings.js?v=94f2ca9';
 
 // ============================================================
 // INJECTION CALLBACKS (break circular deps)
@@ -1728,13 +1728,26 @@ function _updateGpHints(gp) {
   el.classList.remove('hidden');
 }
 
+// Interact prompt (#interact-prompt) key/glyph: show the controller's interact
+// button (□/X/Y = button 2) when a pad is active, else the interact keybind.
+let _interactKeyEl = null;
+function _updateInteractGlyph(gp) {
+  if (!_interactKeyEl) _interactKeyEl = document.querySelector('#interact-prompt .key');
+  if (!_interactKeyEl) return;
+  const txt = (gp && Settings.get('controllerEnabled'))
+    ? ((_GLYPHS[_padType(gp)] || _GLYPHS.xbox).use.s)
+    : _keyLabel(Settings.getBind('interact'));
+  if (_interactKeyEl.textContent !== txt) _interactKeyEl.textContent = txt;
+}
+
 export function pollGamepad(dt) {
-  if (!Settings.get('controllerEnabled')) { _hideGpHints(); return; }
+  if (!Settings.get('controllerEnabled')) { _hideGpHints(); _updateInteractGlyph(null); return; }
   const pads = navigator.getGamepads ? navigator.getGamepads() : [];
   let gp = null;
   for (const p of pads) { if (p && p.connected) { gp = p; break; } }
-  if (!gp) { _hideGpHints(); return; }
+  if (!gp) { _hideGpHints(); _updateInteractGlyph(null); return; }
   _updateGpHints(gp);
+  _updateInteractGlyph(gp);
   const playing = gameState.state === 'playing';
   if (playing) {
     joystickInput.x = _dz(gp.axes[0] || 0);  // left stick → movement (signs match WASD)
