@@ -15,7 +15,7 @@
 //   keyboard/mobile → tryJump, tryDash (game.js): use _jumpFn/_dashFn, set via setJumpDashCbs()
 //   openChest → presentChoiceScreen (this file): setOpenChestDeps is called in initUI()
 
-import { camera, renderer, isMobile, tryEnterFullscreen } from './renderer.js?v=138e4f9';
+import { camera, renderer, isMobile, tryEnterFullscreen } from './renderer.js?v=daf9249';
 import {
   player, enemies,
   tryInteract, setOpenChestDeps,
@@ -23,20 +23,20 @@ import {
   spawnParticle,
   CHARACTER_MODELS, _animClips, loadCharAsset,
   _applyCharacterModel,
-} from './entities.js?v=138e4f9';
-import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=138e4f9';
-import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=138e4f9';
-import { gameState, cam } from './state.js?v=138e4f9';
-import { Audio } from './audio.js?v=138e4f9';
-import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=138e4f9';
+} from './entities.js?v=daf9249';
+import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=daf9249';
+import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=daf9249';
+import { gameState, cam } from './state.js?v=daf9249';
+import { Audio } from './audio.js?v=daf9249';
+import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=daf9249';
 // VERSION lives on CFG.VERSION too — reading via property access doesn't
 // blow up if a cached older config.js is loaded without the named export
 const VERSION = CFG.VERSION || '0.0.0';
 // Slices granted per on-demand "watch ad for slices" view (daily-capped in Profile).
 const AD_SLICE_REWARD = 3;
-import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=138e4f9';
-import { tmp, tmp2 } from './utils.js?v=138e4f9';
-import { Settings } from './settings.js?v=138e4f9';
+import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=daf9249';
+import { tmp, tmp2 } from './utils.js?v=daf9249';
+import { Settings } from './settings.js?v=daf9249';
 
 // ============================================================
 // INJECTION CALLBACKS (break circular deps)
@@ -1665,8 +1665,8 @@ function _gpMove(dir) {
   const cr = cur.getBoundingClientRect();
   const cx = cr.left + cr.width / 2, cy = cr.top + cr.height / 2;
   const horiz = dir === 'left' || dir === 'right';
-  // Pass 1: collect candidates in the pressed direction with their distance
-  // along (primary) and perpendicular to (cross) the movement axis.
+  // Collect candidates in the pressed direction with distance along (primary) and
+  // perpendicular to (cross) the movement axis, plus their rect.
   const cands = [];
   for (const el of _gpFocusables(root)) {
     if (el === cur) continue;
@@ -1676,17 +1676,25 @@ function _gpMove(dir) {
     if (dir === 'down' && dy < 4) continue;
     if (dir === 'left' && dx > -4) continue;
     if (dir === 'right' && dx < 4) continue;
-    cands.push({ el, primary: horiz ? Math.abs(dx) : Math.abs(dy), cross: horiz ? Math.abs(dy) : Math.abs(dx) });
+    cands.push({ el, r, primary: horiz ? Math.abs(dx) : Math.abs(dy), cross: horiz ? Math.abs(dy) : Math.abs(dx) });
   }
   if (!cands.length) return;
-  // Pass 2: take the nearest "band" in the pressed direction (one row for a
-  // list, one row of a grid), then the most-aligned element within it. This is
-  // row-by-row for single-control list rows AND column-aligned for grids.
-  const minP = Math.min(...cands.map(c => c.primary));
-  const band = minP + Math.max(8, minP * 0.5);
-  let best = null, bestCross = Infinity;
-  for (const c of cands) {
-    if (c.primary <= band && c.cross < bestCross) { bestCross = c.cross; best = c.el; }
+  let best = null;
+  if (horiz) {
+    // Left/right: stay in the same row — prefer candidates that vertically
+    // overlap the current element (the next card/button across), nearest first.
+    // Only if there's nothing in-row do we consider the rest.
+    const sameRow = cands.filter(c => Math.min(c.r.bottom, cr.bottom) - Math.max(c.r.top, cr.top) > 4);
+    const pool = sameRow.length ? sameRow : cands;
+    let bp = Infinity;
+    for (const c of pool) if (c.primary < bp) { bp = c.primary; best = c.el; }
+  } else {
+    // Up/down: nearest "band" (one row), then most-aligned within it — row-by-row
+    // for single-control list rows AND column-aligned for grids.
+    const minP = Math.min(...cands.map(c => c.primary));
+    const band = minP + Math.max(8, minP * 0.5);
+    let bestCross = Infinity;
+    for (const c of cands) if (c.primary <= band && c.cross < bestCross) { bestCross = c.cross; best = c.el; }
   }
   if (best) _gpSetFocus(best);
 }
