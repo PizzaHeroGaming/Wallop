@@ -1089,22 +1089,25 @@ const TUT_LOOK_GOAL = 1.3; // radians of camera turn to clear step 2
 
 function _tutStepContent(step) {
   const mob = isMobile();
+  const pad = !mob && navigator.getGamepads && [...navigator.getGamepads()].some(p => p && p.connected);
   if (step === 0) {
     return {
-      glyph: mob ? '🕹️' : '⌨️',
+      glyph: mob ? '🕹️' : (pad ? '🎮' : '⌨️'),
       title: 'MOVE',
       body: mob
         ? 'Touch and drag anywhere on the <b>LEFT</b> side to move.'
-        : 'Use <b>WASD</b> or the <b>ARROW KEYS</b> to move.',
+        : (pad ? 'Use the <b>LEFT STICK</b> (or <b>WASD</b>) to move.'
+               : 'Use <b>WASD</b> or the <b>ARROW KEYS</b> to move.'),
       idx: 0, total: 2,
     };
   }
   return {
-    glyph: mob ? '👆' : '🖱️',
+    glyph: mob ? '👆' : (pad ? '🎮' : '🖱️'),
     title: 'LOOK AROUND',
     body: mob
       ? 'Touch and drag on the <b>RIGHT</b> side to turn the camera.'
-      : 'Move the <b>MOUSE</b> to turn the camera.',
+      : (pad ? 'Use the <b>RIGHT STICK</b> (or <b>MOUSE</b>) to turn the camera.'
+             : 'Move the <b>MOUSE</b> to turn the camera.'),
     idx: 1, total: 2,
   };
 }

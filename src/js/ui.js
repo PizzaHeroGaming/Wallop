@@ -1772,14 +1772,22 @@ function _updateGpHints(gp) {
 
 // Interact prompt (#interact-prompt) key/glyph: show the controller's interact
 // button (□/X/Y = button 2) when a pad is active, else the interact keybind.
-let _interactKeyEl = null;
+// Also swaps the pause hint (◯ resume vs [ESC] resume). Cached so we only touch
+// the DOM when the active device or keybind changes.
+let _interactKeyEl = null, _pauseHintEl = null, _promptDevKey = '';
 function _updateInteractGlyph(gp) {
+  const usePad = !!(gp && Settings.get('controllerEnabled'));
+  const devKey = usePad ? 'pad:' + _padType(gp) : 'kb:' + Settings.getBind('interact');
+  if (devKey === _promptDevKey) return;
+  _promptDevKey = devKey;
   if (!_interactKeyEl) _interactKeyEl = document.querySelector('#interact-prompt .key');
-  if (!_interactKeyEl) return;
-  const txt = (gp && Settings.get('controllerEnabled'))
+  if (_interactKeyEl) _interactKeyEl.textContent = usePad
     ? ((_GLYPHS[_padType(gp)] || _GLYPHS.xbox).use.s)
     : _keyLabel(Settings.getBind('interact'));
-  if (_interactKeyEl.textContent !== txt) _interactKeyEl.textContent = txt;
+  if (!_pauseHintEl) _pauseHintEl = document.getElementById('pause-hint');
+  if (_pauseHintEl) _pauseHintEl.innerHTML = usePad
+    ? _glyph(_padType(gp), 'back') + ' resume'
+    : '[ESC] resume';
 }
 
 export function pollGamepad(dt) {
