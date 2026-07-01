@@ -60,14 +60,19 @@ run-config → PLAY starts a run; Escape → pause → navigate.
 
 ### D. Steam Deck Verified checklist
 - **Input:** Full Controller Support (A–C) + default Steam Input config that "just
-  works." Show Deck glyphs.
-- **Display:** all text legible at **1280×800** (Deck native). Audit `_applyUiScale`
-  at that resolution; ensure no sub-~9px text, default settings are Deck-friendly,
-  no letterboxing issues. Default graphics preset acceptable on Deck.
+  works." Show Deck glyphs. (A✅ menu nav + B✅ glyphs already work off the Deck's
+  built-in gamepad via the Gamepad API; C/Steam-Input still needed for the badge.)
+- **Display:** ✅ *partially done (2026-06-30)* — `_applyUiScale` floored at **0.8**
+  so menus stay legible at 1280×800 (was 0.667, too small on the 7" panel).
+  Verified no overflow at 1280×800; 1080p+ unchanged. **Still to check on-device:**
+  in-game HUD element sizes, no sub-~9px text anywhere, no letterboxing.
 - **Seamless:** launches straight to gameplay with no extra config, no
   compatibility warnings, no external launcher, correct default resolution.
 - **Performance:** hold 60fps on Deck (reuse mobile perf paths — capped pixel
   ratio, shadow/AA tuning); verify on-device or via the Deck compatibility tester.
+- **Verify on device:** whether `isMobile()` returns true on Deck (touchscreen +
+  Electron UA) — if so it takes the mobile layout/scale path instead of the
+  desktop one; decide which we want for Deck.
 - After implementing: request a **Steam Deck compatibility review** in Steamworks.
 
 ## When done

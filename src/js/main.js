@@ -98,7 +98,10 @@ function _applyUiScale() {
   let s = 1;
   if (!isMobile()) {
     s = Math.min(window.innerWidth / 1920, window.innerHeight / 1080);
-    s = Math.max(0.45, Math.min(1.75, s));
+    // Floor at 0.8 so menus stay legible on small screens — notably the Steam
+    // Deck's native 1280x800 (a 7" panel), which would otherwise render the UI at
+    // 0.667 and make dense menu text too small. Verified no overflow at 1280x800.
+    s = Math.max(0.8, Math.min(1.75, s));
   }
   document.documentElement.style.setProperty('--ui-scale', s.toFixed(3));
 }
