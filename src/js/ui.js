@@ -15,7 +15,7 @@
 //   keyboard/mobile → tryJump, tryDash (game.js): use _jumpFn/_dashFn, set via setJumpDashCbs()
 //   openChest → presentChoiceScreen (this file): setOpenChestDeps is called in initUI()
 
-import { camera, renderer, isMobile, tryEnterFullscreen } from './renderer.js?v=6049494';
+import { camera, renderer, isMobile, tryEnterFullscreen } from './renderer.js?v=9f6eb8a';
 import {
   player, enemies,
   tryInteract, setOpenChestDeps,
@@ -23,20 +23,20 @@ import {
   spawnParticle,
   CHARACTER_MODELS, _animClips, loadCharAsset,
   _applyCharacterModel,
-} from './entities.js?v=6049494';
-import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=6049494';
-import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=6049494';
-import { gameState, cam } from './state.js?v=6049494';
-import { Audio } from './audio.js?v=6049494';
-import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=6049494';
+} from './entities.js?v=9f6eb8a';
+import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=9f6eb8a';
+import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=9f6eb8a';
+import { gameState, cam } from './state.js?v=9f6eb8a';
+import { Audio } from './audio.js?v=9f6eb8a';
+import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=9f6eb8a';
 // VERSION lives on CFG.VERSION too — reading via property access doesn't
 // blow up if a cached older config.js is loaded without the named export
 const VERSION = CFG.VERSION || '0.0.0';
 // Slices granted per on-demand "watch ad for slices" view (daily-capped in Profile).
 const AD_SLICE_REWARD = 3;
-import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=6049494';
-import { tmp, tmp2 } from './utils.js?v=6049494';
-import { Settings } from './settings.js?v=6049494';
+import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=9f6eb8a';
+import { tmp, tmp2 } from './utils.js?v=9f6eb8a';
+import { Settings } from './settings.js?v=9f6eb8a';
 
 // ============================================================
 // INJECTION CALLBACKS (break circular deps)
@@ -1773,7 +1773,15 @@ let _hintKey = '';
 export function _hideGpHints() {
   const el = document.getElementById('gp-hints');
   if (el && !el.classList.contains('hidden')) { el.classList.add('hidden'); }
+  document.body.classList.remove('gp-hints-visible');
   _hintKey = '';
+}
+// Reserve overlay space for the bar: its visual height converted into overlay
+// units (overlays are zoomed by --ui-scale), so bottom content never hides.
+function _setGpPad(el) {
+  const scale = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--ui-scale')) || 1;
+  document.body.style.setProperty('--gp-pad', Math.ceil((el.offsetHeight + 14) / scale) + 'px');
+  document.body.classList.add('gp-hints-visible');
 }
 // Show a controller-only prompt bar while a menu is open, with glyphs matching
 // the connected pad. Cached by (type|menu) so we only touch the DOM on change.
@@ -1786,7 +1794,7 @@ function _updateGpHints(gp) {
   const adjustable = _gpIsAdjustable(_gpFocusEl);
   const hasTabs = root.querySelector('.armory-tab');
   const key = t + '|' + root.id + (adjustable ? '|adj' : '') + (hasTabs ? '|tab' : '');
-  if (key === _hintKey) { el.classList.remove('hidden'); return; }
+  if (key === _hintKey) { el.classList.remove('hidden'); document.body.classList.add('gp-hints-visible'); return; }
   _hintKey = key;
   const bump = { ps: ['L1', 'R1'], xbox: ['LB', 'RB'], switch: ['L', 'R'] }[t] || ['LB', 'RB'];
   el.innerHTML =
@@ -1796,6 +1804,7 @@ function _updateGpHints(gp) {
     '<span class="gp-dpad">✜</span><span class="lbl">Navigate</span>' +
     (hasTabs ? `<span class="gp-glyph wide">${bump[0]}</span><span class="gp-glyph wide">${bump[1]}</span><span class="lbl">Tabs</span>` : '');
   el.classList.remove('hidden');
+  _setGpPad(el);
 }
 
 // Interact prompt (#interact-prompt) key/glyph: show the controller's interact
