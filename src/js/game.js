@@ -1,6 +1,6 @@
 // game.js — core game logic: damageEnemy, update loop, player movement, spawning
 // Imports (acyclic — game.js is the top of the dep graph among game modules):
-import { scene, camera, renderer, composer, sun, clock, isMobile, isSteamBuild, tryEnterFullscreen, releasePtLight, setRendererArena } from './renderer.js?v=47afa89';
+import { scene, camera, renderer, composer, sun, clock, isMobile, isSteamBuild, tryEnterFullscreen, releasePtLight, setRendererArena } from './renderer.js?v=5d2f5cd';
 import {
   player,
   playerMixer, playerIdleAction, playerWalkAction, playerRunAction,
@@ -19,18 +19,18 @@ import {
   updateShieldOrbital, updateParticles,
   setDamageEnemyCb, setOnLevelUpReady,
   spawnGold, spawnSmokeCloud, makeEnemyMesh, ENEMY_DEFS,
-} from './entities.js?v=47afa89';
-import { WEAPONS, ARMOR, TOMES, setDamageEnemyForWeapons, rebuildOrbits } from './weapons.js?v=47afa89';
-import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=47afa89';
+} from './entities.js?v=5d2f5cd';
+import { WEAPONS, ARMOR, TOMES, setDamageEnemyForWeapons, rebuildOrbits } from './weapons.js?v=5d2f5cd';
+import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=5d2f5cd';
 import {
   gameState, cam,
-} from './state.js?v=47afa89';
-import { CFG, STAGE_MULTS, DIFFICULTIES } from './config.js?v=47afa89';
-import { Profile, ARENAS, CHALLENGES } from './profile.js?v=47afa89';
-import { groundHeight, resolveSolids, setTerrainArena } from './terrain.js?v=47afa89';
-import { setWorldArena } from './world.js?v=47afa89';
-import { killMesh, clamp, rand, tmp, tmp2, flatPhong } from './utils.js?v=47afa89';
-import { Audio } from './audio.js?v=47afa89';
+} from './state.js?v=5d2f5cd';
+import { CFG, STAGE_MULTS, DIFFICULTIES } from './config.js?v=5d2f5cd';
+import { Profile, ARENAS, CHALLENGES } from './profile.js?v=5d2f5cd';
+import { groundHeight, resolveSolids, setTerrainArena } from './terrain.js?v=5d2f5cd';
+import { setWorldArena } from './world.js?v=5d2f5cd';
+import { killMesh, clamp, rand, tmp, tmp2, flatPhong } from './utils.js?v=5d2f5cd';
+import { Audio } from './audio.js?v=5d2f5cd';
 import {
   showDamage, showAlert, updateBossArrow, updateLoadoutDisplay,
   syncSliceDisplays, triggerGameOver,
@@ -46,8 +46,8 @@ import {
   showTutorialStep, hideTutorial, setTutorialSkipCb,
   initUI,
   addCameraShake,
-} from './ui.js?v=47afa89';
-import { Settings } from './settings.js?v=47afa89';
+} from './ui.js?v=5d2f5cd';
+import { Settings } from './settings.js?v=5d2f5cd';
 
 // Player animation state (module-level so it persists across frames)
 let _animState = 'idle';
@@ -320,6 +320,7 @@ export function tryJump() {
     player.vel.y = CFG.JUMP_VEL;
     player.jumpsLeft--;
     player.grounded = false;
+    _tutJumped = true;   // tutorial JUMP-step detection
   }
 }
 
@@ -327,6 +328,7 @@ export function tryDash() {
   if (player.dashCd > 0) return;
   player.dashCd = 1.5 * (player.dashCdMult || 1);
   player.dashTimer = 0.18;
+  _tutDashed = true;     // tutorial DASH-step detection
   player.invuln = Math.max(player.invuln, 0.18);
   // Turbo Soles (Crust Runner armor) — dash damages nearby enemies + heals.
   // Scales with stack count: each level adds 40 dmg + 2 HP and slightly grows radius.
@@ -1079,37 +1081,45 @@ export function resetGame() {
 // The clock and enemy spawns are frozen while this runs (see update()), so a
 // new player can learn the controls in a calm arena. Two steps: demonstrate
 // movement, then demonstrate looking around. Either can be skipped.
-let _tutStep = 0;          // 0 = move, 1 = look
+let _tutStep = 0;          // 0 = move, 1 = look, 2 = jump, 3 = dash
 let _tutMoveTime = 0;      // seconds of held movement input
 let _tutLookAmount = 0;    // accumulated |yaw| change in radians
 let _tutLastYaw = 0;
 let _tutHold = 0;          // brief "GO!" hold after the last step before resuming
-const TUT_MOVE_GOAL = 1.1; // seconds of movement to clear step 1
-const TUT_LOOK_GOAL = 1.3; // radians of camera turn to clear step 2
+let _tutJumped = false;    // set by tryJump during the JUMP step
+let _tutDashed = false;    // set by tryDash during the DASH step
+const TUT_MOVE_GOAL = 1.1; // seconds of movement to clear the MOVE step
+const TUT_LOOK_GOAL = 1.3; // radians of camera turn to clear the LOOK step
+const TUT_TOTAL = 4;
 
 function _tutStepContent(step) {
   const mob = isMobile();
   const pad = !mob && navigator.getGamepads && [...navigator.getGamepads()].some(p => p && p.connected);
-  if (step === 0) {
-    return {
-      glyph: mob ? '🕹️' : (pad ? '🎮' : '⌨️'),
-      title: 'MOVE',
-      body: mob
-        ? 'Touch and drag anywhere on the <b>LEFT</b> side to move.'
-        : (pad ? 'Use the <b>LEFT STICK</b> (or <b>WASD</b>) to move.'
-               : 'Use <b>WASD</b> or the <b>ARROW KEYS</b> to move.'),
-      idx: 0, total: 2,
-    };
-  }
-  return {
-    glyph: mob ? '👆' : (pad ? '🎮' : '🖱️'),
-    title: 'LOOK AROUND',
-    body: mob
-      ? 'Touch and drag on the <b>RIGHT</b> side to turn the camera.'
-      : (pad ? 'Use the <b>RIGHT STICK</b> (or <b>MOUSE</b>) to turn the camera.'
-             : 'Move the <b>MOUSE</b> to turn the camera.'),
-    idx: 1, total: 2,
+  const steps = {
+    0: {
+      glyph: mob ? '🕹️' : (pad ? '🎮' : '⌨️'), title: 'MOVE',
+      body: mob ? 'Touch and drag anywhere on the <b>LEFT</b> side to move.'
+                : (pad ? 'Use the <b>LEFT STICK</b> (or <b>WASD</b>) to move.'
+                       : 'Use <b>WASD</b> or the <b>ARROW KEYS</b> to move.'),
+    },
+    1: {
+      glyph: mob ? '👆' : (pad ? '🎮' : '🖱️'), title: 'LOOK AROUND',
+      body: mob ? 'Touch and drag on the <b>RIGHT</b> side to turn the camera.'
+                : (pad ? 'Use the <b>RIGHT STICK</b> (or <b>MOUSE</b>) to turn the camera.'
+                       : 'Move the <b>MOUSE</b> to turn the camera.'),
+    },
+    2: {
+      glyph: '🆙', title: 'JUMP',
+      body: mob ? 'Tap the <b>JUMP</b> button to hop.'
+                : (pad ? 'Press <b>✕ / A</b> to jump.' : 'Press <b>SPACE</b> to jump.'),
+    },
+    3: {
+      glyph: '💨', title: 'DASH',
+      body: mob ? 'Tap the <b>DASH</b> button to dodge.'
+                : (pad ? 'Press <b>◯ / B</b> to dash.' : 'Press <b>SHIFT</b> to dash.'),
+    },
   };
+  return { ...steps[step], idx: step, total: TUT_TOTAL };
 }
 
 function startTutorial() {
@@ -1119,7 +1129,17 @@ function startTutorial() {
   _tutLookAmount = 0;
   _tutLastYaw = cam.yaw;
   _tutHold = 0;
+  _tutJumped = false;
+  _tutDashed = false;
   showTutorialStep(_tutStepContent(0));
+}
+// Advance to the next tutorial step, resetting that step's detection state.
+function _tutAdvance(step) {
+  _tutStep = step;
+  if (step === 1) _tutLastYaw = cam.yaw;
+  if (step === 2) _tutJumped = false;   // ignore any jump made during earlier steps
+  if (step === 3) _tutDashed = false;
+  showTutorialStep(_tutStepContent(step));
 }
 
 export function skipTutorial() {
@@ -1152,21 +1172,22 @@ function updateTutorial(dt) {
     mx += joystickInput.x;
     mz += joystickInput.y;
     if (Math.hypot(mx, mz) > 0.2) _tutMoveTime += dt;
-    if (_tutMoveTime >= TUT_MOVE_GOAL) {
-      _tutStep = 1;
-      _tutLastYaw = cam.yaw;
-      showTutorialStep(_tutStepContent(1));
-    }
-  } else {
+    if (_tutMoveTime >= TUT_MOVE_GOAL) _tutAdvance(1);
+  } else if (_tutStep === 1) {
     // Camera turn: accumulate absolute yaw change (works for mouse + right stick)
     let d = cam.yaw - _tutLastYaw;
     while (d >  Math.PI) d -= Math.PI * 2;
     while (d < -Math.PI) d += Math.PI * 2;
     _tutLookAmount += Math.abs(d);
     _tutLastYaw = cam.yaw;
-    if (_tutLookAmount >= TUT_LOOK_GOAL) {
-      showTutorialStep({ ..._tutStepContent(1), idx: 2, complete: true });
-      _tutHold = 0.6; // brief beat so the player sees both steps tick complete
+    if (_tutLookAmount >= TUT_LOOK_GOAL) _tutAdvance(2);
+  } else if (_tutStep === 2) {
+    if (_tutJumped) _tutAdvance(3);
+  } else {
+    // Final step (dash): tick every dot complete, then a brief beat before resuming.
+    if (_tutDashed) {
+      showTutorialStep({ ..._tutStepContent(3), idx: TUT_TOTAL, complete: true });
+      _tutHold = 0.6;
     }
   }
 }
