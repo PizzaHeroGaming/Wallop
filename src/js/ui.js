@@ -1569,6 +1569,120 @@ export function vibrateController(ms = 120, strong = 0.4, weak = 0.2) {
   }
 }
 
+// ============================================================
+// MENU FOCUS NAVIGATION — gamepad D-pad/stick + keyboard arrows.
+// Spatial model: works for vertical lists, card rows, and grids with no
+// per-menu wiring. Overlays are priority-ordered (modals resolve first).
+// ============================================================
+const _GP_OVERLAYS = ['confirm-overlay', 'settings-screen', 'armory-detail', 'levelup-screen',
+  'stage-clear-screen', 'pause-screen', 'gameover-screen', 'armory-screen', 'challenges-screen',
+  'about-screen', 'run-config-screen', 'start-screen'];
+const _GP_FOCUSABLE = 'button, .choice, .armory-card, .challenge-card, [data-gp]';
+let _gpFocusEl = null;
+let _padNavDir = null;
+
+function _gpVisible(el) {
+  if (!el || el.disabled || el.classList.contains('hidden')) return false;
+  const r = el.getBoundingClientRect();
+  if (r.width < 3 || r.height < 3) return false;
+  const cs = getComputedStyle(el);
+  return cs.visibility !== 'hidden' && cs.display !== 'none';
+}
+function _gpActiveRoot() {
+  for (const id of _GP_OVERLAYS) {
+    const el = document.getElementById(id);
+    if (el && !el.classList.contains('hidden') && el.getClientRects().length) return el;
+  }
+  return null;
+}
+function _gpFocusables(root) {
+  return [...root.querySelectorAll(_GP_FOCUSABLE)].filter(_gpVisible);
+}
+// Applied inline with !important — the themed button styles out-specify any
+// stylesheet rule, and inline !important beats even stylesheet !important.
+// outline can't be clipped/occluded, so it's the primary indicator.
+const _GP_STYLE = {
+  'outline': '4px solid var(--hot)',
+  'outline-offset': '3px',
+  'box-shadow': '0 0 0 4px #fff, 0 0 18px 4px var(--hot)',
+};
+function _gpPaint(el, on) {
+  if (!el) return;
+  el.classList.toggle('gp-focus', on);
+  for (const k in _GP_STYLE) {
+    if (on) el.style.setProperty(k, _GP_STYLE[k], 'important');
+    else el.style.removeProperty(k);
+  }
+}
+function _gpClearFocus() {
+  if (_gpFocusEl) _gpPaint(_gpFocusEl, false);
+  _gpFocusEl = null;
+}
+function _gpSetFocus(el) {
+  if (_gpFocusEl && _gpFocusEl !== el) _gpPaint(_gpFocusEl, false);
+  _gpFocusEl = el || null;
+  if (_gpFocusEl) {
+    _gpPaint(_gpFocusEl, true);
+    try { _gpFocusEl.scrollIntoView({ block: 'nearest', inline: 'nearest' }); } catch (e) {}
+  }
+}
+function _gpEnsureFocus(root) {
+  const list = _gpFocusables(root);
+  if (!list.length) { _gpClearFocus(); return null; }
+  if (!_gpFocusEl || !root.contains(_gpFocusEl) || !_gpVisible(_gpFocusEl)) _gpSetFocus(list[0]);
+  return _gpFocusEl;
+}
+function _gpMove(dir) {
+  const root = _gpActiveRoot();
+  if (!root) return;
+  const cur = _gpEnsureFocus(root);
+  if (!cur) return;
+  const cr = cur.getBoundingClientRect();
+  const cx = cr.left + cr.width / 2, cy = cr.top + cr.height / 2;
+  let best = null, bestScore = Infinity;
+  for (const el of _gpFocusables(root)) {
+    if (el === cur) continue;
+    const r = el.getBoundingClientRect();
+    const dx = (r.left + r.width / 2) - cx, dy = (r.top + r.height / 2) - cy;
+    let primary, cross;
+    if (dir === 'up') { if (dy > -4) continue; primary = -dy; cross = Math.abs(dx); }
+    else if (dir === 'down') { if (dy < 4) continue; primary = dy; cross = Math.abs(dx); }
+    else if (dir === 'left') { if (dx > -4) continue; primary = -dx; cross = Math.abs(dy); }
+    else { if (dx < 4) continue; primary = dx; cross = Math.abs(dy); }
+    const score = primary + cross * 2.2;   // strongly prefer aligned candidates
+    if (score < bestScore) { bestScore = score; best = el; }
+  }
+  if (best) _gpSetFocus(best);
+}
+// A click/back may open or close a menu — re-home focus to the new active root
+// on the next tick so the ring follows the transition (matters for keyboard-only;
+// gamepad also re-homes every poll). No-op if the menu didn't change, since
+// _gpEnsureFocus keeps a still-valid focus where it is.
+function _gpRehome() {
+  setTimeout(() => { const r = _gpActiveRoot(); if (r) _gpEnsureFocus(r); else _gpClearFocus(); }, 30);
+}
+function _gpActivate() {
+  const root = _gpActiveRoot();
+  if (!root) return;
+  const el = _gpEnsureFocus(root);
+  if (el) el.click();
+  _gpRehome();
+}
+function _gpBack() {
+  const root = _gpActiveRoot();
+  if (!root) return;
+  const back = _gpFocusables(root).find(b =>
+    /back|cancel|close|resume|◀|✕|×/i.test((b.textContent || '') + ' ' + (b.id || '')));
+  if (back) back.click();   // no fallback dispatch — avoids Escape-handler recursion
+  _gpRehome();
+}
+// Public entry point (also used by keyboard arrows in initInput).
+export function gpMenuNav(action) {
+  if (action === 'confirm') _gpActivate();
+  else if (action === 'back') _gpBack();
+  else _gpMove(action);
+}
+
 export function pollGamepad(dt) {
   if (!Settings.get('controllerEnabled')) return;
   const pads = navigator.getGamepads ? navigator.getGamepads() : [];
@@ -1593,7 +1707,30 @@ export function pollGamepad(dt) {
     if (edge(0) && _jumpFn) _jumpFn();                 // A → jump
     if ((edge(1) || edge(5)) && _dashFn) _dashFn();    // B / RB → dash
     if (edge(2)) tryInteract();                         // X → interact / use
-  } else { edge(0); edge(1); edge(5); edge(2); }        // keep edge cache fresh across states
+    _padNavDir = null;
+  } else {
+    edge(2); edge(5);                                   // keep gameplay-button cache fresh
+    const root = _gpActiveRoot();
+    if (root) {                                         // a menu is open → navigate it
+      _gpEnsureFocus(root);
+      if (edge(12)) gpMenuNav('up');
+      if (edge(13)) gpMenuNav('down');
+      if (edge(14)) gpMenuNav('left');
+      if (edge(15)) gpMenuNav('right');
+      let dir = null;                                   // left stick as a directional (edge-latched)
+      const ax = gp.axes[0] || 0, ay = gp.axes[1] || 0;
+      if (Math.abs(ay) > 0.55 || Math.abs(ax) > 0.55)
+        dir = Math.abs(ay) > Math.abs(ax) ? (ay < 0 ? 'up' : 'down') : (ax < 0 ? 'left' : 'right');
+      if (dir && dir !== _padNavDir) gpMenuNav(dir);
+      _padNavDir = dir;
+      if (edge(0)) gpMenuNav('confirm');               // A → activate
+      if (edge(1)) gpMenuNav('back');                  // B → back/cancel
+    } else {
+      edge(0); edge(1); edge(12); edge(13); edge(14); edge(15);
+      _gpClearFocus();
+      _padNavDir = null;
+    }
+  }
   if (edge(9)) {                                         // Start → pause toggle
     if (gameState.state === 'playing') openPauseMenu();
     else if (gameState.state === 'paused') closePauseMenu();
@@ -1607,6 +1744,13 @@ export function initInput() {
   document.addEventListener('keydown', e => {
     // Key-rebind capture (Settings menu) swallows the next keypress.
     if (_rebindAction) { e.preventDefault(); _captureRebind(e); return; }
+    // Menu navigation via keyboard (mirrors the gamepad focus model) — only
+    // when an overlay is actually open, so gameplay keys are untouched.
+    if (gameState.state !== 'playing') {
+      const nav = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right' };
+      if (nav[e.code] && _gpActiveRoot()) { e.preventDefault(); gpMenuNav(nav[e.code]); return; }
+      if (e.code === 'Enter' && _gpActiveRoot()) { e.preventDefault(); gpMenuNav('confirm'); return; }
+    }
     if (['ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space'].includes(e.code)) e.preventDefault();
     keys[e.code] = true;
     if (e.code === Settings.getBind('jump') && gameState.state === 'playing') { if (_jumpFn) _jumpFn(); }
@@ -1623,6 +1767,12 @@ export function initInput() {
         closeSettings();
       } else if (gameState.state === 'playing') openPauseMenu();
       else if (gameState.state === 'paused')  closePauseMenu();
+      else {
+        // Armory / About / Challenges / run-config open on the start screen —
+        // Escape backs out via their own close/back control.
+        const r = _gpActiveRoot();
+        if (r && r.id !== 'start-screen') gpMenuNav('back');
+      }
     }
   });
   document.addEventListener('keyup', e => { keys[e.code] = false; });

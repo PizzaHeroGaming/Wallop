@@ -25,14 +25,19 @@ steamworks.js wrapper this builds on).
 4. Local multiplayer works with multiple controllers — **N/A** (single-player).
 
 ## Work items
-### A. Controller-navigable menus (the big one)
-Make every HTML overlay focus-driven + gamepad-navigable with D-pad/stick to move
-focus, A=confirm, B=back, bumpers=switch tabs:
-- start menu, run-config (arena/difficulty/PLAY), level-up + chest choice cards,
-  pause, game-over/victory, **Armory** (tabs → grid → detail → action buttons),
-  Settings (incl. the rebind rows), confirm dialogs.
-- Implement a small focus/cursor model (track focused element per screen, draw a
-  focus ring, route gamepad nav events). Reuse for keyboard arrow-nav too.
+### A. Controller-navigable menus — ✅ DONE (2026-06-30)
+Implemented in `ui.js`: a **spatial focus-navigation** model (`_gpMove/_gpActivate/
+_gpBack`, `gpMenuNav`) driven by D-pad + left stick, A=confirm, B=back. Keyboard
+arrows/Enter mirror it; Escape backs out of armory/about/challenges/run-config.
+Focus ring is painted inline with `!important` (`_gpPaint`) — the themed button
+styles out-specify any stylesheet rule, and it re-homes to the new menu after each
+activate/back (`_gpRehome`). One generic model covers every overlay
+(`_GP_OVERLAYS`): start, run-config, level-up/chest cards, pause, game-over,
+Armory (tabs→grid→detail), Settings, confirm. Verified end-to-end: start → PLAY →
+run-config → PLAY starts a run; Escape → pause → navigate.
+- **Remaining polish:** per-menu *default* focus (e.g. open Armory on the first
+  tab, not the ✕); let arrows adjust Settings sliders/checkboxes when one is
+  focused; bumper (LB/RB) tab-switching in the Armory.
 
 ### B. Controller glyphs
 - Detect controller type (Xbox / DualSense / Deck / generic) and swap a glyph set

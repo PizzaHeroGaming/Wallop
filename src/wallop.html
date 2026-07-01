@@ -2106,6 +2106,9 @@
   #armory-slices .slice-label { color: #6a3818 !important; }
   /* Armory close X — keep red */
   #armory-close { color: #fff !important; }
+  /* Controller / keyboard menu focus ring is applied inline with !important in
+     ui.js (_gpPaint) — the themed button styles out-specify any stylesheet rule
+     here, so inline is the reliable path. */
   /* Tab active state: ensure it wins specificity. Use the same body styling as
      .btn.hot. Targets both `.armory-tab.active` and the equivalent attribute. */
   .armory-tab.active,
