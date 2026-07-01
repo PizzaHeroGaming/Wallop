@@ -15,7 +15,7 @@
 //   keyboard/mobile → tryJump, tryDash (game.js): use _jumpFn/_dashFn, set via setJumpDashCbs()
 //   openChest → presentChoiceScreen (this file): setOpenChestDeps is called in initUI()
 
-import { camera, renderer, isMobile, tryEnterFullscreen } from './renderer.js?v=bf0b70d';
+import { camera, renderer, isMobile, tryEnterFullscreen } from './renderer.js?v=a1cde06';
 import {
   player, enemies,
   tryInteract, setOpenChestDeps,
@@ -23,20 +23,20 @@ import {
   spawnParticle,
   CHARACTER_MODELS, _animClips, loadCharAsset,
   _applyCharacterModel,
-} from './entities.js?v=bf0b70d';
-import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=bf0b70d';
-import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=bf0b70d';
-import { gameState, cam } from './state.js?v=bf0b70d';
-import { Audio } from './audio.js?v=bf0b70d';
-import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=bf0b70d';
+} from './entities.js?v=a1cde06';
+import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=a1cde06';
+import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=a1cde06';
+import { gameState, cam } from './state.js?v=a1cde06';
+import { Audio } from './audio.js?v=a1cde06';
+import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=a1cde06';
 // VERSION lives on CFG.VERSION too — reading via property access doesn't
 // blow up if a cached older config.js is loaded without the named export
 const VERSION = CFG.VERSION || '0.0.0';
 // Slices granted per on-demand "watch ad for slices" view (daily-capped in Profile).
 const AD_SLICE_REWARD = 3;
-import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=bf0b70d';
-import { tmp, tmp2 } from './utils.js?v=bf0b70d';
-import { Settings } from './settings.js?v=bf0b70d';
+import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=a1cde06';
+import { tmp, tmp2 } from './utils.js?v=a1cde06';
+import { Settings } from './settings.js?v=a1cde06';
 
 // ============================================================
 // INJECTION CALLBACKS (break circular deps)
@@ -1577,7 +1577,7 @@ export function vibrateController(ms = 120, strong = 0.4, weak = 0.2) {
 const _GP_OVERLAYS = ['confirm-overlay', 'settings-screen', 'armory-detail', 'levelup-screen',
   'stage-clear-screen', 'pause-screen', 'gameover-screen', 'armory-screen', 'challenges-screen',
   'about-screen', 'run-config-screen', 'start-screen'];
-const _GP_FOCUSABLE = 'button, .choice, .armory-card, .challenge-card, [data-gp]';
+const _GP_FOCUSABLE = 'button, .choice, .armory-card, .challenge-card, input[type="checkbox"], input[type="range"], select, [data-gp]';
 let _gpFocusEl = null;
 let _padNavDir = null;
 
@@ -1639,18 +1639,29 @@ function _gpMove(dir) {
   if (!cur) return;
   const cr = cur.getBoundingClientRect();
   const cx = cr.left + cr.width / 2, cy = cr.top + cr.height / 2;
-  let best = null, bestScore = Infinity;
+  const horiz = dir === 'left' || dir === 'right';
+  // Pass 1: collect candidates in the pressed direction with their distance
+  // along (primary) and perpendicular to (cross) the movement axis.
+  const cands = [];
   for (const el of _gpFocusables(root)) {
     if (el === cur) continue;
     const r = el.getBoundingClientRect();
     const dx = (r.left + r.width / 2) - cx, dy = (r.top + r.height / 2) - cy;
-    let primary, cross;
-    if (dir === 'up') { if (dy > -4) continue; primary = -dy; cross = Math.abs(dx); }
-    else if (dir === 'down') { if (dy < 4) continue; primary = dy; cross = Math.abs(dx); }
-    else if (dir === 'left') { if (dx > -4) continue; primary = -dx; cross = Math.abs(dy); }
-    else { if (dx < 4) continue; primary = dx; cross = Math.abs(dy); }
-    const score = primary + cross * 2.2;   // strongly prefer aligned candidates
-    if (score < bestScore) { bestScore = score; best = el; }
+    if (dir === 'up' && dy > -4) continue;
+    if (dir === 'down' && dy < 4) continue;
+    if (dir === 'left' && dx > -4) continue;
+    if (dir === 'right' && dx < 4) continue;
+    cands.push({ el, primary: horiz ? Math.abs(dx) : Math.abs(dy), cross: horiz ? Math.abs(dy) : Math.abs(dx) });
+  }
+  if (!cands.length) return;
+  // Pass 2: take the nearest "band" in the pressed direction (one row for a
+  // list, one row of a grid), then the most-aligned element within it. This is
+  // row-by-row for single-control list rows AND column-aligned for grids.
+  const minP = Math.min(...cands.map(c => c.primary));
+  const band = minP + Math.max(8, minP * 0.5);
+  let best = null, bestCross = Infinity;
+  for (const c of cands) {
+    if (c.primary <= band && c.cross < bestCross) { bestCross = c.cross; best = c.el; }
   }
   if (best) _gpSetFocus(best);
 }
@@ -1661,11 +1672,35 @@ function _gpMove(dir) {
 function _gpRehome() {
   setTimeout(() => { const r = _gpActiveRoot(); if (r) _gpEnsureFocus(r); else _gpClearFocus(); }, 30);
 }
+// Adjust a focused slider/dropdown with left/right (native dropdowns can't be
+// driven by a controller, and range drags need a value nudge).
+function _gpIsAdjustable(el) {
+  return el && (el.tagName === 'SELECT' || (el.tagName === 'INPUT' && el.type === 'range'));
+}
+function _gpAdjust(el, dir) {
+  const d = dir === 'right' ? 1 : -1;
+  if (el.tagName === 'SELECT') {
+    const n = el.options.length; if (!n) return;
+    el.selectedIndex = (el.selectedIndex + d + n) % n;
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+  } else { // range
+    const min = parseFloat(el.min) || 0, max = parseFloat(el.max) || 100;
+    const inc = parseFloat(el.step) || (max - min) / 20 || 1;
+    let v = (parseFloat(el.value) || 0) + d * inc;
+    v = Math.max(min, Math.min(max, v));
+    el.value = v;
+    el.dispatchEvent(new Event('input', { bubbles: true }));
+    el.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+}
 function _gpActivate() {
   const root = _gpActiveRoot();
   if (!root) return;
   const el = _gpEnsureFocus(root);
-  if (el) el.click();
+  if (!el) return;
+  if (el.tagName === 'SELECT') { _gpAdjust(el, 'right'); return; }   // cycle, don't open native list
+  if (el.tagName === 'INPUT' && el.type === 'range') return;         // ranges use left/right
+  el.click();                                                        // buttons, cards, checkboxes (toggles)
   _gpRehome();
 }
 function _gpBack() {
@@ -1678,9 +1713,14 @@ function _gpBack() {
 }
 // Public entry point (also used by keyboard arrows in initInput).
 export function gpMenuNav(action) {
-  if (action === 'confirm') _gpActivate();
-  else if (action === 'back') _gpBack();
-  else _gpMove(action);
+  if (action === 'confirm') return _gpActivate();
+  if (action === 'back') return _gpBack();
+  // Left/right on a focused slider or dropdown adjusts it instead of moving focus.
+  if ((action === 'left' || action === 'right') && _gpIsAdjustable(_gpFocusEl)) {
+    _gpAdjust(_gpFocusEl, action);
+    return;
+  }
+  _gpMove(action);
 }
 
 // ============================================================
@@ -1718,10 +1758,12 @@ function _updateGpHints(gp) {
   const root = _gpActiveRoot();
   if (!gp || !root) { _hideGpHints(); return; }
   const t = _padType(gp);
-  const key = t + '|' + root.id;
+  const adjustable = _gpIsAdjustable(_gpFocusEl);
+  const key = t + '|' + root.id + (adjustable ? '|adj' : '');
   if (key === _hintKey) { el.classList.remove('hidden'); return; }
   _hintKey = key;
   el.innerHTML =
+    (adjustable ? '<span class="gp-dpad">◀▶</span><span class="lbl">Adjust</span>' : '') +
     _glyph(t, 'confirm') + '<span class="lbl">Select</span>' +
     _glyph(t, 'back') + '<span class="lbl">Back</span>' +
     '<span class="gp-dpad">✜</span><span class="lbl">Navigate</span>';

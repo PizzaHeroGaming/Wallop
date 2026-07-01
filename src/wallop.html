@@ -2110,17 +2110,20 @@
      ui.js (_gpPaint) — the themed button styles out-specify any stylesheet rule
      here, so inline is the reliable path. */
   /* Adaptive controller button-prompt hint bar (glyphs set per controller type
-     in ui.js). Only shown when a gamepad is connected and a menu is open. */
+     in ui.js). Only shown when a gamepad is connected and a menu is open.
+     Pinned to the very bottom edge; scrollable menus reserve space (below) so it
+     never hides their content. */
   #gp-hints {
-    position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%);
+    position: fixed; left: 0; right: 0; bottom: 0;
     display: flex; gap: 4px; align-items: center; flex-wrap: wrap; justify-content: center;
-    font-family: 'VT323', monospace; font-size: 19px; letter-spacing: 1px;
-    color: var(--ink); background: rgba(8,10,24,0.82);
-    border: 2px solid #000; border-radius: 6px; box-shadow: 3px 3px 0 rgba(0,0,0,0.5);
-    padding: 5px 14px; z-index: 999; pointer-events: none;
-    text-transform: uppercase; max-width: 92vw;
+    font-family: 'VT323', monospace; font-size: 18px; letter-spacing: 1px;
+    color: var(--ink); background: linear-gradient(to top, rgba(8,10,24,0.95) 60%, rgba(8,10,24,0));
+    padding: 8px 14px 7px; z-index: 999; pointer-events: none;
+    text-transform: uppercase;
   }
   #gp-hints.hidden { display: none; }
+  /* Scrollable menus: reserve room so the bottom rows clear the hint bar. */
+  body #settings-screen, body #about-screen, body #challenges-screen { padding-bottom: 58px; }
   #gp-hints span.lbl { margin: 0 12px 0 2px; color: var(--ink-dim); }
   #gp-hints .gp-glyph {
     display: inline-flex; align-items: center; justify-content: center;
