@@ -39,11 +39,15 @@ run-config → PLAY starts a run; Escape → pause → navigate.
   tab, not the ✕); let arrows adjust Settings sliders/checkboxes when one is
   focused; bumper (LB/RB) tab-switching in the Armory.
 
-### B. Controller glyphs
-- Detect controller type (Xbox / DualSense / Deck / generic) and swap a glyph set
-  in prompts: HUD action hints, rebind screen, menu "A/B" hints.
-- Cleanest if done via **Steam Input glyph API** (see C); otherwise ship a static
-  glyph atlas keyed by detected type.
+### B. Controller glyphs — ✅ menu hints DONE (2026-06-30)
+- `_padType()` detects PS (DualSense/DualShock) / Xbox / Switch / generic from the
+  gamepad `id`; `_GLYPHS` + `_glyph()` render the matching face-button symbols
+  (✕◯▢ / A B X / B A Y) with platform colors. `_updateGpHints()` shows a
+  controller-only hint bar (`#gp-hints`) while a menu is open — Select / Back /
+  Navigate — and swaps live when the pad changes. Verified across PS/Xbox/Switch.
+- **Remaining:** in-game HUD action glyphs (jump/dash/use/pause) during active
+  combat; rebind-screen glyphs. When Steam Input (C) lands, prefer its glyph API
+  for exact per-model art (incl. Deck) instead of this static set.
 
 ### C. Steam Input API integration (recommended — also flips wizard to Full)
 - In the Electron wrapper, init **steamworks.js** Steam Input; define action sets

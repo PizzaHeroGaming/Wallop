@@ -15,7 +15,7 @@
 //   keyboard/mobile → tryJump, tryDash (game.js): use _jumpFn/_dashFn, set via setJumpDashCbs()
 //   openChest → presentChoiceScreen (this file): setOpenChestDeps is called in initUI()
 
-import { camera, renderer, isMobile, tryEnterFullscreen } from './renderer.js?v=8700610';
+import { camera, renderer, isMobile, tryEnterFullscreen } from './renderer.js?v=b36634b';
 import {
   player, enemies,
   tryInteract, setOpenChestDeps,
@@ -23,20 +23,20 @@ import {
   spawnParticle,
   CHARACTER_MODELS, _animClips, loadCharAsset,
   _applyCharacterModel,
-} from './entities.js?v=8700610';
-import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=8700610';
-import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=8700610';
-import { gameState, cam } from './state.js?v=8700610';
-import { Audio } from './audio.js?v=8700610';
-import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=8700610';
+} from './entities.js?v=b36634b';
+import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=b36634b';
+import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=b36634b';
+import { gameState, cam } from './state.js?v=b36634b';
+import { Audio } from './audio.js?v=b36634b';
+import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=b36634b';
 // VERSION lives on CFG.VERSION too — reading via property access doesn't
 // blow up if a cached older config.js is loaded without the named export
 const VERSION = CFG.VERSION || '0.0.0';
 // Slices granted per on-demand "watch ad for slices" view (daily-capped in Profile).
 const AD_SLICE_REWARD = 3;
-import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=8700610';
-import { tmp, tmp2 } from './utils.js?v=8700610';
-import { Settings } from './settings.js?v=8700610';
+import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=b36634b';
+import { tmp, tmp2 } from './utils.js?v=b36634b';
+import { Settings } from './settings.js?v=b36634b';
 
 // ============================================================
 // INJECTION CALLBACKS (break circular deps)
@@ -1683,12 +1683,58 @@ export function gpMenuNav(action) {
   else _gpMove(action);
 }
 
+// ============================================================
+// ADAPTIVE CONTROLLER GLYPHS — detect the pad type from its id and render the
+// matching face-button symbols (PlayStation ✕◯▢ / Xbox A B X / Switch B A Y).
+// ============================================================
+function _padType(gp) {
+  const id = ((gp && gp.id) || '').toLowerCase();
+  if (/dualsense|dualshock|playstation|sony|054c|09cc|0ce6|wireless controller/.test(id)) return 'ps';
+  if (/nintendo|switch|joy-?con|pro controller|057e/.test(id)) return 'switch';
+  if (/xbox|xinput|microsoft|045e|028e|02e0|02ea/.test(id)) return 'xbox';
+  return 'xbox';  // most unlabeled PC pads report as XInput/Xbox-like
+}
+// action → face button: confirm=btn0, back=btn1, use=btn2, pause=btn9.
+const _GLYPHS = {
+  ps:     { confirm: { s: '✕', c: '#8fb2ff' }, back: { s: '◯', c: '#ff7a7a' }, use: { s: '▢', c: '#f58fd8' }, pause: { s: 'OPTIONS', c: '#d7def0', wide: 1 } },
+  xbox:   { confirm: { s: 'A', c: '#78d06a' }, back: { s: 'B', c: '#ff6a6a' }, use: { s: 'X', c: '#6aa8ff' }, pause: { s: 'MENU', c: '#d7def0', wide: 1 } },
+  switch: { confirm: { s: 'B', c: '#e6e9f2' }, back: { s: 'A', c: '#e6e9f2' }, use: { s: 'Y', c: '#e6e9f2' }, pause: { s: '+', c: '#e6e9f2' } },
+};
+function _glyph(type, action) {
+  const g = (_GLYPHS[type] || _GLYPHS.xbox)[action];
+  return g ? `<span class="gp-glyph${g.wide ? ' wide' : ''}" style="--gc:${g.c}">${g.s}</span>` : '';
+}
+let _hintKey = '';
+export function _hideGpHints() {
+  const el = document.getElementById('gp-hints');
+  if (el && !el.classList.contains('hidden')) { el.classList.add('hidden'); }
+  _hintKey = '';
+}
+// Show a controller-only prompt bar while a menu is open, with glyphs matching
+// the connected pad. Cached by (type|menu) so we only touch the DOM on change.
+function _updateGpHints(gp) {
+  const el = document.getElementById('gp-hints');
+  if (!el) return;
+  const root = _gpActiveRoot();
+  if (!gp || !root) { _hideGpHints(); return; }
+  const t = _padType(gp);
+  const key = t + '|' + root.id;
+  if (key === _hintKey) { el.classList.remove('hidden'); return; }
+  _hintKey = key;
+  el.innerHTML =
+    _glyph(t, 'confirm') + '<span class="lbl">Select</span>' +
+    _glyph(t, 'back') + '<span class="lbl">Back</span>' +
+    '<span class="gp-dpad">✜</span><span class="lbl">Navigate</span>';
+  el.classList.remove('hidden');
+}
+
 export function pollGamepad(dt) {
-  if (!Settings.get('controllerEnabled')) return;
+  if (!Settings.get('controllerEnabled')) { _hideGpHints(); return; }
   const pads = navigator.getGamepads ? navigator.getGamepads() : [];
   let gp = null;
   for (const p of pads) { if (p && p.connected) { gp = p; break; } }
-  if (!gp) return;
+  if (!gp) { _hideGpHints(); return; }
+  _updateGpHints(gp);
   const playing = gameState.state === 'playing';
   if (playing) {
     joystickInput.x = _dz(gp.axes[0] || 0);  // left stick → movement (signs match WASD)

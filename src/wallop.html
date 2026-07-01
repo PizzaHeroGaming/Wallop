@@ -2109,6 +2109,28 @@
   /* Controller / keyboard menu focus ring is applied inline with !important in
      ui.js (_gpPaint) — the themed button styles out-specify any stylesheet rule
      here, so inline is the reliable path. */
+  /* Adaptive controller button-prompt hint bar (glyphs set per controller type
+     in ui.js). Only shown when a gamepad is connected and a menu is open. */
+  #gp-hints {
+    position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%);
+    display: flex; gap: 4px; align-items: center; flex-wrap: wrap; justify-content: center;
+    font-family: 'VT323', monospace; font-size: 19px; letter-spacing: 1px;
+    color: var(--ink); background: rgba(8,10,24,0.82);
+    border: 2px solid #000; border-radius: 6px; box-shadow: 3px 3px 0 rgba(0,0,0,0.5);
+    padding: 5px 14px; z-index: 999; pointer-events: none;
+    text-transform: uppercase; max-width: 92vw;
+  }
+  #gp-hints.hidden { display: none; }
+  #gp-hints span.lbl { margin: 0 12px 0 2px; color: var(--ink-dim); }
+  #gp-hints .gp-glyph {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-width: 24px; height: 24px; padding: 0 4px;
+    border: 2px solid var(--gc, #fff); border-radius: 50%;
+    color: var(--gc, #fff); background: rgba(0,0,0,0.5);
+    font-family: 'Press Start 2P', monospace; font-size: 10px; line-height: 1;
+  }
+  #gp-hints .gp-glyph.wide { border-radius: 7px; min-width: 34px; padding: 0 6px; }
+  #gp-hints .gp-dpad { color: var(--accent); font-size: 18px; margin-right: 2px; }
   /* Tab active state: ensure it wins specificity. Use the same body styling as
      .btn.hot. Targets both `.armory-tab.active` and the equivalent attribute. */
   .armory-tab.active,
@@ -2998,6 +3020,9 @@ window.addEventListener('load', () => {
   <div id="jump-btn">JUMP</div>
   <div id="dash-btn">DASH</div>
 </div>
+
+<!-- Controller button-prompt hint bar (adaptive glyphs, populated by ui.js) -->
+<div id="gp-hints" class="hidden"></div>
 
 <!-- Start screen -->
 <div id="start-screen" class="overlay hidden">
