@@ -422,7 +422,7 @@ export const BOSS_VARIANTS = {
   },
 };
 
-function spawnBoss(tier = 'final') {
+export function spawnBoss(tier = 'final') {
   const cfg = BOSS_TIERS[tier];
   const lvl = player.level;
   const sm  = STAGE_MULTS[gameState.stage]  || STAGE_MULTS[1];

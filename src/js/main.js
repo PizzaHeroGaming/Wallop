@@ -11,7 +11,7 @@
 
 import { scene, camera, renderer, clock, composer, isMobile, tryEnterFullscreen, rearmFullscreenOnNextTap } from './renderer.js?v=b566b24';
 import { gameState, cam } from './state.js?v=b566b24';
-import { initGame, update, updateTitleScene, updateIntroSweep } from './game.js?v=b566b24';
+import { initGame, update, updateTitleScene, updateIntroSweep, spawnBoss } from './game.js?v=b566b24';
 import './world.js?v=b566b24'; // side-effect only: builds terrain scenery at load time
 import { Settings } from './settings.js?v=b566b24';
 import { pollGamepad, applyOffer } from './ui.js?v=b566b24';
@@ -54,6 +54,12 @@ if (new URLSearchParams(location.search).has('cap') && location.port === '8123')
       return enemies.length;
     },
     tilt(p) { cam.pitch = p; },        // steeper downward angle for the swarm composition
+    boss(tier = 'final') {             // spawn a boss (mini1/mini2/final) near the hero for capture
+      spawnBoss(tier);
+      const e = [...enemies].reverse().find(x => x.isBoss);
+      if (e) { e.pos.x = player.pos.x + 6; e.pos.z = player.pos.z - 5; e.mesh.position.copy(e.pos); e.hp = e.maxHp; }
+      return e ? e.def.name : null;
+    },
   };
 }
 
