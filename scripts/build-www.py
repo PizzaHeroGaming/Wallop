@@ -41,7 +41,10 @@ def main():
     # src/ (the JS modules + inline splash author file) and assets/, mirrored
     # so the relative paths in index.html resolve unchanged in the WebView.
     shutil.copytree(os.path.join(ROOT, 'src'),    os.path.join(WWW, 'src'))
-    shutil.copytree(os.path.join(ROOT, 'assets'), os.path.join(WWW, 'assets'))
+    shutil.copytree(os.path.join(ROOT, 'assets'), os.path.join(WWW, 'assets'),
+                    # The raw Xelu prompt pack is source-only — we bundle just the
+                    # extracted glyphs in assets/ui/glyphs/, not the 7.7MB pack.
+                    ignore=shutil.ignore_patterns('Xelu_Free_Controller*'))
 
     # Rough size report so we notice if the bundle balloons.
     total = 0

@@ -47,3 +47,7 @@ cap-resources/
 # Brand font binaries used only by scripts/gen-steam-art.mjs — re-downloadable
 # (see the curl commands / comments). Keeps font binaries out of the repo.
 store/.fonts/
+
+# Raw Xelu controller-prompt pack (CC0, source-only). We commit only the ~21
+# extracted glyphs under assets/ui/glyphs/; the full 7.7MB pack stays local.
+assets/Xelu_Free_Controller*/

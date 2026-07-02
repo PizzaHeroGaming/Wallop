@@ -15,7 +15,7 @@
 //   keyboard/mobile → tryJump, tryDash (game.js): use _jumpFn/_dashFn, set via setJumpDashCbs()
 //   openChest → presentChoiceScreen (this file): setOpenChestDeps is called in initUI()
 
-import { camera, renderer, isMobile, tryEnterFullscreen } from './renderer.js?v=43c13d0';
+import { camera, renderer, isMobile, tryEnterFullscreen } from './renderer.js?v=5c5994b';
 import {
   player, enemies,
   tryInteract, setOpenChestDeps,
@@ -23,20 +23,20 @@ import {
   spawnParticle,
   CHARACTER_MODELS, _animClips, loadCharAsset,
   _applyCharacterModel,
-} from './entities.js?v=43c13d0';
-import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=43c13d0';
-import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=43c13d0';
-import { gameState, cam } from './state.js?v=43c13d0';
-import { Audio } from './audio.js?v=43c13d0';
-import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=43c13d0';
+} from './entities.js?v=5c5994b';
+import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=5c5994b';
+import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=5c5994b';
+import { gameState, cam } from './state.js?v=5c5994b';
+import { Audio } from './audio.js?v=5c5994b';
+import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=5c5994b';
 // VERSION lives on CFG.VERSION too — reading via property access doesn't
 // blow up if a cached older config.js is loaded without the named export
 const VERSION = CFG.VERSION || '0.0.0';
 // Slices granted per on-demand "watch ad for slices" view (daily-capped in Profile).
 const AD_SLICE_REWARD = 3;
-import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=43c13d0';
-import { tmp, tmp2 } from './utils.js?v=43c13d0';
-import { Settings } from './settings.js?v=43c13d0';
+import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=5c5994b';
+import { tmp, tmp2 } from './utils.js?v=5c5994b';
+import { Settings } from './settings.js?v=5c5994b';
 
 // ============================================================
 // INJECTION CALLBACKS (break circular deps)
@@ -1762,20 +1762,21 @@ export function gpMenuNav(action) {
 // ============================================================
 function _padType(gp) {
   const id = ((gp && gp.id) || '').toLowerCase();
-  if (/dualsense|dualshock|playstation|sony|054c|09cc|0ce6|wireless controller/.test(id)) return 'ps';
-  if (/nintendo|switch|joy-?con|pro controller|057e/.test(id)) return 'switch';
+  // Check Xbox + Switch BEFORE the generic PS patterns — "Xbox Wireless
+  // Controller" contains "wireless controller" (a DualShock4 id marker), so the
+  // broad PS match must come last to avoid a false positive.
   if (/xbox|xinput|microsoft|045e|028e|02e0|02ea/.test(id)) return 'xbox';
+  if (/nintendo|switch|joy-?con|pro controller|057e/.test(id)) return 'switch';
+  if (/dualsense|dualshock|playstation|sony|054c|09cc|0ce6|wireless controller/.test(id)) return 'ps';
   return 'xbox';  // most unlabeled PC pads report as XInput/Xbox-like
 }
-// action → face button: confirm=btn0, back=btn1, use=btn2, pause=btn9.
-const _GLYPHS = {
-  ps:     { confirm: { s: '✕', c: '#8fb2ff' }, back: { s: '◯', c: '#ff7a7a' }, use: { s: '▢', c: '#f58fd8' }, pause: { s: 'OPTIONS', c: '#d7def0', wide: 1 } },
-  xbox:   { confirm: { s: 'A', c: '#78d06a' }, back: { s: 'B', c: '#ff6a6a' }, use: { s: 'X', c: '#6aa8ff' }, pause: { s: 'MENU', c: '#d7def0', wide: 1 } },
-  switch: { confirm: { s: 'B', c: '#e6e9f2' }, back: { s: 'A', c: '#e6e9f2' }, use: { s: 'Y', c: '#e6e9f2' }, pause: { s: '+', c: '#e6e9f2' } },
-};
+// Official controller glyph images — Xelu CC0 pack extracted to
+// assets/ui/glyphs/ as <type>-<action>.png. type = ps|xbox|switch;
+// action = confirm(btn0) | back(btn1) | use(btn2) | pause(btn9) | lb | rb | dpad.
+// (Face buttons already account for Switch's swapped A/B physical layout.)
 function _glyph(type, action) {
-  const g = (_GLYPHS[type] || _GLYPHS.xbox)[action];
-  return g ? `<span class="gp-glyph${g.wide ? ' wide' : ''}" style="--gc:${g.c}">${g.s}</span>` : '';
+  const t = (type === 'ps' || type === 'switch') ? type : 'xbox';
+  return `<img class="gp-img" src="assets/ui/glyphs/${t}-${action}.png" alt="" draggable="false">`;
 }
 let _hintKey = '';
 export function _hideGpHints() {
@@ -1804,13 +1805,12 @@ function _updateGpHints(gp) {
   const key = t + '|' + root.id + (adjustable ? '|adj' : '') + (hasTabs ? '|tab' : '');
   if (key === _hintKey) { el.classList.remove('hidden'); document.body.classList.add('gp-hints-visible'); return; }
   _hintKey = key;
-  const bump = { ps: ['L1', 'R1'], xbox: ['LB', 'RB'], switch: ['L', 'R'] }[t] || ['LB', 'RB'];
   el.innerHTML =
-    (adjustable ? '<span class="gp-dpad">◀▶</span><span class="lbl">Adjust</span>' : '') +
+    (adjustable ? '<span class="gp-dpad">◀ ▶</span><span class="lbl">Adjust</span>' : '') +
     _glyph(t, 'confirm') + '<span class="lbl">Select</span>' +
     _glyph(t, 'back') + '<span class="lbl">Back</span>' +
-    '<span class="gp-dpad">✜</span><span class="lbl">Navigate</span>' +
-    (hasTabs ? `<span class="gp-glyph wide">${bump[0]}</span><span class="gp-glyph wide">${bump[1]}</span><span class="lbl">Tabs</span>` : '');
+    _glyph(t, 'dpad') + '<span class="lbl">Navigate</span>' +
+    (hasTabs ? _glyph(t, 'lb') + _glyph(t, 'rb') + '<span class="lbl">Tabs</span>' : '');
   el.classList.remove('hidden');
   _setGpPad(el);
 }
@@ -1826,9 +1826,10 @@ function _updateInteractGlyph(gp) {
   if (devKey === _promptDevKey) return;
   _promptDevKey = devKey;
   if (!_interactKeyEl) _interactKeyEl = document.querySelector('#interact-prompt .key');
-  if (_interactKeyEl) _interactKeyEl.textContent = usePad
-    ? ((_GLYPHS[_padType(gp)] || _GLYPHS.xbox).use.s)
-    : _keyLabel(Settings.getBind('interact'));
+  if (_interactKeyEl) {
+    if (usePad) { _interactKeyEl.innerHTML = _glyph(_padType(gp), 'use'); _interactKeyEl.classList.add('is-glyph'); }
+    else { _interactKeyEl.textContent = _keyLabel(Settings.getBind('interact')); _interactKeyEl.classList.remove('is-glyph'); }
+  }
   if (!_pauseHintEl) _pauseHintEl = document.getElementById('pause-hint');
   if (_pauseHintEl) _pauseHintEl.innerHTML = usePad
     ? _glyph(_padType(gp), 'back') + ' resume'
