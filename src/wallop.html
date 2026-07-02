@@ -988,10 +988,19 @@
     #hp-wrap { width: 180px; left: 12px; }
     #xp-wrap { left: 8px; right: 8px; }
     #lvl-badge { font-size: 9px; }
-    /* Mobile: stat tiles are smaller (~28px tall) so boss bar sits at ~52px below the top inset.
-       Width capped at 320px so loadout (140px at left edge, right=148px) stays uncovered when
-       boss bars are centered on the smallest landscape phones (640px wide -> bar at 160-480px). */
-    #boss-wrap { width: min(300px, 58vw); top: 52px; }
+    /* Mobile: pin the boss bar to the top row (level with the HP bar at 16px and
+       the TIME/KILLS/GOLD tiles) so the top HUD reads as one clean strip instead
+       of the bar floating mid-screen. Width shrinks to fit the centre gap between
+       the top-left HP bar (~192px) and the top-right stats (~250px) so it never
+       overlaps them — even on narrow landscape phones. */
+    #boss-wrap {
+      top: 16px;
+      /* The HP bar (~192px) and the fixed 285px stat cluster aren't symmetric, so
+         centre the bar in the gap between them (shift left ~46px) and size it to
+         the gap so it never overlaps either — at any landscape phone width. */
+      left: calc(50% - 46px);
+      width: min(300px, calc(100vw - 500px));
+    }
     /* Compact boss bars on phones: shorter bars + smaller overlaid text so
        multiple simultaneous bosses don't take over the screen. */
     .boss-bar { height: 17px; }

@@ -36,6 +36,9 @@ pending the next Play build.
 - Menu navigation edge cases: left/right stays within a row of cards/buttons
   (level-up & chest choices go left→middle→right, down to Skip/Reroll); the
   controller hint bar no longer hides bottom content in Settings/dialogs.
+- **Boss HP bar placement on phones** (tester report): it was dropped ~52px and
+  floating mid-screen; now pinned to the top row, aligned with the player HP bar
+  and stat tiles, sized to the gap so it never overlaps them at any phone width.
 
 ### Dev / infra (not player-facing)
 - Desktop (Steam) build: Electron wrapper packages an NSIS installer
