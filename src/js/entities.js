@@ -4,6 +4,7 @@ import { groundHeight, addSolid, resolveSolids, solidProps } from './terrain.js?
 import { killMesh, clamp, rand, tmp, tmp2, flatPhong, smoothPhong } from './utils.js?v=2d8ee53';
 import { gameState } from './state.js?v=2d8ee53';
 import { Profile } from './profile.js?v=2d8ee53';
+import * as Steam from './steam.js?v=2d8ee53';
 import { Audio } from './audio.js?v=2d8ee53';
 
 // ============================================================
@@ -1591,7 +1592,7 @@ export function spawnGoldCoin(pos) {
   m.position.copy(pos);
   m.position.y = groundHeight(pos.x, pos.z) + 0.5;
   scene.add(m);
-  const coin = { pos: m.position, mesh: m, life: 30, bobOffset: Math.random() * Math.PI * 2 };
+  const coin = { pos: m.position, mesh: m, life: 30, attracted: false, bobOffset: Math.random() * Math.PI * 2 };
   goldCoins.push(coin);
   return coin;
 }
@@ -1870,6 +1871,7 @@ export function setOpenChestDeps(deps) {
 export function openChest(c) {
   if (c.opened) return;
   c.opened = true;
+  Steam.chestOpened(); // achievement: open 50 chests (lifetime)
   Audio.play('chest_open');
   c.beam.visible = false;
   c.ring.visible = false;
@@ -2024,9 +2026,11 @@ export function updateGold(dt) {
     }
     const dx = player.pos.x - c.pos.x, dz = player.pos.z - c.pos.z;
     const dist = Math.hypot(dx, dz);
-    if (dist < player.pickupRange) {
+    if (dist < player.pickupRange * 4) c.attracted = true;
+    if (c.attracted) {
+      const pullSpeed = 12 + 28 * Math.max(0, 1 - dist / (player.pickupRange * 4));
       tmp2.set(dx, (player.pos.y + 0.5) - c.pos.y, dz).normalize();
-      c.pos.addScaledVector(tmp2, 12 * dt);
+      c.pos.addScaledVector(tmp2, pullSpeed * dt);
     } else {
       c.pos.y = groundHeight(c.pos.x, c.pos.z) + 0.5 + Math.sin(performance.now() * 0.005 + c.bobOffset) * 0.1;
     }

@@ -13,6 +13,7 @@
 const { app, BrowserWindow, protocol, net, Menu, ipcMain } = require('electron');
 const path = require('path');
 const { pathToFileURL } = require('url');
+const steam = require('./steam');
 
 const GAME_ROOT = app.isPackaged
   ? path.join(process.resourcesPath, 'game')   // packaged: extraResources/game
@@ -56,6 +57,11 @@ function createWindow() {
 }
 
 app.whenReady().then(() => {
+  // Steam must be up before the window loads: preload.js does a synchronous
+  // cloud-load to hydrate the save before the game's profile.js reads it.
+  steam.registerIpc();
+  steam.initSteam();
+
   protocol.handle('wallop', (req) => {
     const url = new URL(req.url);
     let rel = decodeURIComponent(url.pathname).replace(/^\/+/, '');

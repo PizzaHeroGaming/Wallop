@@ -1,0 +1,19 @@
+// WALLOP — SteamPipe app build script. Wraps the depot(s) for one upload.
+// Run from steamcmd (see steam/scripts/README.md). Paths are relative to THIS file.
+"appbuild"
+{
+	"appid"	"4910280"
+	"desc"	"WALLOP desktop build"          // shows in Steamworks build history
+
+	"buildoutput" "..\output\"              // steamcmd logs/chunks (steam/output/, gitignored)
+	"contentroot" "..\..\electron\dist\win-unpacked\"
+
+	// Blank = upload only, do NOT set a branch live. To auto-push, set a beta
+	// branch name (e.g. "beta"); avoid pushing straight to "default"/public.
+	"setlive"	""
+
+	"depots"
+	{
+		"4910281" "depot_build_4910281.vdf"   // ⚠ match the real Depot ID
+	}
+}

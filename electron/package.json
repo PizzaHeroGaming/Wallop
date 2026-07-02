@@ -16,13 +16,32 @@
   "build": {
     "appId": "com.pizzaherogaming.wallop",
     "productName": "WALLOP",
-    "directories": { "output": "dist", "buildResources": "build" },
-    "files": ["main.js", "preload.js", "package.json"],
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "steam.js",
+      "package.json",
+      "steam_appid.txt",
+      "node_modules/steamworks.js/**/*"
+    ],
+    "asarUnpack": [
+      "node_modules/steamworks.js/**/*"
+    ],
     "extraResources": [
-      { "from": "../www", "to": "game" }
+      {
+        "from": "../www",
+        "to": "game"
+      }
     ],
     "win": {
-      "target": ["nsis", "dir"],
+      "target": [
+        "nsis",
+        "dir"
+      ],
       "icon": "build/icon.ico"
     },
     "nsis": {
@@ -34,7 +53,14 @@
       "shortcutName": "WALLOP",
       "artifactName": "WALLOP-Setup-${version}.${ext}"
     },
-    "linux": { "target": "dir" },
-    "mac": { "target": "dir" }
+    "linux": {
+      "target": "dir"
+    },
+    "mac": {
+      "target": "dir"
+    }
+  },
+  "dependencies": {
+    "steamworks.js": "^0.4.0"
   }
 }

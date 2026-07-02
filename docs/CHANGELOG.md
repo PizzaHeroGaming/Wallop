@@ -18,6 +18,25 @@ these ride in 0.9.7 → versionCode 8 / versionName 0.9.7).
   hint bar, interact prompt, and pause hint. Fixed Xbox pads showing PlayStation
   glyphs.
 
+### Dev / infra (desktop / Steam — not player-facing on web/mobile)
+- **Steamworks integration scaffolded** (desktop build only; fully inert on
+  web + mobile). `steamworks.js` runs in the Electron main process and is exposed
+  to the game over the preload bridge (`window.WallopSteam`):
+  - **Achievements** — all 25 from `docs/STEAMWORKS_FEATURES_SPEC.md` wired to
+    existing game signals (first kill, bosses, wins by difficulty, levels, full
+    loadout, maxed weapon, gold, chests, arena clears, roster/signature, slices,
+    challenges). Deduped; unlocks verified against live Steam.
+  - **Steam Cloud** — the `wallop_profile_v1` save syncs as a timestamped
+    envelope; hydrated (newer-wins) at boot in the preload before the game reads
+    localStorage, and pushed on run-end.
+  - **Leaderboards** — 6 boards' `submitScore` calls are in place at run-end, but
+    steamworks.js 0.4.0 has no leaderboard API, so the bridge stubs the upload
+    (documented; only `electron/steam.js → submitScore` changes when supported).
+  - Packaging: `steam.js` + steamworks.js added to the electron-builder `files`
+    with `asarUnpack` for the native binding. SteamPipe depot scripts +
+    upload guide in `steam/scripts/`. Dashboard still needs the achievement/
+    leaderboard entities created (exact API names in the spec).
+
 ---
 
 ## v0.9.6 — 2026-07-01 (submitted to Play for review)

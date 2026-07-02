@@ -31,6 +31,7 @@ import { groundHeight, resolveSolids, setTerrainArena } from './terrain.js?v=2d8
 import { setWorldArena } from './world.js?v=2d8ee53';
 import { killMesh, clamp, rand, tmp, tmp2, flatPhong } from './utils.js?v=2d8ee53';
 import { Audio } from './audio.js?v=2d8ee53';
+import * as Steam from './steam.js?v=2d8ee53';
 import {
   showDamage, showAlert, updateBossArrow, updateLoadoutDisplay,
   syncSliceDisplays, triggerGameOver,
@@ -142,7 +143,9 @@ export function damageEnemy(e, dmg, crit = false, srcWeaponId = null) {
 }
 
 export function killEnemy(e, srcWeaponId = null) {
+  Steam.firstKill();
   if (e.isBoss) {
+    Steam.bossKilled(e.bossTier);
     for (let i = 0; i < 20; i++) {
       const a = (i / 20) * Math.PI * 2;
       spawnGem(e.pos.clone().add(new THREE.Vector3(Math.cos(a) * 1.5, 0, Math.sin(a) * 1.5)), 5);
@@ -169,6 +172,7 @@ export function killEnemy(e, srcWeaponId = null) {
       const effMult = rawMult * platMult;
       const totalSlices = Math.round(e.sliceDrop * effMult);
       Profile.addSlices(totalSlices);
+      Steam.slicesEarned(totalSlices);
       Audio.play('pickup_slice');
       gameState.slicesEarned = (gameState.slicesEarned || 0) + totalSlices;
       // Only kill-earned slices are eligible for the run-end "Double Slices" ad —
@@ -197,6 +201,7 @@ export function killEnemy(e, srcWeaponId = null) {
       Profile.clearStage(gameState.stage);
       if (gameState.stage === 3) {
         // Full arena clear — record best difficulty + unlock next arena if Normal+.
+        Steam.arenaCleared(gameState.arena);
         const newlyUnlocked = Profile.recordArenaClear(gameState.arena, gameState.difficulty);
         if (newlyUnlocked) {
           const nextDef = ARENAS[newlyUnlocked];
@@ -873,6 +878,7 @@ function advanceStage() {
 // RESET GAME
 // ============================================================
 export function resetGame() {
+  Steam.newRun(); // reset per-run achievement tracking + re-sync meta achievements
   // Drop any leftover pausable timers from the previous run — without this a
   // queued boss shockwave or pending stage-advance could fire into the fresh
   // run and cause untelegraphed damage / a phantom stage skip.
@@ -2141,8 +2147,10 @@ function _completeActiveChallenge() {
   const def = CHALLENGES.find(c => c.id === id);
   if (!def) { gameState.activeChallenge = null; triggerGameOver(true); return; }
   const firstTime = Profile.markChallengeCompleted(id);
+  Steam.challengeCompleted();
   if (firstTime) {
     Profile.addSlices(def.reward);
+    Steam.slicesEarned(def.reward);
     gameState.slicesEarned = (gameState.slicesEarned || 0) + def.reward;
     syncSliceDisplays();
     showAlert(`${def.icon} ${def.name.toUpperCase()} — +${def.reward} 🍕`, '#ffd23f');

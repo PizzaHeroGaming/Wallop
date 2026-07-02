@@ -28,6 +28,7 @@ import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=2d8ee53';
 import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=2d8ee53';
 import { gameState, cam } from './state.js?v=2d8ee53';
 import { Audio } from './audio.js?v=2d8ee53';
+import * as Steam from './steam.js?v=2d8ee53';
 import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=2d8ee53';
 // VERSION lives on CFG.VERSION too — reading via property access doesn't
 // blow up if a cached older config.js is loaded without the named export
@@ -324,6 +325,7 @@ export function updateHUD() {
 
   hudEls.goldVal.textContent  = player.gold;
   hudEls.killsVal.textContent = gameState.kills;
+  Steam.checkGold(player.gold); // achievement: hold 1000 gold in a run (deduped)
 
   _reconcileBossBars();
 
@@ -674,6 +676,9 @@ export function applyOffer(o) {
     player.statLevels = player.statLevels || {};
     player.statLevels[o.synergyId] = 1;
   }
+  // Steam achievements: full 3/3/3 loadout + any weapon maxed.
+  Steam.checkLoadout(player.weapons.length, player.armor_items.length, player.tomes.length);
+  if (player.weapons.some(w => w.level >= (WEAPONS[w.id]?.maxLevel ?? 1))) Steam.weaponMaxed();
   updateLoadoutDisplay();
 }
 
@@ -906,6 +911,7 @@ export function processPendingLevelUp() {
   if (player.xp >= player.xpToNext) {
     player.xp       -= player.xpToNext;
     player.level++;
+    Steam.checkLevel(player.level); // achievements: reach level 10 / 25 / 50
     player.xpToNext  = Math.floor(5 + player.level * 2.2 + Math.pow(player.level, 1.4));
     showLevelUp();
   } else if (gameState.state === 'levelup') {
@@ -998,6 +1004,16 @@ export function triggerGameOver(victory) {
 
   // Persist itemKills accumulated this run
   Profile.save();
+
+  // Steam: win/leaderboard achievements + push the save to Steam Cloud (no-op off Steam).
+  Steam.runEnded({
+    victory,
+    difficulty: gameState.difficulty,
+    arena: gameState.arena,
+    level: player.level,
+    kills: gameState.kills,
+    time: gameState.gameTime,
+  });
 
   __runsPlayed++;
   // Arm the interstitial (every other run) but DON'T show it yet — wait until the

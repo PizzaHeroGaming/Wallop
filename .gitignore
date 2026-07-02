@@ -47,3 +47,12 @@ cap-resources/
 # Brand font binaries used only by scripts/gen-steam-art.mjs — re-downloadable
 # (see the curl commands / comments). Keeps font binaries out of the repo.
 store/.fonts/
+
+# Steamworks SDK — DO NOT COMMIT. Valve's SDK license prohibits public
+# redistribution, and this repo is public. Large + re-downloadable from
+# partner.steamgames.com. Lives locally at steamworks_sdk_<ver>/ (currently 164).
+steamworks_sdk_*/
+steam-sdk/
+
+# steamcmd build output (chunks + logs) written by steam/scripts/*.vdf
+steam/output/

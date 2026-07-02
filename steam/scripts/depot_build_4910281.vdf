@@ -1,0 +1,28 @@
+// WALLOP — SteamPipe depot build script (desktop / Windows).
+//
+// The depot content is the electron-builder "dir" target output — the fully
+// unpacked game (WALLOP.exe + resources/, incl. the bundled www/ game files and
+// the unpacked steamworks.js native module). Do NOT upload the NSIS installer:
+// on Steam, Steam itself is the installer/updater.
+//
+// Build the unpacked app first:  cd electron && npm run dist   (produces
+// electron/dist/win-unpacked/). Paths below are relative to THIS file.
+//
+// ⚠ Replace 4910281 with the real Depot ID from the Steamworks dashboard
+//   (App Admin → 4910280 → SteamPipe → Depots). By convention the first depot is
+//   AppID+1, but confirm it — an unmapped depot silently uploads nothing useful.
+"DepotBuildConfig"
+{
+	"DepotID" "4910281"
+	"contentroot" "..\..\electron\dist\win-unpacked\"
+
+	"FileMapping"
+	{
+		"LocalPath" "*"
+		"DepotPath" "."
+		"recursive" "1"
+	}
+
+	// Symbols aren't needed by players.
+	"FileExclusion" "*.pdb"
+}
