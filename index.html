@@ -2143,15 +2143,15 @@
     scroll-padding-bottom: var(--gp-pad, 84px) !important; /* keep focus above the bar on scrollIntoView */
   }
   #gp-hints span.lbl { margin: 0 12px 0 2px; color: var(--ink-dim); }
-  #gp-hints .gp-glyph {
-    display: inline-flex; align-items: center; justify-content: center;
-    min-width: 24px; height: 24px; padding: 0 4px;
-    border: 2px solid var(--gc, #fff); border-radius: 50%;
-    color: var(--gc, #fff); background: rgba(0,0,0,0.5);
-    font-family: 'Press Start 2P', monospace; font-size: 10px; line-height: 1;
+  /* Official controller glyph images (Xelu CC0). */
+  #gp-hints .gp-img { height: 28px; width: auto; vertical-align: middle; margin: 0 1px; }
+  #gp-hints .gp-dpad { color: var(--accent); font-size: 18px; margin-right: 2px; letter-spacing: 0; }
+  /* Interact prompt: show the controller glyph in place of the keycap letter. */
+  #interact-prompt .key.is-glyph {
+    background: none !important; border: none !important; box-shadow: none !important;
+    padding: 0 !important; min-width: 0 !important;
   }
-  #gp-hints .gp-glyph.wide { border-radius: 7px; min-width: 34px; padding: 0 6px; }
-  #gp-hints .gp-dpad { color: var(--accent); font-size: 18px; margin-right: 2px; }
+  #interact-prompt .key .gp-img { height: 34px; width: auto; display: block; }
   /* Tab active state: ensure it wins specificity. Use the same body styling as
      .btn.hot. Targets both `.armory-tab.active` and the equivalent attribute. */
   .armory-tab.active,
@@ -3635,6 +3635,6 @@ window.addEventListener('load', () => {
 <script src="src/vendor/three/UnrealBloomPass.js"></script>
 <script src="src/vendor/three/GLTFLoader.js"></script>
 <script src="src/vendor/three/SkeletonUtils.js"></script>
-<script type="module" src="src/js/main.js?v=43c13d0"></script>
+<script type="module" src="src/js/main.js?v=429eb92"></script>
 </body>
 </html>
