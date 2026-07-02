@@ -7,10 +7,9 @@ add an in-game patch-log entry (ABOUT screen in `wallop.html`), then build/uploa
 
 ---
 
-## [Unreleased] — next version (targeting v0.9.6)
+## v0.9.6 — 2026-07-01 (building for Play closed testing)
 
-Last shipped to Google Play: **v0.9.5** (closed testing). Everything below is
-pending the next Play build.
+Cut from the batch that was on web since 0.9.5. versionCode 7 / versionName 0.9.6.
 
 ### New
 - **Full controller support for menus** — navigate every screen with a gamepad
