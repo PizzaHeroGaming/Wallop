@@ -7,9 +7,23 @@ add an in-game patch-log entry (ABOUT screen in `wallop.html`), then build/uploa
 
 ---
 
-## v0.9.6 — 2026-07-01 (building for Play closed testing)
+## [Unreleased] — next (targeting v0.9.7)
+
+Committed + live on web, pending the next Play cut (v0.9.6 is already in review, so
+these ride in 0.9.7 → versionCode 8 / versionName 0.9.7).
+
+### Improved
+- **Official controller glyphs** — replaced the Unicode button symbols with the
+  Xelu CC0 prompt art (real PlayStation ✕◯, Xbox A/B, Switch B/A icons) in the
+  hint bar, interact prompt, and pause hint. Fixed Xbox pads showing PlayStation
+  glyphs.
+
+---
+
+## v0.9.6 — 2026-07-01 (submitted to Play for review)
 
 Cut from the batch that was on web since 0.9.5. versionCode 7 / versionName 0.9.6.
+**Submitted to Play closed testing** — do not re-upload versionCode 7.
 
 ### New
 - **Full controller support for menus** — navigate every screen with a gamepad
