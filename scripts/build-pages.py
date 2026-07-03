@@ -33,6 +33,7 @@ Caveats:
 """
 
 import codecs
+import json
 import os
 import re
 import shutil
@@ -43,6 +44,33 @@ ROOT     = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
 SRC_DIR  = os.path.join(ROOT, 'src', 'js')
 HTML_SRC = os.path.join(ROOT, 'src', 'wallop.html')
 HTML_OUT = os.path.join(ROOT, 'index.html')
+CONFIG_JS = os.path.join(SRC_DIR, 'config.js')
+VERSION_JSON = os.path.join(ROOT, 'version.json')
+
+def sync_version_json():
+    """Keep version.json's `web` field in lock-step with config.js VERSION so the
+    in-game update check (versionCheck.js) knows the latest web build. Preserves
+    the `android`/`steam` fields — those are bumped by hand when a store release
+    actually goes live, so a web-only push never nags store users."""
+    try:
+        with codecs.open(CONFIG_JS, encoding='utf-8') as fp:
+            m = re.search(r"VERSION\s*=\s*['\"]([^'\"]+)['\"]", fp.read())
+        if not m:
+            return None
+        version = m.group(1)
+        data = {}
+        if os.path.exists(VERSION_JSON):
+            with codecs.open(VERSION_JSON, encoding='utf-8') as fp:
+                data = json.load(fp)
+        if data.get('web') != version:
+            data['web'] = version
+            with codecs.open(VERSION_JSON, 'w', encoding='utf-8') as fp:
+                json.dump(data, fp, indent=2)
+                fp.write('\n')
+        return version
+    except Exception as e:
+        print(f'  (version.json sync skipped: {e})')
+        return None
 
 def short_sha():
     out = subprocess.check_output(['git', '-C', ROOT, 'rev-parse', '--short', 'HEAD'])
@@ -108,7 +136,8 @@ def main():
             with codecs.open(path, 'w', encoding='utf-8') as fp:
                 fp.write(rewritten)
             rewrote += 1
-    print(f'Built v={sha} (rewrote {rewrote} JS files, index.html updated)')
+    ver = sync_version_json()
+    print(f'Built v={sha} (rewrote {rewrote} JS files, index.html updated, version.json web={ver})')
 
 if __name__ == '__main__':
     main()
