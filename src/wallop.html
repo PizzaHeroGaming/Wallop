@@ -995,11 +995,19 @@
        overlaps them — even on narrow landscape phones. */
     #boss-wrap {
       top: 16px;
-      /* The HP bar (~192px) and the fixed 285px stat cluster aren't symmetric, so
-         centre the bar in the gap between them (shift left ~46px) and size it to
-         the gap so it never overlaps either — at any landscape phone width. */
-      left: calc(50% - 46px);
-      width: min(300px, calc(100vw - 500px));
+      /* Anchor the bar to BOTH the left (past the HP bar, right edge ~192px) and
+         the right (before the stat cluster + pause button) so its width is fluid
+         — it fills the gap and can never overlap either side, at any landscape
+         phone width. The 344px right reserve clears the WIDEST the stat cluster
+         gets: 5-digit KILLS + GOLD + 4-char TIME reach ~341px from the right edge
+         (tiles grow with their values), so the bar stays clear even as the
+         numbers climb mid-boss-fight. Must also clear the base transform, which
+         otherwise re-centres the bar into the stat tiles on narrow phones. */
+      left: 200px;
+      right: 344px;
+      width: auto;
+      max-width: none;
+      transform: none;
     }
     /* Compact boss bars on phones: shorter bars + smaller overlaid text so
        multiple simultaneous bosses don't take over the screen. */
@@ -1054,6 +1062,9 @@
     .loadout-label { display: none; } /* save horizontal space */
     .loadout-slot  { width: 26px; height: 26px; }
     #hp-wrap { width: 150px; }
+    /* HP bar is narrower here (150px, right edge ~162px), so the boss bar can
+       start further left — reclaims room on the tightest landscape phones. */
+    #boss-wrap { left: 172px; }
     #choices { flex-direction: column; gap: 6px; }
     .choice { width: calc(100% - 24px); min-height: 86px; padding: 10px; }
     .choice .desc { font-size: 14px; }

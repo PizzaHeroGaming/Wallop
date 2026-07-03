@@ -7,9 +7,23 @@ add an in-game patch-log entry (ABOUT screen in `wallop.html`), then build/uploa
 
 ---
 
-## [Unreleased]
+## [Unreleased] — next Play cut (v0.9.8)
 
-_(nothing yet — cut fresh after v0.9.7)_
+Committed + live on web since 0.9.7, riding the next store release.
+
+### New
+- **In-game update check** — on boot the game fetches a canonical `version.json`
+  from Pages and, if the running build is behind the latest for its platform,
+  shows a dismissible prompt (web→reload, android→Play Store, steam→auto). Per-
+  platform versions so a web push never nags store users. Fail-silent, non-blocking.
+
+### Fixed
+- **Boss HP bar no longer overlaps the timer/stats on phones** (tester report).
+  The mobile bar was center-anchored with a fixed width and drifted into the
+  stat tiles on narrower landscape phones. It's now anchored between the HP bar
+  (left) and the stat cluster (right) so its width is fluid — clean gaps on both
+  sides at every landscape width, and it stays clear even as KILLS/GOLD grow to
+  5 digits mid-fight. Verified 568–932px.
 
 ---
 
