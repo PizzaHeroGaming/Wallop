@@ -1978,6 +1978,9 @@
     color: var(--accent);
   }
   #slice-counter .slice-label { color: #6a3818; }
+  /* The number sits on the light wood frame — yellow (--accent) is illegible on
+     it, same issue already fixed for #armory-slice-count. Use the dark ink. */
+  #slice-counter #slice-count { color: #2a1a05; }
 
   /* PASS 2 — HP / XP / Boss HP frames (the wrapper, not the fill) */
   #hp-wrap, #xp-wrap, #boss-wrap {
@@ -3635,6 +3638,6 @@ window.addEventListener('load', () => {
 <script src="src/vendor/three/UnrealBloomPass.js"></script>
 <script src="src/vendor/three/GLTFLoader.js"></script>
 <script src="src/vendor/three/SkeletonUtils.js"></script>
-<script type="module" src="src/js/main.js?v=2d8ee53"></script>
+<script type="module" src="src/js/main.js?v=11a10e2"></script>
 </body>
 </html>

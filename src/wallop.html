@@ -1975,6 +1975,9 @@
     color: var(--accent);
   }
   #slice-counter .slice-label { color: #6a3818; }
+  /* The number sits on the light wood frame — yellow (--accent) is illegible on
+     it, same issue already fixed for #armory-slice-count. Use the dark ink. */
+  #slice-counter #slice-count { color: #2a1a05; }
 
   /* PASS 2 — HP / XP / Boss HP frames (the wrapper, not the fill) */
   #hp-wrap, #xp-wrap, #boss-wrap {
@@ -3192,6 +3195,16 @@ window.addEventListener('load', () => {
       <div class="about-heading">PATCH LOG</div>
 
       <details class="patch-entry" open>
+        <summary class="patch-ver">v0.9.7 — Polish &amp; Fixes</summary>
+        <ul class="patch-list">
+          <li><strong>Official controller button icons</strong> — the on-screen prompts now use the real PlayStation, Xbox, and Switch glyph art instead of stand-ins.</li>
+          <li><strong>Gold now flies to you</strong> like XP does — coins magnetize from a wider range instead of only when you're right on top of them.</li>
+          <li><strong>Music resumes after watching an ad</strong> (was staying silent when you came back).</li>
+          <li><strong>Readability:</strong> the Slices counter number is legible again on its wooden frame.</li>
+          <li><strong>Smaller download</strong> — trimmed a big pile of unused files from the build.</li>
+        </ul>
+      </details>
+      <details class="patch-entry">
         <summary class="patch-ver">v0.9.6 — Controller support</summary>
         <ul class="patch-list">
           <li><strong>Full controller support:</strong> play the whole game on a gamepad — menus, Armory, Settings, and level-up picks included. On-screen prompts show the right glyphs for your pad (PlayStation ✕◯▢, Xbox A/B/X, or Switch).</li>

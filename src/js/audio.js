@@ -13,7 +13,7 @@
 //   2. Add an entry to SFX (slug → { file, vol?, throttle?, channel? }).
 //   3. Call Audio.play('your_slug') from wherever the trigger fires.
 
-import { Profile } from './profile.js?v=2d8ee53';
+import { Profile } from './profile.js?v=11a10e2';
 
 const _UI_BASE  = 'assets/kenney_ui-audio/Audio/';
 const _RPG_BASE = 'assets/kenney_rpg-audio/Audio/';
@@ -282,6 +282,20 @@ function stopMusic() {
   // _musicEl is nulled by the fade's final pause via callback
   setTimeout(() => { _musicEl = null; }, MUSIC_FADE_MS + 100);
 }
+// Re-arm the current track. Call from a user-gesture context (e.g. an ad's
+// completion callback) — after a native ad or app-switch the OS pauses our
+// HTMLAudio and the visibilitychange resume is blocked by autoplay policy
+// (no fresh gesture), so the music stays dead. No-ops if nothing is queued or
+// we're muted, so it's safe to call from any ad flow.
+function resumeMusic() {
+  if (_muted || !_musicSlug) return;
+  if (_musicEl) {
+    const p = _musicEl.play(); // harmless if already playing; resumes if paused
+    if (p && p.catch) p.catch(() => {});
+  } else {
+    playMusic(_musicSlug);
+  }
+}
 
 // Override setMuted/setVolume to also retarget the music element.
 const _setMutedBase = setMuted;
@@ -349,6 +363,6 @@ export const Audio = {
   setMuted: _setMutedMusicAware,
   setVolume: _setVolumeMusicAware,
   isMuted, getVolume,
-  playMusic, stopMusic,
+  playMusic, stopMusic, resumeMusic,
   playBossWarning,
 };

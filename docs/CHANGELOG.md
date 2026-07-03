@@ -7,16 +7,53 @@ add an in-game patch-log entry (ABOUT screen in `wallop.html`), then build/uploa
 
 ---
 
-## [Unreleased] — next (targeting v0.9.7)
+## [Unreleased]
 
-Committed + live on web, pending the next Play cut (v0.9.6 is already in review, so
-these ride in 0.9.7 → versionCode 8 / versionName 0.9.7).
+_(nothing yet — cut fresh after v0.9.7)_
+
+---
+
+## v0.9.7 — 2026-07-03 (cut for Play — versionCode 8 / versionName 0.9.7)
+
+Bundles everything on web since 0.9.6 (which is in Play review). Built + signed AAB
+uploaded to Play closed testing.
 
 ### Improved
 - **Official controller glyphs** — replaced the Unicode button symbols with the
   Xelu CC0 prompt art (real PlayStation ✕◯, Xbox A/B, Switch B/A icons) in the
   hint bar, interact prompt, and pause hint. Fixed Xbox pads showing PlayStation
   glyphs.
+- **Smaller download** — trimmed ~41 MB of unused assets from the bundle (74 MB →
+  33 MB) by keeping only files the game actually loads.
+
+### Fixed
+- **Gold now magnetizes to the player** like XP gems — coins use the same wider
+  (4×), latched, ramped attraction instead of only pulling within base pickup
+  range.
+- **Music no longer dies after a rewarded ad** (mobile) — the OS pauses our audio
+  during a fullscreen ad and the visibilitychange resume is autoplay-blocked, so
+  we now re-arm the track in the ad-completion callback (a user-gesture context).
+- **Slices counter is legible again** — the start-screen number was yellow-on-wood
+  (illegible); now dark ink, matching the already-fixed Armory pill.
+
+### Dev / infra (desktop / Steam — not player-facing; inert in the Play build)
+- **Steamworks integration scaffolded** (desktop build only; fully inert on
+  web + mobile). `steamworks.js` runs in the Electron main process and is exposed
+  to the game over the preload bridge (`window.WallopSteam`):
+  - **Achievements** — all 25 from `docs/STEAMWORKS_FEATURES_SPEC.md` wired to
+    existing game signals (first kill, bosses, wins by difficulty, levels, full
+    loadout, maxed weapon, gold, chests, arena clears, roster/signature, slices,
+    challenges). Deduped; unlocks verified against live Steam.
+  - **Steam Cloud** — the `wallop_profile_v1` save syncs as a timestamped
+    envelope; hydrated (newer-wins) at boot in the preload before the game reads
+    localStorage, and pushed on run-end.
+  - **Leaderboards** — 6 boards' `submitScore` calls are in place at run-end, but
+    steamworks.js 0.4.0 has no leaderboard API, so the bridge stubs the upload
+    (documented; only `electron/steam.js → submitScore` changes when supported).
+  - Packaging: `steam.js` + steamworks.js added to the electron-builder `files`
+    with `asarUnpack` for the native binding. SteamPipe depot scripts +
+    upload guide in `steam/scripts/`. Dashboard still needs the achievement/
+    leaderboard entities created (exact API names in the spec).
 
 ### Dev / infra (desktop / Steam — not player-facing on web/mobile)
 - **Steamworks integration scaffolded** (desktop build only; fully inert on
