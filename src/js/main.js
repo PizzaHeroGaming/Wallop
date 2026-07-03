@@ -9,14 +9,14 @@
 //   game.js        → damageEnemy, update, initGame
 //   main.js        → animate, splash, resize
 
-import { scene, camera, renderer, clock, composer, isMobile, tryEnterFullscreen, rearmFullscreenOnNextTap } from './renderer.js?v=02458fb';
-import { gameState, cam } from './state.js?v=02458fb';
-import { initGame, update, updateTitleScene, updateIntroSweep, spawnBoss } from './game.js?v=02458fb';
-import './world.js?v=02458fb'; // side-effect only: builds terrain scenery at load time
-import { Settings } from './settings.js?v=02458fb';
-import { pollGamepad, applyOffer } from './ui.js?v=02458fb';
-import { spawnEnemy, enemies, player, ENEMY_DEFS } from './entities.js?v=02458fb';
-import { WEAPONS, ARMOR, TOMES } from './weapons.js?v=02458fb';
+import { scene, camera, renderer, clock, composer, isMobile, tryEnterFullscreen, rearmFullscreenOnNextTap } from './renderer.js?v=9f2efc4';
+import { gameState, cam } from './state.js?v=9f2efc4';
+import { initGame, update, updateTitleScene, updateIntroSweep, spawnBoss } from './game.js?v=9f2efc4';
+import './world.js?v=9f2efc4'; // side-effect only: builds terrain scenery at load time
+import { Settings } from './settings.js?v=9f2efc4';
+import { pollGamepad, applyOffer } from './ui.js?v=9f2efc4';
+import { spawnEnemy, enemies, player, ENEMY_DEFS } from './entities.js?v=9f2efc4';
+import { WEAPONS, ARMOR, TOMES } from './weapons.js?v=9f2efc4';
 
 // ── Marketing capture hook (only on the local capture server) ──
 // Lets the headless capture scripts stage a late-game, full-loadout swarm for
