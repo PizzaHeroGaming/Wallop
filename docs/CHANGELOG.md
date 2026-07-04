@@ -7,9 +7,14 @@ add an in-game patch-log entry (ABOUT screen in `wallop.html`), then build/uploa
 
 ---
 
-## [Unreleased]
+## [Unreleased] — web-only so far, rides the next Play cut
 
-_(nothing yet — cut fresh after v0.9.8)_
+- **Steam wishlist banner redesigned** into an artistic rotated "sticker" badge
+  (pulsing blue aura, bob animation) pinned bottom-right of the start screen —
+  clear of the hero, the desktop character panel, and the top-right slice chip.
+  Replaces the flat pill that sat under the title. Still auto-hidden on the Steam
+  build. NOTE: the v0.9.8 AAB was built before this — a fresh build is needed to
+  ship the sticker to Play.
 
 ---
 
