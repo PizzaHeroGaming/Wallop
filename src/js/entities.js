@@ -1,11 +1,11 @@
-import { CFG, IS_MOBILE_EARLY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=158106b';
-import { scene, camera, isMobile, tryEnterFullscreen, renderer, acquirePtLight, releasePtLight } from './renderer.js?v=158106b';
-import { groundHeight, addSolid, resolveSolids, solidProps } from './terrain.js?v=158106b';
-import { killMesh, clamp, rand, tmp, tmp2, flatPhong, smoothPhong } from './utils.js?v=158106b';
-import { gameState } from './state.js?v=158106b';
-import { Profile } from './profile.js?v=158106b';
-import * as Steam from './steam.js?v=158106b';
-import { Audio } from './audio.js?v=158106b';
+import { CFG, IS_MOBILE_EARLY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=5165ee8';
+import { scene, camera, isMobile, tryEnterFullscreen, renderer, acquirePtLight, releasePtLight } from './renderer.js?v=5165ee8';
+import { groundHeight, addSolid, resolveSolids, solidProps } from './terrain.js?v=5165ee8';
+import { killMesh, clamp, rand, tmp, tmp2, flatPhong, smoothPhong } from './utils.js?v=5165ee8';
+import { gameState } from './state.js?v=5165ee8';
+import { Profile } from './profile.js?v=5165ee8';
+import * as Steam from './steam.js?v=5165ee8';
+import { Audio } from './audio.js?v=5165ee8';
 
 // ============================================================
 // PLAYER
