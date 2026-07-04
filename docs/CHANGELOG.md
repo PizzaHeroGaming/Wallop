@@ -9,7 +9,14 @@ add an in-game patch-log entry (ABOUT screen in `wallop.html`), then build/uploa
 
 ## [Unreleased]
 
-_(nothing yet — cut fresh after v0.9.9)_
+- **Enemies no longer merge into the player** — added a lightweight player
+  collider: any non-boss enemy that reaches the hero is pushed out to a contact
+  boundary just inside its damage range, so it crowds/presses against the player
+  (and still deals contact damage) instead of overlapping the hero's model. The
+  existing on-hit knockback supplies the little recoil "bump." O(1) per enemy
+  (single check vs the player, no grid) — negligible perf cost. Enemy-vs-enemy
+  overlap is intentionally left as-is. Bosses excluded (they bypass collision by
+  design). Needs a playtest for feel before it ships to Play.
 
 ---
 

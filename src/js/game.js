@@ -1418,6 +1418,28 @@ function updateEnemies(dt) {
 
     e.pos.x = clamp(e.pos.x, -CFG.ARENA + 1, CFG.ARENA - 1);
     e.pos.z = clamp(e.pos.z, -CFG.ARENA + 1, CFG.ARENA - 1);
+
+    // Player collision: stop (non-boss) enemies merging into the hero. Push any
+    // enemy that reaches the player out to a contact boundary just INSIDE its
+    // damage range (e.radius + 0.5), so it crowds against the player and still
+    // deals contact damage instead of overlapping. O(1) per enemy — one check
+    // vs the single player, no grid needed. The contact-damage knockback (below)
+    // supplies the little recoil "bump"; this just stops the merge.
+    if (!e.isBoss) {
+      const minDist = e.radius + 0.45;
+      let pdx = e.pos.x - player.pos.x, pdz = e.pos.z - player.pos.z;
+      const pd = Math.hypot(pdx, pdz);
+      if (pd < minDist) {
+        let nx, nz;
+        if (pd > 1e-4) { nx = pdx / pd; nz = pdz / pd; }
+        else { // dead-centre overlap — pick a stable per-enemy escape direction
+          if (e._mergeAng === undefined) e._mergeAng = Math.random() * Math.PI * 2;
+          nx = Math.cos(e._mergeAng); nz = Math.sin(e._mergeAng);
+        }
+        e.pos.x = player.pos.x + nx * minDist;
+        e.pos.z = player.pos.z + nz * minDist;
+      }
+    }
     e.mesh.position.copy(e.pos);
 
     const dxc   = e.pos.x - player.pos.x, dzc = e.pos.z - player.pos.z;
