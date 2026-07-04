@@ -9,6 +9,12 @@ add an in-game patch-log entry (ABOUT screen in `wallop.html`), then build/uploa
 
 ## [Unreleased] — web-only so far, rides the next Play cut
 
+- **Clearer stat-upgrade level tags on the level-up screen** — the badge now
+  reads e.g. `LV 3->4` (with `MAX` on the final level) instead of `4/4`, which a
+  tester misread as "already capped / pointless." It always showed the level the
+  pick *reaches*, and maxed stats are never offered; the wording just made that
+  obvious now.
+
 - **Steam wishlist banner redesigned** into an artistic rotated "sticker" badge
   (pulsing blue aura, bob animation) pinned bottom-right of the start screen —
   clear of the hero, the desktop character panel, and the top-right slice chip.

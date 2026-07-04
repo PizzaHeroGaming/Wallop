@@ -15,7 +15,7 @@
 //   keyboard/mobile → tryJump, tryDash (game.js): use _jumpFn/_dashFn, set via setJumpDashCbs()
 //   openChest → presentChoiceScreen (this file): setOpenChestDeps is called in initUI()
 
-import { camera, renderer, isMobile, isSteamBuild, tryEnterFullscreen } from './renderer.js?v=1bcae88';
+import { camera, renderer, isMobile, isSteamBuild, tryEnterFullscreen } from './renderer.js?v=702787a';
 import {
   player, enemies,
   tryInteract, setOpenChestDeps,
@@ -23,21 +23,21 @@ import {
   spawnParticle,
   CHARACTER_MODELS, _animClips, loadCharAsset,
   _applyCharacterModel,
-} from './entities.js?v=1bcae88';
-import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=1bcae88';
-import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=1bcae88';
-import { gameState, cam } from './state.js?v=1bcae88';
-import { Audio } from './audio.js?v=1bcae88';
-import * as Steam from './steam.js?v=1bcae88';
-import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=1bcae88';
+} from './entities.js?v=702787a';
+import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=702787a';
+import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=702787a';
+import { gameState, cam } from './state.js?v=702787a';
+import { Audio } from './audio.js?v=702787a';
+import * as Steam from './steam.js?v=702787a';
+import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=702787a';
 // VERSION lives on CFG.VERSION too — reading via property access doesn't
 // blow up if a cached older config.js is loaded without the named export
 const VERSION = CFG.VERSION || '0.0.0';
 // Slices granted per on-demand "watch ad for slices" view (daily-capped in Profile).
 const AD_SLICE_REWARD = 3;
-import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=1bcae88';
-import { tmp, tmp2 } from './utils.js?v=1bcae88';
-import { Settings } from './settings.js?v=1bcae88';
+import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=702787a';
+import { tmp, tmp2 } from './utils.js?v=702787a';
+import { Settings } from './settings.js?v=702787a';
 
 // ============================================================
 // INJECTION CALLBACKS (break circular deps)
@@ -726,7 +726,13 @@ export function buildChoiceCard(o, onPick) {
     const su  = STAT_UPGRADES.find(s => s.id === o.statId);
     icon = su.icon; name = su.name; desc = su.desc;
     const cur = player.statLevels?.[o.statId] || 0;
-    lvlTag = `${cur + 1}/${su.max}`;
+    // Show the upgrade as a progression (e.g. "LV 3->4") so it doesn't read as a
+    // cap you've already hit — the old "4/4" looked like "already full" when it
+    // actually meant "picking this takes it to 4". "MAX" flags the final level.
+    // ASCII "->" arrow: Press Start 2P (pixel font) has no U+2192 glyph.
+    const next = cur + 1;
+    const suffix = next >= su.max ? ' MAX' : '';
+    lvlTag = (cur === 0 ? `LV ${next}` : `LV ${cur}->${next}`) + suffix;
   } else if (o.kind === 'synergy') {
     const sy  = SYNERGY_UPGRADES.find(s => s.id === o.synergyId);
     icon = sy.icon; name = sy.name; desc = sy.desc;
