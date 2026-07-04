@@ -7,9 +7,15 @@ add an in-game patch-log entry (ABOUT screen in `wallop.html`), then build/uploa
 
 ---
 
-## [Unreleased] — next Play cut (v0.9.8)
+## [Unreleased]
 
-Committed + live on web since 0.9.7, riding the next store release.
+_(nothing yet — cut fresh after v0.9.8)_
+
+---
+
+## v0.9.8 — 2026-07-03 (cut for Play — versionCode 9 / versionName 0.9.8)
+
+Bundles everything on web since 0.9.7. Built + signed AAB for Play closed testing.
 
 ### New
 - **"Wishlist on Steam" banner** on the start screen (web + mobile) — opens the
