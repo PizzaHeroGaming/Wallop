@@ -1,6 +1,6 @@
-import { CFG } from './config.js?v=b84f739';
-import { scene } from './renderer.js?v=b84f739';
-import { ARENAS } from './profile.js?v=b84f739';
+import { CFG } from './config.js?v=7df0341';
+import { scene } from './renderer.js?v=7df0341';
+import { ARENAS } from './profile.js?v=7df0341';
 
 // ============================================================
 // TERRAIN / GROUND
