@@ -386,24 +386,39 @@
   #slice-counter .slice-icon { font-size: 18px; }
   #slice-counter .slice-label { color: var(--ink-dim); font-size: 9px; letter-spacing: 1px; }
 
-  /* "Wishlist on Steam" cross-promo banner under the title. Steam-navy with a
-     soft blue glow so it draws the eye without fighting the PLAY button. */
+  /* "Wishlist on Steam" sticker — an artistic badge slapped on the bottom-right,
+     rotated with a pulsing blue aura. Sits clear of the centre hero, the
+     top-right slice chip, and the desktop character panel. */
   #wishlist-steam {
-    display: inline-flex; align-items: center; gap: 7px;
-    margin-top: 12px;
-    font-family: 'Press Start 2P', monospace; font-size: 9px; letter-spacing: 1px;
-    text-decoration: none; color: #c7e6ff;
-    background: #1b2838; border: 3px solid #000;
-    box-shadow: 4px 4px 0 #000, 0 0 16px rgba(102,192,244,0.35);
-    padding: 9px 14px; cursor: pointer; pointer-events: auto;
-    transition: transform 0.1s, box-shadow 0.1s, background 0.1s;
+    position: absolute;
+    right: calc(20px + env(safe-area-inset-right, 0px));
+    bottom: calc(20px + env(safe-area-inset-bottom, 0px));
+    z-index: 30; text-decoration: none; pointer-events: auto;
+    -webkit-tap-highlight-color: transparent;
   }
-  #wishlist-steam b { color: #66c0f4; }
-  #wishlist-steam .wl-star  { color: var(--accent); font-size: 12px; }
-  #wishlist-steam .wl-arrow { color: #66c0f4; font-size: 12px; }
-  #wishlist-steam:hover  { transform: translate(-2px,-2px); background: #223449; box-shadow: 6px 6px 0 #000, 0 0 22px rgba(102,192,244,0.5); }
-  #wishlist-steam:active { transform: translate(2px,2px);   box-shadow: 2px 2px 0 #000, 0 0 12px rgba(102,192,244,0.35); }
+  #wishlist-steam .wl-inner {
+    position: relative; display: flex; flex-direction: column; align-items: center;
+    gap: 3px; padding: 12px 18px;
+    background: linear-gradient(180deg, #24405c 0%, #141d2a 100%);
+    border: 4px solid #000; box-shadow: 5px 5px 0 #000, 0 0 22px rgba(102,192,244,0.45);
+    transform: rotate(-5deg);
+    animation: wlBob 3.2s ease-in-out infinite;
+  }
+  #wishlist-steam .wl-inner::before {
+    content: ''; position: absolute; inset: -16px; z-index: -1;
+    background: radial-gradient(closest-side, rgba(102,192,244,0.4), rgba(102,192,244,0) 72%);
+    animation: wlPulse 2.4s ease-in-out infinite;
+  }
+  #wishlist-steam .wl-top   { font-family: 'Press Start 2P', monospace; font-size: 8px;  letter-spacing: 1px; color: #9fd0f5; }
+  #wishlist-steam .wl-star  { color: var(--accent); }
+  #wishlist-steam .wl-steam { font-family: 'Press Start 2P', monospace; font-size: 22px; letter-spacing: 2px; color: #66c0f4; text-shadow: 2px 2px 0 #000; line-height: 1; }
+  #wishlist-steam .wl-cta   { font-family: 'Press Start 2P', monospace; font-size: 9px;  letter-spacing: 1px; color: var(--accent); margin-top: 3px; }
+  #wishlist-steam .wl-arrow { color: #fff; }
+  #wishlist-steam:hover  .wl-inner { transform: rotate(-5deg) scale(1.06); box-shadow: 6px 6px 0 #000, 0 0 30px rgba(102,192,244,0.7); animation-play-state: paused; }
+  #wishlist-steam:active .wl-inner { transform: rotate(-5deg) scale(0.97); }
   #wishlist-steam.hidden { display: none; }
+  @keyframes wlBob   { 0%,100% { transform: rotate(-5deg) translateY(0); } 50% { transform: rotate(-5deg) translateY(-6px); } }
+  @keyframes wlPulse { 0%,100% { opacity: 0.5; } 50% { opacity: 1; } }
 
   /* Armory overlay */
   #armory-screen {
@@ -3118,12 +3133,17 @@ window.addEventListener('load', () => {
   <div id="title-block">
     <div id="title">WALLOP</div>
     <div id="subtitle">smash. survive. snowball.</div>
-    <!-- Cross-promo: drive mobile/web players to wishlist the Steam release.
-         Hidden on the Steam build itself (pointless there) via ui.js. -->
-    <a id="wishlist-steam" href="https://store.steampowered.com/app/4910280/WALLOP/" target="_blank" rel="noopener noreferrer">
-      <span class="wl-star">★</span> NOW ON STEAM — <b>WISHLIST WALLOP</b> <span class="wl-arrow">↗</span>
-    </a>
   </div>
+
+  <!-- Cross-promo: artistic "wishlist on Steam" sticker pinned to the right edge,
+       clear of the hero + the top-right slice chip. Hidden on the Steam build via ui.js. -->
+  <a id="wishlist-steam" href="https://store.steampowered.com/app/4910280/WALLOP/" target="_blank" rel="noopener noreferrer" aria-label="Wishlist WALLOP on Steam">
+    <span class="wl-inner">
+      <span class="wl-top"><span class="wl-star">★</span> NOW ON</span>
+      <span class="wl-steam">STEAM</span>
+      <span class="wl-cta">WISHLIST <span class="wl-arrow">↗</span></span>
+    </span>
+  </a>
 
   <div id="start-main">
     <!-- Left column: instructions + difficulty + action buttons -->
@@ -3726,6 +3746,6 @@ window.addEventListener('load', () => {
 <script src="src/vendor/three/UnrealBloomPass.js"></script>
 <script src="src/vendor/three/GLTFLoader.js"></script>
 <script src="src/vendor/three/SkeletonUtils.js"></script>
-<script type="module" src="src/js/main.js?v=e597f56"></script>
+<script type="module" src="src/js/main.js?v=1bcae88"></script>
 </body>
 </html>
