@@ -15,7 +15,7 @@
 //   keyboard/mobile → tryJump, tryDash (game.js): use _jumpFn/_dashFn, set via setJumpDashCbs()
 //   openChest → presentChoiceScreen (this file): setOpenChestDeps is called in initUI()
 
-import { camera, renderer, isMobile, tryEnterFullscreen } from './renderer.js?v=158106b';
+import { camera, renderer, isMobile, isSteamBuild, tryEnterFullscreen } from './renderer.js?v=a02be71';
 import {
   player, enemies,
   tryInteract, setOpenChestDeps,
@@ -23,21 +23,21 @@ import {
   spawnParticle,
   CHARACTER_MODELS, _animClips, loadCharAsset,
   _applyCharacterModel,
-} from './entities.js?v=158106b';
-import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=158106b';
-import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=158106b';
-import { gameState, cam } from './state.js?v=158106b';
-import { Audio } from './audio.js?v=158106b';
-import * as Steam from './steam.js?v=158106b';
-import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=158106b';
+} from './entities.js?v=a02be71';
+import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=a02be71';
+import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=a02be71';
+import { gameState, cam } from './state.js?v=a02be71';
+import { Audio } from './audio.js?v=a02be71';
+import * as Steam from './steam.js?v=a02be71';
+import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=a02be71';
 // VERSION lives on CFG.VERSION too — reading via property access doesn't
 // blow up if a cached older config.js is loaded without the named export
 const VERSION = CFG.VERSION || '0.0.0';
 // Slices granted per on-demand "watch ad for slices" view (daily-capped in Profile).
 const AD_SLICE_REWARD = 3;
-import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=158106b';
-import { tmp, tmp2 } from './utils.js?v=158106b';
-import { Settings } from './settings.js?v=158106b';
+import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=a02be71';
+import { tmp, tmp2 } from './utils.js?v=a02be71';
+import { Settings } from './settings.js?v=a02be71';
 
 // ============================================================
 // INJECTION CALLBACKS (break circular deps)
@@ -2434,6 +2434,25 @@ export function initButtons() {
   if (_aboutBackTop) _aboutBackTop.addEventListener('click', _closeAbout);
 
   // Exit
+  // Wishlist-on-Steam cross-promo (start screen). Hidden on the Steam build
+  // itself (nothing to wishlist there); elsewhere it opens the store page in the
+  // system browser / external app rather than inside the game WebView.
+  const wishlistBtn = document.getElementById('wishlist-steam');
+  if (wishlistBtn) {
+    if (isSteamBuild()) {
+      wishlistBtn.classList.add('hidden');
+    } else {
+      wishlistBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const url = wishlistBtn.getAttribute('href');
+        try { const cap = window.Capacitor; if (cap && cap.Plugins && cap.Plugins.Browser && cap.Plugins.Browser.open) { cap.Plugins.Browser.open({ url }); return; } } catch (er) {}
+        try { window.open(url, '_system'); return; } catch (er) {}
+        try { window.open(url, '_blank'); return; } catch (er) {}
+        try { window.location.href = url; } catch (er) {}
+      });
+    }
+  }
+
   document.getElementById('exit-btn').addEventListener('click', () => {
     if (window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.App) {
       try { window.Capacitor.Plugins.App.exitApp(); return; } catch (e) {}

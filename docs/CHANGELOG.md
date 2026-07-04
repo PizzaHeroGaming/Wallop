@@ -12,6 +12,9 @@ add an in-game patch-log entry (ABOUT screen in `wallop.html`), then build/uploa
 Committed + live on web since 0.9.7, riding the next store release.
 
 ### New
+- **"Wishlist on Steam" banner** on the start screen (web + mobile) — opens the
+  Steam store page; auto-hidden on the Steam build itself. Drives pre-launch
+  wishlists now that the store page is live.
 - **In-game update check** — on boot the game fetches a canonical `version.json`
   from Pages and, if the running build is behind the latest for its platform,
   shows a dismissible prompt (web→reload, android→Play Store, steam→auto). Per-
