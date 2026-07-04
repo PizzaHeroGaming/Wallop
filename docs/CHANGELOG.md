@@ -7,20 +7,31 @@ add an in-game patch-log entry (ABOUT screen in `wallop.html`), then build/uploa
 
 ---
 
-## [Unreleased] — web-only so far, rides the next Play cut
+## [Unreleased]
 
-- **Clearer stat-upgrade level tags on the level-up screen** — the badge now
-  reads e.g. `LV 3->4` (with `MAX` on the final level) instead of `4/4`, which a
-  tester misread as "already capped / pointless." It always showed the level the
-  pick *reaches*, and maxed stats are never offered; the wording just made that
-  obvious now.
+_(nothing yet — cut fresh after v0.9.9)_
 
-- **Steam wishlist banner redesigned** into an artistic rotated "sticker" badge
-  (pulsing blue aura, bob animation) pinned bottom-right of the start screen —
-  clear of the hero, the desktop character panel, and the top-right slice chip.
-  Replaces the flat pill that sat under the title. Still auto-hidden on the Steam
-  build. NOTE: the v0.9.8 AAB was built before this — a fresh build is needed to
-  ship the sticker to Play.
+---
+
+## v0.9.9 — 2026-07-03 (cut for Play — versionCode 10 / versionName 0.9.9)
+
+Bundles the web changes since 0.9.8. Built + signed AAB for Play closed testing.
+
+### New
+- **Steam wishlist "sticker" badge** on the start screen — an artistic rotated
+  badge (pulsing blue aura, bob animation) pinned bottom-right, clear of the hero,
+  the desktop character panel, and the top-right slice chip. Replaces the flat pill
+  that sat under the title. Auto-hidden on the Steam build.
+
+### Fixed
+- **Clearer stat-upgrade level tags on the level-up screen** — the badge now reads
+  e.g. `LV 3->4` (with `MAX` on the final level) instead of `4/4`, which a tester
+  misread as "already capped / pointless." It always showed the level the pick
+  *reaches*, and maxed stats are never offered; the wording just makes that obvious.
+
+### Infra
+- `version.json` `android` bumped 0.9.7 → 0.9.8 now that 0.9.8 is live in Play
+  testing (so 0.9.8 is the update floor). Bump to 0.9.9 once THIS build is live.
 
 ---
 
