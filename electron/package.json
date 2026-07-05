@@ -1,6 +1,6 @@
 {
   "name": "wallop-desktop",
-  "version": "0.9.1",
+  "version": "0.9.9",
   "description": "WALLOP — desktop (Steam) build wrapper",
   "main": "main.js",
   "author": "Pizza Hero Gaming",
