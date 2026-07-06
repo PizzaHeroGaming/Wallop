@@ -56,3 +56,5 @@ steam-sdk/
 
 # steamcmd build output (chunks + logs) written by steam/scripts/*.vdf
 steam/output/
+trailer-kit/
+steam/achievements/_contact_sheet.html
