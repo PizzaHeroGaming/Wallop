@@ -54,7 +54,9 @@ export function newRun() {
 }
 
 // ── Achievement triggers (called from game code; all safe on web) ────────────
-export function firstKill() { unlock('ACH_FIRST_DELIVERY'); }
+// Rush Hour: 5,000 kills in a SINGLE run (per-run flex; deduped so the per-frame
+// check only fires IPC once).
+export function checkRunKills(kills) { if (kills >= 5000) unlock('ACH_RUSH_HOUR'); }
 
 export function bossKilled(tier) {
   if (!steamAvailable()) return;
@@ -64,12 +66,13 @@ export function bossKilled(tier) {
   // at the end of earlier stages, so we must not fire the win achievement here.
 }
 
-export function checkGold(gold) { if (gold >= 1000) unlock('ACH_GOLD_1000'); }
+export function checkGold(gold) { if (gold >= 2500) unlock('ACH_GOLD_2500'); }
 
 export function checkLevel(level) {
-  if (level >= 10) unlock('ACH_LEVEL_10');
-  if (level >= 25) unlock('ACH_LEVEL_25');
-  if (level >= 50) unlock('ACH_LEVEL_50');
+  if (level >= 5)   unlock('ACH_FIRST_DELIVERY'); // "First Delivery" — first real step
+  if (level >= 50)  unlock('ACH_LEVEL_50');
+  if (level >= 150) unlock('ACH_LEVEL_150');
+  if (level >= 300) unlock('ACH_LEVEL_300');
 }
 
 export function checkLoadout(weapons, armor, tomes) {
@@ -80,7 +83,7 @@ export function weaponMaxed() { unlock('ACH_MAX_WEAPON'); }
 export function chestOpened() {
   if (!steamAvailable()) return;
   _L.chests++; _saveLedger();
-  if (_L.chests >= 50) unlock('ACH_CHESTS_50');
+  if (_L.chests >= 250) unlock('ACH_CHESTS_250');
 }
 
 export function slicesEarned(n) {
@@ -119,20 +122,25 @@ const _ARENA_BOARD = {
   frostbite_glacier: 'LB_SURVIVAL_GLACIER',
 };
 const _DIFF_WIN_ACH = { normal: 'ACH_WIN_NORMAL', hard: 'ACH_WIN_HARD', extreme: 'ACH_WIN_EXTREME' };
+// Speed Demon: the final boss always spawns at 600s (CFG.GAME_TIME) of stage 3, so
+// ctx.time on victory is ~600 + how long you took to kill it. Under 660 = melted the
+// Warlord within ~60s of it appearing (a real DPS flex). Tune after a real win.
+const _SPEED_WIN_TIME = 660;
 
-// Called once from triggerGameOver(). ctx = {victory, difficulty, arena, level, kills, time}.
+// Called once from triggerGameOver(). ctx = {victory, difficulty, arena, level, kills, time, noHit}.
 export function runEnded(ctx) {
   if (!steamAvailable() || !ctx) return;
-  // Lifetime kills.
+  // Lifetime kills — the long-tail grind badge.
   _L.kills += (ctx.kills || 0); _saveLedger();
-  if (_L.kills >= 1000)  unlock('ACH_KILLS_1000');
-  if (_L.kills >= 10000) unlock('ACH_KILLS_10000');
+  if (_L.kills >= 100000) unlock('ACH_KILLS_100000');
 
   if (ctx.victory) {
     unlock('ACH_WARLORD');
     const wa = _DIFF_WIN_ACH[ctx.difficulty];
     if (wa) unlock(wa);
     if (_runBosses.has('mini1') && _runBosses.has('mini2')) unlock('ACH_TRIPLE_THREAT');
+    if (ctx.noHit) unlock('ACH_UNTOUCHABLE');                  // won without taking a hit
+    if (ctx.time && ctx.time < _SPEED_WIN_TIME) unlock('ACH_SPEED_DEMON');
     submitScore('LB_FAST_WIN', ctx.time);
   }
 

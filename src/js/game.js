@@ -144,7 +144,6 @@ export function damageEnemy(e, dmg, crit = false, srcWeaponId = null) {
 }
 
 export function killEnemy(e, srcWeaponId = null) {
-  Steam.firstKill();
   if (e.isBoss) {
     Steam.bossKilled(e.bossTier);
     for (let i = 0; i < 20; i++) {
@@ -880,6 +879,7 @@ function advanceStage() {
 // ============================================================
 export function resetGame() {
   Steam.newRun(); // reset per-run achievement tracking + re-sync meta achievements
+  gameState.tookDamageThisRun = false; // for the "Untouchable" no-hit-win achievement
   // Drop any leftover pausable timers from the previous run — without this a
   // queued boss shockwave or pending stage-advance could fire into the fresh
   // run and cause untelegraphed damage / a phantom stage skip.

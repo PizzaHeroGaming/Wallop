@@ -227,6 +227,7 @@ export function damagePlayer(dmg, attacker) {
     player.invuln = 0.25;
     return;
   }
+  gameState.tookDamageThisRun = true; // a hit actually landed (dodge/invuln returned above) — breaks Untouchable
   Audio.play('player_hurt');
   // Thorn reflection
   if (attacker && player.thorns > 0 && !attacker.isBoss && _damageEnemyFn) {
@@ -325,7 +326,8 @@ export function updateHUD() {
 
   hudEls.goldVal.textContent  = player.gold;
   hudEls.killsVal.textContent = gameState.kills;
-  Steam.checkGold(player.gold); // achievement: hold 1000 gold in a run (deduped)
+  Steam.checkGold(player.gold);          // Big Tipper: hold 2,500 gold in a run (deduped)
+  Steam.checkRunKills(gameState.kills);  // Rush Hour: 5,000 kills in a run (deduped)
 
   _reconcileBossBars();
 
@@ -1019,6 +1021,7 @@ export function triggerGameOver(victory) {
     level: player.level,
     kills: gameState.kills,
     time: gameState.gameTime,
+    noHit: !gameState.tookDamageThisRun, // Untouchable: won without taking a hit
   });
 
   __runsPlayed++;
