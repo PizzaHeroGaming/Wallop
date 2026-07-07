@@ -1963,6 +1963,21 @@ export function initInput() {
   });
   document.addEventListener('keyup', e => { keys[e.code] = false; });
 
+  // Gamepad hotplug. Chromium/Electron will NOT expose a controller connected
+  // AFTER the page loads to navigator.getGamepads() unless the page has a
+  // gamepadconnected listener registered (plus the browser's mandatory
+  // one-button-press gesture). Without these, a pad turned on mid-session was
+  // never polled — the game only saw controllers present at launch. Registering
+  // them makes mid-session connects wake up; pollGamepad() then picks the pad
+  // up on the next frame. Refresh the on-screen glyphs immediately on connect.
+  window.addEventListener('gamepadconnected', (e) => {
+    if (e && e.gamepad && Settings.get('controllerEnabled')) _updateGpHints(e.gamepad);
+  });
+  window.addEventListener('gamepaddisconnected', () => {
+    const pads = navigator.getGamepads ? navigator.getGamepads() : [];
+    if (![...pads].some(p => p && p.connected)) _hideGpHints();
+  });
+
   renderer.domElement.addEventListener('click', () => {
     if (gameState.state === 'playing' && !isMobile()) {
       renderer.domElement.requestPointerLock();
