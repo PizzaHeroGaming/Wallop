@@ -2977,11 +2977,13 @@ const PizzaHeroSplash = (function () {
     setTimeout(() => splash.classList.add('phs-shake'), 1050);
 
     let dismissed = false;
+    let _padRAF = null;
     function dismiss() {
       if (dismissed) return;
       dismissed = true;
       window.removeEventListener('keydown', onKey);
       splash.removeEventListener('click', onClick);
+      if (_padRAF) cancelAnimationFrame(_padRAF);
       // CRITICAL: drop phs-shake before applying phs-out. Both classes carry
       // the same specificity and phs-shake's animation rule (defined later
       // in the stylesheet) WINS over phs-fade-out if both are present —
@@ -3001,9 +3003,20 @@ const PizzaHeroSplash = (function () {
     const onKey   = () => skipOnInput && dismiss();
     const onClick = () => skipOnInput && dismiss();
 
+    // Gamepad: any button skips the intro too, so a controller-only player
+    // (Steam Deck / Full Controller Support) can dismiss without a keyboard.
+    function pollPad() {
+      const pads = navigator.getGamepads ? navigator.getGamepads() : [];
+      for (const gp of pads) {
+        if (gp && gp.connected && gp.buttons.some(b => b && b.pressed)) { dismiss(); return; }
+      }
+      _padRAF = requestAnimationFrame(pollPad);
+    }
+
     if (skipOnInput) {
       window.addEventListener('keydown', onKey);
       splash.addEventListener('click', onClick);
+      _padRAF = requestAnimationFrame(pollPad);
     }
     if (duration > 0) setTimeout(dismiss, duration);
 
@@ -3753,6 +3766,6 @@ window.addEventListener('load', () => {
 <script src="src/vendor/three/UnrealBloomPass.js"></script>
 <script src="src/vendor/three/GLTFLoader.js"></script>
 <script src="src/vendor/three/SkeletonUtils.js"></script>
-<script type="module" src="src/js/main.js?v=7df0341"></script>
+<script type="module" src="src/js/main.js?v=b4958b4"></script>
 </body>
 </html>
