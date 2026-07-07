@@ -6,15 +6,19 @@
 // on Steam, Steam itself is the installer/updater.
 //
 // Build the unpacked app first:  cd electron && npm run dist   (produces
-// electron/dist/win-unpacked/). Paths below are relative to THIS file.
+// electron/dist/win-unpacked/).
 //
-// ⚠ Replace 4910281 with the real Depot ID from the Steamworks dashboard
-//   (App Admin → 4910280 → SteamPipe → Depots). By convention the first depot is
-//   AppID+1, but confirm it — an unmapped depot silently uploads nothing useful.
+// contentroot is intentionally NOT set here — it is inherited from the app
+// build config (app_build_4910280.vdf). steamcmd resolves a depot-level
+// contentroot RELATIVE TO the app's contentroot (not the depot file), so
+// specifying it here again doubled the path ("...\electron\electron\dist\...")
+// and failed. Define contentroot once, in the app build config.
+//
+// Depot ID 4910281 confirmed in the dashboard (App Admin → 4910280 →
+// SteamPipe → Depots → "WALLOP Content").
 "DepotBuildConfig"
 {
 	"DepotID" "4910281"
-	"contentroot" "..\..\electron\dist\win-unpacked\"
 
 	"FileMapping"
 	{
