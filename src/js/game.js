@@ -1509,9 +1509,7 @@ function updateEnemies(dt) {
         arrowMesh.position.copy(astart);
         scene.add(arrowMesh);
         enemyProjectiles.push({ pos: astart.clone(), vel: adir.clone().multiplyScalar(13),
-          // Ranged arrows do 60% of contact dmg — a dodgeable shot shouldn't hit
-          // as hard as a melee touch (matches the bosses' ranged attacks at 0.4–0.6x).
-          damage: Math.round(e.dmg * 0.6), radius: 0.22, age: 0, lifetime: 2.5, mesh: arrowMesh });
+          damage: e.dmg, radius: 0.22, age: 0, lifetime: 2.5, mesh: arrowMesh });
       }
     }
 
@@ -1563,10 +1561,7 @@ function updateEnemies(dt) {
     const vertOk = e.flying ? Math.abs(e.pos.y - player.pos.y) < 2 : Math.abs(e.pos.y - player.pos.y) < 1.5;
     if (horizDist < e.radius + 0.5 && vertOk && e.contactCd <= 0) {
       e.contactCd = 0.5;
-      // Bosses deal 65% of their dmg on CONTACT — brushing a boss shouldn't
-      // out-damage its own telegraphed ranged attacks (0.4-0.6x). Slightly above
-      // ranged since you're in melee range. Regular enemies still hit full.
-      damagePlayer(e.isBoss ? Math.round(e.dmg * 0.65) : e.dmg, e);
+      damagePlayer(e.dmg, e);
       const dir = new THREE.Vector3(e.pos.x - player.pos.x, 0, e.pos.z - player.pos.z).normalize();
       e.knockback.add(dir.multiplyScalar(2));
     }
