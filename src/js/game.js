@@ -1509,7 +1509,9 @@ function updateEnemies(dt) {
         arrowMesh.position.copy(astart);
         scene.add(arrowMesh);
         enemyProjectiles.push({ pos: astart.clone(), vel: adir.clone().multiplyScalar(13),
-          damage: e.dmg, radius: 0.22, age: 0, lifetime: 2.5, mesh: arrowMesh });
+          // Ranged arrows do 60% of contact dmg — a dodgeable shot shouldn't hit
+          // as hard as a melee touch (matches the bosses' ranged attacks at 0.4–0.6x).
+          damage: Math.round(e.dmg * 0.6), radius: 0.22, age: 0, lifetime: 2.5, mesh: arrowMesh });
       }
     }
 

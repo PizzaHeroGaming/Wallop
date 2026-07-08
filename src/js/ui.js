@@ -258,7 +258,16 @@ export function damagePlayer(dmg, attacker) {
     final -= absorbed;
   }
   player.shieldRegenDelay = 5;
-  if (final > 0) player.hp -= final;
+  if (final > 0) {
+    // Anti-one-shot cap: a single hit can't remove more than 60% of max HP
+    // (after armor + shield). Guarantees a tanky build always survives one big
+    // spike — boss contact, an elite archer's arrow, etc. — with a beat to
+    // react, instead of dying from full HP in a single hit. Damage scales with
+    // level/stage/difficulty while armor is flat + shields are a fixed pool, so
+    // without this cap a lone hit can exceed total effective HP even on Normal.
+    final = Math.min(final, Math.round(player.maxHp * 0.6));
+    player.hp -= final;
+  }
   player.hurtFlash = 0.3;
   player.invuln = 0.5;
   addCameraShake(Math.min(2.5, final * 0.04 + 0.4));
