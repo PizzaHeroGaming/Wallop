@@ -1563,7 +1563,10 @@ function updateEnemies(dt) {
     const vertOk = e.flying ? Math.abs(e.pos.y - player.pos.y) < 2 : Math.abs(e.pos.y - player.pos.y) < 1.5;
     if (horizDist < e.radius + 0.5 && vertOk && e.contactCd <= 0) {
       e.contactCd = 0.5;
-      damagePlayer(e.dmg, e);
+      // Bosses deal 65% of their dmg on CONTACT — brushing a boss shouldn't
+      // out-damage its own telegraphed ranged attacks (0.4-0.6x). Slightly above
+      // ranged since you're in melee range. Regular enemies still hit full.
+      damagePlayer(e.isBoss ? Math.round(e.dmg * 0.65) : e.dmg, e);
       const dir = new THREE.Vector3(e.pos.x - player.pos.x, 0, e.pos.z - player.pos.z).normalize();
       e.knockback.add(dir.multiplyScalar(2));
     }
