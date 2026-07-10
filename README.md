@@ -257,7 +257,12 @@ pickups doesn't sound like a slot machine.
   sawtooth menace tone + 3 siren chirps for the final boss)
 - Player hurt, player death, stage clear, victory
 
-**Music** (`assets/music/stage_{1,2,3}.ogg`):
+**Music** (`assets/music/stage_{1,2,3}.ogg`) — by **Abstraction (Benjamin Burnes)**,
+[abstractionmusic.com](https://abstractionmusic.com), album *Sketchbook*. **Attribution
+required** — credited in-game (About → Credits) and in the License section below. The
+embedded per-file titles are game placeholders (`Cloak of Darkness STAGE 1/2/3`); swap in
+the real track titles when recovered. Confirm commercial-use rights for the paid Steam /
+ad-supported Play builds.
 - 3 looping tracks keyed off stage, cross-fades 800ms on stage transition
 - HTMLAudioElement (streams from disk — files are 1-3MB)
 - Pauses on screen lock + tab-hide via `visibilitychange`
@@ -343,4 +348,13 @@ chip is pinned to the top of every screen while active.
 
 ## License
 
-TBD — depends on distribution plans (Play Store, Steam, etc.).
+Game code + original content: TBD — depends on distribution plans (Play Store, Steam, etc.).
+
+**Third-party assets (attribution):**
+- **Music** — Abstraction (Benjamin Burnes), <https://abstractionmusic.com>, album *Sketchbook*.
+  **Attribution required** — credited in-game (About → Credits) and here. Individual track
+  titles still to be filled in. Verify commercial-use rights for the paid Steam / ad-supported
+  Play builds.
+- **Sound effects** — Kenney UI & RPG audio packs (CC0), <https://kenney.nl>.
+- **3D models** — Quaternius (CC0), <https://quaternius.com>.
+- **Controller glyphs** — Xelu's FREE Controller Prompts (CC0).
