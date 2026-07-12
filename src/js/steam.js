@@ -15,8 +15,8 @@
 // Achievement + leaderboard API names must match the Steamworks dashboard
 // exactly — see docs/STEAMWORKS_FEATURES_SPEC.md.
 
-import { isSteamBuild } from './renderer.js?v=7518421';
-import { Profile, CATALOG } from './profile.js?v=7518421';
+import { isSteamBuild } from './renderer.js?v=9c7fb1d';
+import { Profile, CATALOG } from './profile.js?v=9c7fb1d';
 
 const PROFILE_KEY = 'wallop_profile_v1';
 const LEDGER_KEY  = 'wallop_steam_v1';

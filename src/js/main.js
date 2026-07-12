@@ -9,14 +9,14 @@
 //   game.js        → damageEnemy, update, initGame
 //   main.js        → animate, splash, resize
 
-import { scene, camera, renderer, clock, composer, isMobile, tryEnterFullscreen, rearmFullscreenOnNextTap } from './renderer.js?v=7518421';
-import { gameState, cam } from './state.js?v=7518421';
-import { initGame, update, updateTitleScene, updateIntroSweep, spawnBoss } from './game.js?v=7518421';
-import './world.js?v=7518421'; // side-effect only: builds terrain scenery at load time
-import { Settings } from './settings.js?v=7518421';
-import { pollGamepad, applyOffer } from './ui.js?v=7518421';
-import { spawnEnemy, enemies, player, ENEMY_DEFS } from './entities.js?v=7518421';
-import { WEAPONS, ARMOR, TOMES } from './weapons.js?v=7518421';
+import { scene, camera, renderer, clock, composer, isMobile, tryEnterFullscreen, rearmFullscreenOnNextTap } from './renderer.js?v=9c7fb1d';
+import { gameState, cam } from './state.js?v=9c7fb1d';
+import { initGame, update, updateTitleScene, updateIntroSweep, spawnBoss } from './game.js?v=9c7fb1d';
+import { updateArenaWalls } from './world.js?v=9c7fb1d'; // also builds terrain scenery + boundary walls at load (side-effect)
+import { Settings } from './settings.js?v=9c7fb1d';
+import { pollGamepad, applyOffer } from './ui.js?v=9c7fb1d';
+import { spawnEnemy, enemies, player, ENEMY_DEFS } from './entities.js?v=9c7fb1d';
+import { WEAPONS, ARMOR, TOMES } from './weapons.js?v=9c7fb1d';
 
 // ── Marketing capture hook (only on the local capture server) ──
 // Lets the headless capture scripts stage a late-game, full-loadout swarm for
@@ -195,6 +195,8 @@ function animate(now) {
   const dt = Math.min(0.05, clock.getDelta());
   pollGamepad(dt); // controller input → same vectors the mobile sticks feed
   update(dt);
+  // Boundary walls fade in as the player nears the play-area edge (playing only).
+  updateArenaWalls(player.pos.x, player.pos.z, gameState.state === 'playing');
   // Live title-screen backdrop: orbit the hero while sitting on the start menu
   // (and the run-config screen, which keeps state === 'start').
   if (gameState.state === 'start') updateTitleScene(dt);

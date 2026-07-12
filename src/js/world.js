@@ -1,9 +1,9 @@
-import { CFG, IS_MOBILE_EARLY } from './config.js?v=7518421';
-import { scene } from './renderer.js?v=7518421';
-import { groundHeight, addSolid, obstacles, solidProps } from './terrain.js?v=7518421';
-import { ARENAS } from './profile.js?v=7518421';
-import { killMesh } from './utils.js?v=7518421';
-import { Audio } from './audio.js?v=7518421';
+import { CFG, IS_MOBILE_EARLY } from './config.js?v=9c7fb1d';
+import { scene } from './renderer.js?v=9c7fb1d';
+import { groundHeight, addSolid, obstacles, solidProps } from './terrain.js?v=9c7fb1d';
+import { ARENAS } from './profile.js?v=9c7fb1d';
+import { killMesh } from './utils.js?v=9c7fb1d';
+import { Audio } from './audio.js?v=9c7fb1d';
 
 // ── Arena theming ──
 // Currently-applied arena slug. Used by add* functions to color procedural
@@ -668,6 +668,69 @@ function _placeWorldProps() {
     }
   });
 }
+
+// ============================================================
+// ARENA BOUNDARY WALLS
+// Translucent panels at the play-area edge (±CFG.ARENA) that fade in only as the
+// player nears them — so the perimeter is legible without cluttering the scene.
+// Built once at load; per-wall opacity is driven each frame by proximity.
+// ============================================================
+const _WALL_FADE_START  = 30;    // begin fading in within this many units of an edge
+const _WALL_MAX_OPACITY = 0.34;  // subtle — noticeable, never walls off the view
+let _arenaWalls = [];
+
+function _wallGradientTexture() {
+  const cv = document.createElement('canvas');
+  cv.width = 2; cv.height = 64;
+  const ctx = cv.getContext('2d');
+  const g = ctx.createLinearGradient(0, 64, 0, 0); // strongest at the ground, fading up
+  g.addColorStop(0.0, 'rgba(255,255,255,0.95)');
+  g.addColorStop(0.5, 'rgba(255,255,255,0.40)');
+  g.addColorStop(1.0, 'rgba(255,255,255,0.00)');
+  ctx.fillStyle = g; ctx.fillRect(0, 0, 2, 64);
+  const t = new THREE.CanvasTexture(cv);
+  t.needsUpdate = true;
+  return t;
+}
+
+export function buildArenaWalls() {
+  if (_arenaWalls.length) return;
+  const A = CFG.ARENA, span = A * 2, H = 16, tex = _wallGradientTexture();
+  const mk = (rotY, x, z, distFn) => {
+    const mat = new THREE.MeshBasicMaterial({
+      map: tex, color: 0xffd23f, transparent: true, opacity: 0,
+      depthWrite: false, side: THREE.DoubleSide, fog: false,
+    });
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(span, H), mat);
+    m.rotation.y = rotY;
+    m.position.set(x, H / 2 - 3, z); // base a touch below ground to cover undulation
+    m.renderOrder = 2;
+    m.visible = false;
+    scene.add(m);
+    _arenaWalls.push({ mat, mesh: m, distFn });
+  };
+  mk(-Math.PI / 2,  A, 0, (px)     =>  A - px); // East  (x=+A)
+  mk( Math.PI / 2, -A, 0, (px)     =>  A + px); // West  (x=-A)
+  mk( 0,            0,  A, (px, pz) =>  A - pz); // North (z=+A)
+  mk( Math.PI,      0, -A, (px, pz) =>  A + pz); // South (z=-A)
+}
+
+// Fade each wall by the player's distance to it. active=false hides all
+// (menus, cinematics, game over).
+export function updateArenaWalls(px, pz, active) {
+  if (!_arenaWalls.length) return;
+  for (const w of _arenaWalls) {
+    let op = 0;
+    if (active) {
+      const d = w.distFn(px, pz);
+      op = Math.max(0, Math.min(1, (_WALL_FADE_START - d) / _WALL_FADE_START)) * _WALL_MAX_OPACITY;
+    }
+    w.mat.opacity = op;
+    w.mesh.visible = op > 0.003;
+  }
+}
+
+buildArenaWalls(); // top-level: the walls exist as soon as world.js loads
 
 // Load everything in the background at page-load time.
 // Use allSettled so a single 404 doesn't block all prop placement.
