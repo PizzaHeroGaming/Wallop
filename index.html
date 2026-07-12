@@ -169,6 +169,9 @@
   }
   #timer-tile .value.danger { color: var(--hot); animation: pulse 0.8s infinite; }
   @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+  /* Endless slices tile pops each time a per-minute reward lands. */
+  #slices-tile.slice-pop .value { animation: slicePop 0.55s ease; }
+  @keyframes slicePop { 0%,100% { transform: scale(1); color: var(--ink); } 45% { transform: scale(1.35); color: var(--accent); } }
 
   /* Weapon icons */
   /* Boss HP bar — sits below the TIME/KILLS/GOLD stat tiles.
@@ -3095,6 +3098,10 @@ window.addEventListener('load', () => {
     <div class="stat-tile">
       <div class="label">GOLD</div><div class="value" id="gold-val">0</div>
     </div>
+    <!-- Endless-only: slices earned this run (per minute survived). Hidden in normal runs. -->
+    <div class="stat-tile" id="slices-tile" style="display:none">
+      <div class="label">🍕 SLICES</div><div class="value" id="run-slices-val">0</div>
+    </div>
   </div>
   <div id="xp-wrap" class="hud-bar-wrap">
     <div id="xp-bar"><div id="xp-fill"></div></div>
@@ -3214,6 +3221,10 @@ window.addEventListener('load', () => {
   <div id="run-config-title">CONFIGURE YOUR RUN</div>
   <div id="run-config-body">
     <div class="start-run-config">
+      <div class="sel-title">MODE</div>
+      <div id="mode-btns" class="sel-row"></div>
+    </div>
+    <div class="start-run-config">
       <div class="sel-title">DIFFICULTY</div>
       <div id="diff-btns" class="sel-row"></div>
     </div>
@@ -3281,8 +3292,8 @@ window.addEventListener('load', () => {
     <div class="about-section">
       <div class="about-heading">AUDIO</div>
       <p class="about-body" style="margin-bottom:10px;">
-        Low-volume SFX for pickups, level-ups, boss spawns, and chest opens.
-        Background music coming once we land a fitting CC0 track.
+        Low-volume SFX for pickups, level-ups, boss spawns, and chest opens,
+        plus a looping music track for each stage.
       </p>
       <div style="display:flex;flex-wrap:wrap;gap:14px;align-items:center;">
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
@@ -3295,6 +3306,26 @@ window.addEventListener('load', () => {
           <span id="audio-volume-readout" class="about-body" style="margin:0;min-width:40px;text-align:right;">40%</span>
         </label>
       </div>
+    </div>
+
+    <div class="about-section">
+      <div class="about-heading">CREDITS</div>
+      <p class="about-body" style="margin-bottom:8px;">
+        <strong>Music</strong> — Abstraction (Benjamin Burnes) ·
+        <a href="https://abstractionmusic.com" target="_blank" rel="noopener noreferrer" style="color:var(--accent);">abstractionmusic.com</a>
+        · from the album &ldquo;Sketchbook&rdquo;.
+      </p>
+      <p class="about-body" style="margin-bottom:8px;">
+        <strong>Sound effects</strong> — Kenney UI &amp; RPG audio packs (CC0) ·
+        <a href="https://kenney.nl" target="_blank" rel="noopener noreferrer" style="color:var(--accent);">kenney.nl</a>
+      </p>
+      <p class="about-body" style="margin-bottom:8px;">
+        <strong>3D models</strong> — Quaternius (CC0) ·
+        <a href="https://quaternius.com" target="_blank" rel="noopener noreferrer" style="color:var(--accent);">quaternius.com</a>
+      </p>
+      <p class="about-body" style="margin:0;">
+        <strong>Controller glyphs</strong> — Xelu&rsquo;s FREE Controller Prompts (CC0)
+      </p>
     </div>
 
     <div class="about-section">
@@ -3766,6 +3797,6 @@ window.addEventListener('load', () => {
 <script src="src/vendor/three/UnrealBloomPass.js"></script>
 <script src="src/vendor/three/GLTFLoader.js"></script>
 <script src="src/vendor/three/SkeletonUtils.js"></script>
-<script type="module" src="src/js/main.js?v=4af10e4"></script>
+<script type="module" src="src/js/main.js?v=c8d6522"></script>
 </body>
 </html>
