@@ -603,7 +603,9 @@ function updateSpawning(dt) {
   const cap = gameState.finalSwarm ? MAX_ENEMIES_FINAL_SWARM : MAX_ENEMIES;
   const room = Math.max(0, cap - enemies.length);
 
-  if (!gameState.finalSwarm && t >= CFG.GAME_TIME - 90) {
+  // Final Swarm is the run's climax before the 10:00 boss — meaningless in
+  // endless (there's no "final"), so it never fires there.
+  if (gameState.mode !== 'endless' && !gameState.finalSwarm && t >= CFG.GAME_TIME - 90) {
     gameState.finalSwarm = true;
     showAlert('FINAL SWARM', '#ff3864');
     const eligible = getEligibleEnemies(t);

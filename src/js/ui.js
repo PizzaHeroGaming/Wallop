@@ -2162,6 +2162,24 @@ function renderModeSelect() {
   el.innerHTML = Object.entries(_MODES).map(([key, m]) =>
     `<button class="diff-btn${key === _selectedMode ? ' active' : ''}" data-mode="${key}" title="${m.hint.replace(/"/g, '&quot;')}">${m.label}</button>`
   ).join('');
+  _updateEndlessBest();
+}
+// Shows the player's personal-best endless survival time for the selected arena.
+// Only visible when Endless is the chosen mode; refreshed on mode/arena change.
+function _updateEndlessBest() {
+  const el = document.getElementById('endless-best');
+  if (!el) return;
+  if (_selectedMode !== 'endless') { el.style.display = 'none'; return; }
+  const best = Profile.getEndlessBest(_selectedArena) || 0;
+  const arenaName = (ARENAS[_selectedArena] || {}).name || _selectedArena;
+  let timeStr = '—';
+  if (best > 0) {
+    const m = Math.floor(best / 60).toString().padStart(2, '0');
+    const s = Math.floor(best % 60).toString().padStart(2, '0');
+    timeStr = `${m}:${s}`;
+  }
+  el.innerHTML = `🏆 BEST — ${arenaName}: <b>${timeStr}</b>`;
+  el.style.display = 'block';
 }
 function initModeSelect() {
   renderModeSelect();
@@ -2171,6 +2189,7 @@ function initModeSelect() {
     if (!btn) return;
     _selectedMode = btn.dataset.mode;
     document.querySelectorAll('#mode-btns .diff-btn').forEach(b => b.classList.toggle('active', b === btn));
+    _updateEndlessBest();
   });
 }
 
@@ -2263,6 +2282,7 @@ function _setSelectedArena(slug) {
   renderArenaSelect();
   _refreshMobileArenaUI();
   renderDiffSelect(); // difficulty unlocks are per-arena — refresh the locks
+  _updateEndlessBest(); // endless best is per-arena — refresh it too
 }
 
 function initArenaSelect() {

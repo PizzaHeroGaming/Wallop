@@ -1897,14 +1897,26 @@ export function openChest(c) {
       onPick: (o) => {
         if (typeof o.apply === 'function') o.apply();
         window.__chestCtx = null;
+        _removeClaimedChest(c);
         onChestPickDone();
       },
       onSkip: () => {
         window.__chestCtx = null;
+        _removeClaimedChest(c);
         onChestPickDone();
       },
     });
   }
+}
+
+// In endless there's no stage reset, so opened-chest husks would pile up forever
+// (visual clutter + undisposed GPU meshes). Dispose the chest the moment it's
+// claimed. Normal runs keep the opened husk — it's cleared on stage advance/reset.
+function _removeClaimedChest(c) {
+  if (gameState.mode !== 'endless') return;
+  const i = chests.indexOf(c);
+  if (i >= 0) chests.splice(i, 1);
+  killMesh(c.mesh);
 }
 
 function onChestPickDone() {
