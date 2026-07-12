@@ -1,9 +1,9 @@
-import { CFG, IS_MOBILE_EARLY } from './config.js?v=9c7fb1d';
-import { scene } from './renderer.js?v=9c7fb1d';
-import { groundHeight, addSolid, obstacles, solidProps } from './terrain.js?v=9c7fb1d';
-import { ARENAS } from './profile.js?v=9c7fb1d';
-import { killMesh } from './utils.js?v=9c7fb1d';
-import { Audio } from './audio.js?v=9c7fb1d';
+import { CFG, IS_MOBILE_EARLY } from './config.js?v=4cd92cd';
+import { scene } from './renderer.js?v=4cd92cd';
+import { groundHeight, addSolid, obstacles, solidProps } from './terrain.js?v=4cd92cd';
+import { ARENAS } from './profile.js?v=4cd92cd';
+import { killMesh } from './utils.js?v=4cd92cd';
+import { Audio } from './audio.js?v=4cd92cd';
 
 // ── Arena theming ──
 // Currently-applied arena slug. Used by add* functions to color procedural
@@ -676,17 +676,17 @@ function _placeWorldProps() {
 // Built once at load; per-wall opacity is driven each frame by proximity.
 // ============================================================
 const _WALL_FADE_START  = 30;    // begin fading in within this many units of an edge
-const _WALL_MAX_OPACITY = 0.34;  // subtle — noticeable, never walls off the view
+const _WALL_MAX_OPACITY = 0.42;  // noticeable but still see-through
 let _arenaWalls = [];
 
 function _wallGradientTexture() {
   const cv = document.createElement('canvas');
   cv.width = 2; cv.height = 64;
   const ctx = cv.getContext('2d');
-  const g = ctx.createLinearGradient(0, 64, 0, 0); // strongest at the ground, fading up
-  g.addColorStop(0.0, 'rgba(255,255,255,0.95)');
-  g.addColorStop(0.5, 'rgba(255,255,255,0.40)');
-  g.addColorStop(1.0, 'rgba(255,255,255,0.00)');
+  const g = ctx.createLinearGradient(0, 64, 0, 0); // strong through the visible band, soft fade at the top
+  g.addColorStop(0.00, 'rgba(255,255,255,1.00)');
+  g.addColorStop(0.62, 'rgba(255,255,255,0.85)');
+  g.addColorStop(1.00, 'rgba(255,255,255,0.00)');
   ctx.fillStyle = g; ctx.fillRect(0, 0, 2, 64);
   const t = new THREE.CanvasTexture(cv);
   t.needsUpdate = true;
