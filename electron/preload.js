@@ -34,7 +34,11 @@ const steamReady = (() => { try { return !!ipcRenderer.sendSync('wallop:steam-re
 contextBridge.exposeInMainWorld('WallopSteam', {
   isReady: () => steamReady,
   unlock: (api) => ipcRenderer.invoke('wallop:unlock', api),
+  // Resolves to { rank, previousRank, changed } | null.
   submitScore: (board, value) => ipcRenderer.invoke('wallop:submit-score', board, value),
+  // Resolves to { displayType, entries: [{ rank, score, name, isSelf }] } | null.
+  // mode: 'global' | 'friends' | 'around'.
+  fetchLeaderboard: (board, mode, count) => ipcRenderer.invoke('wallop:fetch-leaderboard', board, mode, count),
   // Persist the profile blob to Steam Cloud. Stamps a timestamp so this machine's
   // local mirror stays in sync with what we just wrote (keeps newer-wins honest).
   cloudSave: (blob) => {

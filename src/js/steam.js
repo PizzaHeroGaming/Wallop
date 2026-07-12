@@ -15,8 +15,8 @@
 // Achievement + leaderboard API names must match the Steamworks dashboard
 // exactly — see docs/STEAMWORKS_FEATURES_SPEC.md.
 
-import { isSteamBuild } from './renderer.js?v=5d455db';
-import { Profile, CATALOG } from './profile.js?v=5d455db';
+import { isSteamBuild } from './renderer.js?v=3b4e781';
+import { Profile, CATALOG } from './profile.js?v=3b4e781';
 
 const PROFILE_KEY = 'wallop_profile_v1';
 const LEDGER_KEY  = 'wallop_steam_v1';
@@ -37,9 +37,18 @@ export function unlock(api) {
   _sent.add(api);
   try { _bridge().unlock(api); } catch (e) {}
 }
+// Resolves to { rank, previousRank, changed } | null (null on web/mobile/error).
 export function submitScore(board, value) {
-  if (!steamAvailable() || !isFinite(value)) return;
-  try { _bridge().submitScore(board, Math.round(value)); } catch (e) {}
+  if (!steamAvailable() || !isFinite(value)) return Promise.resolve(null);
+  try { return Promise.resolve(_bridge().submitScore(board, Math.round(value))); }
+  catch (e) { return Promise.resolve(null); }
+}
+// Resolves to { displayType, entries:[{rank,score,name,isSelf}] } | null.
+// mode: 'global' | 'friends' | 'around'.
+export function fetchLeaderboard(board, mode = 'global', count = 20) {
+  if (!steamAvailable()) return Promise.resolve(null);
+  try { return Promise.resolve(_bridge().fetchLeaderboard(board, mode, count)); }
+  catch (e) { return Promise.resolve(null); }
 }
 export function cloudSave() {
   if (!steamAvailable()) return;
@@ -121,6 +130,27 @@ const _ARENA_BOARD = {
   sundried_slopes: 'LB_SURVIVAL_SLOPES',
   frostbite_glacier: 'LB_SURVIVAL_GLACIER',
 };
+const _ENDLESS_BOARD = {
+  pepperoni_pines: 'LB_ENDLESS_PINES',
+  sundried_slopes: 'LB_ENDLESS_SLOPES',
+  frostbite_glacier: 'LB_ENDLESS_GLACIER',
+};
+// Submit an endless survival time (seconds) for an arena. Resolves to
+// { rank, previousRank, changed } | null — the end screen shows the rank.
+export function submitEndless(arena, seconds) {
+  const board = _ENDLESS_BOARD[arena];
+  if (!board) return Promise.resolve(null);
+  return submitScore(board, seconds);
+}
+// Board catalog for the in-game Leaderboards screen. fmt: 'time' → mm:ss, 'num' → plain.
+export const LEADERBOARDS = [
+  { id: 'LB_ENDLESS_PINES',   label: 'ENDLESS · Pepperoni Pines',   fmt: 'time' },
+  { id: 'LB_ENDLESS_SLOPES',  label: 'ENDLESS · Sundried Slopes',   fmt: 'time' },
+  { id: 'LB_ENDLESS_GLACIER', label: 'ENDLESS · Frostbite Glacier', fmt: 'time' },
+  { id: 'LB_HIGH_LEVEL',      label: 'Highest Level',               fmt: 'num'  },
+  { id: 'LB_MOST_KILLS',      label: 'Most Kills (1 run)',          fmt: 'num'  },
+  { id: 'LB_FAST_WIN',        label: 'Fastest Warlord Kill',        fmt: 'time' },
+];
 const _DIFF_WIN_ACH = { normal: 'ACH_WIN_NORMAL', hard: 'ACH_WIN_HARD', extreme: 'ACH_WIN_EXTREME' };
 // Speed Demon: the final boss always spawns at 600s (CFG.GAME_TIME) of stage 3, so
 // ctx.time on victory is ~600 + how long you took to kill it. Under 660 = melted the

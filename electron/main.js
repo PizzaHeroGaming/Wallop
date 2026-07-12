@@ -103,6 +103,10 @@ app.whenReady().then(() => {
   });
 });
 
+app.on('before-quit', () => {
+  try { steam.shutdownSteam(); } catch (e) {}
+});
+
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });
