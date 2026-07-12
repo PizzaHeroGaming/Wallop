@@ -296,6 +296,10 @@ export const Profile = (function () {
       // Endless mode: best survival time (seconds) per arena. Drives the
       // end-screen "BEST" and, later, the separate endless leaderboards.
       endlessBest: {},
+      // Weekly leaderboard: cumulative kills for the current week. `key` is the
+      // week identifier (Sunday date, Eastern); resets to 0 when the week rolls.
+      // Stored in the (cloud-synced) profile so it stays consistent across machines.
+      weekly: { key: '', kills: 0 },
       // Audio prefs — persisted across sessions, defaults match "low + on"
       audioMuted: false,
       audioVolume: 0.4,
@@ -522,6 +526,21 @@ export const Profile = (function () {
     return true;
   }
 
+  // ── Weekly cumulative kills ──
+  function getWeeklyKills() {
+    return (_state.weekly && _state.weekly.kills) || 0;
+  }
+  // Adds a run's kills to the current week's running total. If the stored week key
+  // differs from `weekKey` (a new week rolled over), the total resets to 0 first.
+  // Returns the new cumulative total.
+  function addWeeklyKills(runKills, weekKey) {
+    if (!_state.weekly) _state.weekly = { key: '', kills: 0 };
+    if (_state.weekly.key !== weekKey) { _state.weekly.key = weekKey; _state.weekly.kills = 0; }
+    _state.weekly.kills += (runKills || 0);
+    save();
+    return _state.weekly.kills;
+  }
+
   // ── Endless best times (per arena) ──
   function getEndlessBest(arenaSlug) {
     return (_state.endlessBest && _state.endlessBest[arenaSlug]) || 0;
@@ -552,6 +571,7 @@ export const Profile = (function () {
     isTutorialDone, markTutorialDone,
     adSlicesRemainingToday, recordAdSliceWatch,
     getEndlessBest, recordEndlessTime,
+    getWeeklyKills, addWeeklyKills,
   };
 
   function isTutorialDone() { return !!_state.tutorialDone; }

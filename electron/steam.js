@@ -29,28 +29,19 @@ let callbackTimer = null;
 // module never throws at require-time.
 let LB = null;
 
-// Per-board sort + display config. findOrCreateLeaderboard creates the board with
-// these on first upload, so no manual Steamworks-dashboard step is required.
-// Names must stay stable once players have posted scores.
-function boardConfig() {
-  const { LeaderboardSortMethod: S, LeaderboardDisplayType: D } = LB;
-  const survival = { sort: S.Descending, display: D.TimeSeconds }; // longer = better
-  return {
-    // Endless: survive as long as possible (seconds), per arena.
-    LB_ENDLESS_PINES:   survival,
-    LB_ENDLESS_SLOPES:  survival,
-    LB_ENDLESS_GLACIER: survival,
-    // Normal-run survival time, per arena.
-    LB_SURVIVAL_PINES:   survival,
-    LB_SURVIVAL_SLOPES:  survival,
-    LB_SURVIVAL_GLACIER: survival,
-    // Misc numeric / time boards.
-    LB_HIGH_LEVEL: { sort: S.Descending, display: D.Numeric },
-    LB_MOST_KILLS: { sort: S.Descending, display: D.Numeric },
-    LB_FAST_WIN:   { sort: S.Ascending,  display: D.TimeSeconds }, // faster = better
-  };
+// Per-board sort + display, inferred from the board-name prefix so we never have
+// to enumerate the (arena × difficulty) matrix. findOrCreateLeaderboard creates
+// the board with these on first upload — no manual Steamworks-dashboard step.
+// Prefixes must stay stable once players have posted scores.
+function configFor(board) {
+  const S = LB.LeaderboardSortMethod, D = LB.LeaderboardDisplayType;
+  if (board.startsWith('LB_ENDLESS_') || board.startsWith('LB_SURVIVAL_'))
+    return { sort: S.Descending, display: D.TimeSeconds }; // longer survival = better
+  if (board.startsWith('LB_FASTWIN_'))
+    return { sort: S.Ascending,  display: D.TimeSeconds }; // faster win = better
+  // LB_LEVEL_*, LB_WEEKLY_KILLS_*, and any other count board.
+  return { sort: S.Descending, display: D.Numeric };
 }
-let BOARD_CONFIG = null;
 
 function warnOnce(msg, err) {
   if (loggedUnavailable) return;
@@ -80,7 +71,6 @@ function initSteam() {
   }
   try {
     LB = mod; // enums (LeaderboardSortMethod, etc.) are exported off the module root
-    BOARD_CONFIG = boardConfig();
     const SDK = mod.SteamworksSDK || mod.default;
     steam = SDK.getInstance();
     steam.setSdkPath(resolveSdkPath());
@@ -163,22 +153,23 @@ function cloudWrite(blob, t) {
 const _lbCache = new Map();
 async function _handleFor(board) {
   if (_lbCache.has(board)) return _lbCache.get(board);
-  const cfg = BOARD_CONFIG[board] || { sort: LB.LeaderboardSortMethod.Descending, display: LB.LeaderboardDisplayType.Numeric };
+  const cfg = configFor(board);
   const info = await steam.leaderboards.findOrCreateLeaderboard(board, cfg.sort, cfg.display);
   const handle = info ? info.handle : null;
   if (handle != null) _lbCache.set(board, handle);
   return handle;
 }
 
-// Upload a score. Returns { rank, previousRank, changed } or null. KeepBest so a
-// worse run never overwrites the player's best.
-async function submitScore(board, value) {
+// Upload a score. Returns { rank, previousRank, changed } or null. Default is
+// KeepBest (a worse run never overwrites the best); force=true uses ForceUpdate,
+// needed for the additive weekly board where the new cumulative total must win.
+async function submitScore(board, value, force = false) {
   if (!ready || !steam || !isFinite(value)) return null;
   try {
     const handle = await _handleFor(board);
     if (handle == null) return null;
-    const res = await steam.leaderboards.uploadScore(
-      handle, Math.round(value), LB.LeaderboardUploadScoreMethod.KeepBest);
+    const method = force ? LB.LeaderboardUploadScoreMethod.ForceUpdate : LB.LeaderboardUploadScoreMethod.KeepBest;
+    const res = await steam.leaderboards.uploadScore(handle, Math.round(value), method);
     if (!res || !res.success) return null;
     return { rank: res.globalRankNew, previousRank: res.globalRankPrevious, changed: res.scoreChanged };
   } catch (e) {
@@ -194,7 +185,7 @@ async function fetchLeaderboard(board, mode = 'global', count = 20) {
   try {
     const handle = await _handleFor(board);
     if (handle == null) return null;
-    const cfg = BOARD_CONFIG[board] || { display: LB.LeaderboardDisplayType.Numeric };
+    const cfg = configFor(board);
     const R = LB.LeaderboardDataRequest;
     let request = R.Global, start = 1, end = count;
     if (mode === 'friends') { request = R.Friends; start = 0; end = 0; } // Friends returns all
@@ -226,7 +217,7 @@ function registerIpc() {
   ipcMain.on('wallop:steam-ready', (e) => { e.returnValue = ready; });
   ipcMain.on('wallop:cloud-load', (e) => { e.returnValue = cloudRead(); }); // sync — used at boot in preload
   ipcMain.handle('wallop:unlock', (e, api) => unlock(api));
-  ipcMain.handle('wallop:submit-score', (e, board, value) => submitScore(board, value));
+  ipcMain.handle('wallop:submit-score', (e, board, value, force) => submitScore(board, value, force));
   ipcMain.handle('wallop:fetch-leaderboard', (e, board, mode, count) => fetchLeaderboard(board, mode, count));
   ipcMain.handle('wallop:cloud-save', (e, blob, t) => cloudWrite(blob, t));
   ipcMain.handle('wallop:open-achievements', () => openAchievementsOverlay());

@@ -15,7 +15,7 @@
 //   keyboard/mobile → tryJump, tryDash (game.js): use _jumpFn/_dashFn, set via setJumpDashCbs()
 //   openChest → presentChoiceScreen (this file): setOpenChestDeps is called in initUI()
 
-import { camera, renderer, isMobile, isSteamBuild, tryEnterFullscreen } from './renderer.js?v=7a09e0b';
+import { camera, renderer, isMobile, isSteamBuild, tryEnterFullscreen } from './renderer.js?v=ea053d1';
 import {
   player, enemies,
   tryInteract, setOpenChestDeps,
@@ -23,21 +23,21 @@ import {
   spawnParticle,
   CHARACTER_MODELS, _animClips, loadCharAsset,
   _applyCharacterModel,
-} from './entities.js?v=7a09e0b';
-import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=7a09e0b';
-import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=7a09e0b';
-import { gameState, cam } from './state.js?v=7a09e0b';
-import { Audio } from './audio.js?v=7a09e0b';
-import * as Steam from './steam.js?v=7a09e0b';
-import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=7a09e0b';
+} from './entities.js?v=ea053d1';
+import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=ea053d1';
+import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=ea053d1';
+import { gameState, cam } from './state.js?v=ea053d1';
+import { Audio } from './audio.js?v=ea053d1';
+import * as Steam from './steam.js?v=ea053d1';
+import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=ea053d1';
 // VERSION lives on CFG.VERSION too — reading via property access doesn't
 // blow up if a cached older config.js is loaded without the named export
 const VERSION = CFG.VERSION || '0.0.0';
 // Slices granted per on-demand "watch ad for slices" view (daily-capped in Profile).
 const AD_SLICE_REWARD = 3;
-import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=7a09e0b';
-import { tmp, tmp2 } from './utils.js?v=7a09e0b';
-import { Settings } from './settings.js?v=7a09e0b';
+import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=ea053d1';
+import { tmp, tmp2 } from './utils.js?v=ea053d1';
+import { Settings } from './settings.js?v=ea053d1';
 
 // ============================================================
 // INJECTION CALLBACKS (break circular deps)
@@ -1052,9 +1052,11 @@ export function triggerGameOver(victory) {
   Profile.save();
 
   // Steam: win/leaderboard achievements + push the save to Steam Cloud (no-op off Steam).
-  Steam.runEnded({
+  // runEnded submits every leaderboard for this run and resolves to
+  // { endlessRank }. Steam-only — resolves null on web/mobile.
+  const _runEndResult = Steam.runEnded({
     victory,
-    mode: gameState.mode, // 'normal' | 'endless' — steam.js gates board submissions
+    mode: gameState.mode, // 'normal' | 'endless'
     difficulty: gameState.difficulty,
     arena: gameState.arena,
     level: player.level,
@@ -1063,9 +1065,8 @@ export function triggerGameOver(victory) {
     noHit: !gameState.tookDamageThisRun, // Untouchable: won without taking a hit
   });
 
-  // Endless: submit the survival time and reveal the instant global rank when it
-  // returns. Steam-only — submitEndless resolves null on web/mobile, so the line
-  // stays hidden there.
+  // Endless: reveal the instant global rank from the run-end submission when it
+  // returns. The line stays hidden off Steam (endlessRank is null there).
   if (isEndless) {
     let rankEl = document.getElementById('gameover-rank');
     if (!rankEl) {
@@ -1075,9 +1076,10 @@ export function triggerGameOver(victory) {
       sub.after(rankEl);
     }
     rankEl.style.display = 'none';
-    Steam.submitEndless(gameState.arena, gameState.gameTime).then((res) => {
-      if (res && typeof res.rank === 'number' && res.rank > 0) {
-        rankEl.innerHTML = `🏆 GLOBAL RANK #${res.rank.toLocaleString()}`;
+    Promise.resolve(_runEndResult).then((res) => {
+      const rank = res && res.endlessRank;
+      if (typeof rank === 'number' && rank > 0) {
+        rankEl.innerHTML = `🏆 GLOBAL RANK #${rank.toLocaleString()}`;
         rankEl.style.display = 'block';
       }
     }).catch(() => {});
@@ -2338,12 +2340,22 @@ function initArenaSelect() {
 }
 
 // ============================================================
-// LEADERBOARDS SCREEN (Steam build only)
+// LEADERBOARDS SCREEN (Steam build only) — 2-level picker
+// category → (arena → difficulty for matrix boards) → Global/Friends
 // ============================================================
-let _lbBoard = (Steam.LEADERBOARDS[0] || {}).id || null;
+let _lbCat = (Steam.LB_CATEGORIES[0] || {}).id || 'endless';
+let _lbArena = null;
+let _lbDiff = null;
 let _lbScope = 'global';
 let _lbLoadToken = 0;
 
+function _lbCatDef() { return Steam.LB_CATEGORIES.find(c => c.id === _lbCat) || Steam.LB_CATEGORIES[0]; }
+function _lbUnlockedArenas() { return _arenaOrder.filter(s => Profile.isArenaUnlocked(s)); }
+function _lbUnlockedDiffs(arena) { return _DIFF_ORDER.filter(k => Profile.isDifficultyUnlocked(arena, k)); }
+function _lbCurrentBoard() {
+  const cat = _lbCatDef();
+  return cat.kind === 'matrix' ? cat.board(_lbArena, _lbDiff) : cat.board();
+}
 function _lbFmtScore(value, fmt) {
   if (fmt === 'time') {
     const s = Math.max(0, Math.floor(value));
@@ -2353,14 +2365,36 @@ function _lbFmtScore(value, fmt) {
   }
   return (value || 0).toLocaleString();
 }
-function _renderLbBoardPicker() {
-  const row = document.getElementById('lb-board-row');
+function _renderLbCat() {
+  const row = document.getElementById('lb-cat-row');
   if (!row) return;
-  row.innerHTML = Steam.LEADERBOARDS.map(b =>
-    `<button class="diff-btn${b.id === _lbBoard ? ' active' : ''}" data-board="${b.id}">${b.label}</button>`
+  row.innerHTML = Steam.LB_CATEGORIES.map(c =>
+    `<button class="diff-btn${c.id === _lbCat ? ' active' : ''}" data-lbcat="${c.id}">${c.label}</button>`
   ).join('');
 }
-function _renderLbScopePicker() {
+function _renderLbArena() {
+  const row = document.getElementById('lb-arena-row');
+  if (!row) return;
+  if (_lbCatDef().kind !== 'matrix') { row.style.display = 'none'; return; }
+  row.style.display = '';
+  const arenas = _lbUnlockedArenas();
+  if (!arenas.includes(_lbArena)) _lbArena = arenas[0] || null;
+  row.innerHTML = arenas.map(s =>
+    `<button class="diff-btn${s === _lbArena ? ' active' : ''}" data-lbarena="${s}">${(ARENAS[s] || {}).name || s}</button>`
+  ).join('');
+}
+function _renderLbDiff() {
+  const row = document.getElementById('lb-diff-row');
+  if (!row) return;
+  if (_lbCatDef().kind !== 'matrix') { row.style.display = 'none'; return; }
+  row.style.display = '';
+  const diffs = _lbUnlockedDiffs(_lbArena);
+  if (!diffs.includes(_lbDiff)) _lbDiff = diffs[0] || 'normal';
+  row.innerHTML = diffs.map(k =>
+    `<button class="diff-btn${k === _lbDiff ? ' active' : ''}" data-lbdiff="${k}">${(DIFFICULTIES[k] || {}).label || k}</button>`
+  ).join('');
+}
+function _renderLbScope() {
   const row = document.getElementById('lb-scope-row');
   if (!row) return;
   const scopes = [['global', 'GLOBAL'], ['friends', 'FRIENDS']];
@@ -2368,15 +2402,23 @@ function _renderLbScopePicker() {
     `<button class="diff-btn${id === _lbScope ? ' active' : ''}" data-scope="${id}">${label}</button>`
   ).join('');
 }
+function _renderLbNote() {
+  const el = document.getElementById('lb-note');
+  if (!el) return;
+  const note = _lbCatDef().note;
+  if (note) { el.textContent = note; el.style.display = 'block'; }
+  else { el.style.display = 'none'; }
+}
+function _lbRenderAll() { _renderLbCat(); _renderLbArena(); _renderLbDiff(); _renderLbScope(); _renderLbNote(); }
 async function _loadLbEntries() {
   const list = document.getElementById('lb-list');
   if (!list) return;
-  const board = Steam.LEADERBOARDS.find(b => b.id === _lbBoard);
-  if (!board) { list.innerHTML = '<div class="lb-msg">No board selected.</div>'; return; }
+  const cat = _lbCatDef();
+  const board = _lbCurrentBoard();
   list.innerHTML = '<div class="lb-msg">Loading…</div>';
   const token = ++_lbLoadToken;
   let res = null;
-  try { res = await Steam.fetchLeaderboard(_lbBoard, _lbScope, 25); } catch (e) {}
+  try { res = await Steam.fetchLeaderboard(board, _lbScope, 25); } catch (e) {}
   if (token !== _lbLoadToken) return; // a newer request superseded this one
   if (!res) { list.innerHTML = '<div class="lb-msg">Leaderboards are available on the Steam version of WALLOP.</div>'; return; }
   const entries = res.entries || [];
@@ -2392,15 +2434,18 @@ async function _loadLbEntries() {
     return `<div class="lb-row${e.isSelf ? ' self' : ''}">
       <span class="lb-rank">#${e.rank}</span>
       <span class="lb-name">${e.isSelf ? '▶ ' : ''}${name}</span>
-      <span class="lb-score">${_lbFmtScore(e.score, board.fmt)}</span>
+      <span class="lb-score">${_lbFmtScore(e.score, cat.fmt)}</span>
     </div>`;
   }).join('');
 }
 export function openLeaderboards() {
   document.getElementById('start-screen').classList.add('hidden');
   document.getElementById('leaderboard-screen').classList.remove('hidden');
-  _renderLbBoardPicker();
-  _renderLbScopePicker();
+  const arenas = _lbUnlockedArenas();
+  if (!arenas.includes(_lbArena)) _lbArena = arenas[0] || null;
+  const diffs = _lbUnlockedDiffs(_lbArena);
+  if (!diffs.includes(_lbDiff)) _lbDiff = diffs[0] || 'normal';
+  _lbRenderAll();
   _loadLbEntries();
 }
 function closeLeaderboards() {
@@ -2421,13 +2466,21 @@ export function initButtons() {
   if (_lbBtn && typeof window !== 'undefined' && window.WallopSteam) _lbBtn.style.display = '';
   if (_lbBtn) _lbBtn.addEventListener('click', openLeaderboards);
   document.getElementById('lb-back-btn')?.addEventListener('click', closeLeaderboards);
-  document.getElementById('lb-board-row')?.addEventListener('click', (e) => {
-    const btn = e.target.closest('[data-board]'); if (!btn) return;
-    _lbBoard = btn.dataset.board; _renderLbBoardPicker(); _loadLbEntries();
+  document.getElementById('lb-cat-row')?.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-lbcat]'); if (!btn) return;
+    _lbCat = btn.dataset.lbcat; _lbRenderAll(); _loadLbEntries();
+  });
+  document.getElementById('lb-arena-row')?.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-lbarena]'); if (!btn) return;
+    _lbArena = btn.dataset.lbarena; _renderLbArena(); _renderLbDiff(); _loadLbEntries();
+  });
+  document.getElementById('lb-diff-row')?.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-lbdiff]'); if (!btn) return;
+    _lbDiff = btn.dataset.lbdiff; _renderLbDiff(); _loadLbEntries();
   });
   document.getElementById('lb-scope-row')?.addEventListener('click', (e) => {
     const btn = e.target.closest('[data-scope]'); if (!btn) return;
-    _lbScope = btn.dataset.scope; _renderLbScopePicker(); _loadLbEntries();
+    _lbScope = btn.dataset.scope; _renderLbScope(); _loadLbEntries();
   });
 
   // START RUN now opens the run-config screen instead of starting immediately

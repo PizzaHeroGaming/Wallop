@@ -34,8 +34,8 @@ const steamReady = (() => { try { return !!ipcRenderer.sendSync('wallop:steam-re
 contextBridge.exposeInMainWorld('WallopSteam', {
   isReady: () => steamReady,
   unlock: (api) => ipcRenderer.invoke('wallop:unlock', api),
-  // Resolves to { rank, previousRank, changed } | null.
-  submitScore: (board, value) => ipcRenderer.invoke('wallop:submit-score', board, value),
+  // Resolves to { rank, previousRank, changed } | null. force=true → ForceUpdate.
+  submitScore: (board, value, force) => ipcRenderer.invoke('wallop:submit-score', board, value, force),
   // Resolves to { displayType, entries: [{ rank, score, name, isSelf }] } | null.
   // mode: 'global' | 'friends' | 'around'.
   fetchLeaderboard: (board, mode, count) => ipcRenderer.invoke('wallop:fetch-leaderboard', board, mode, count),

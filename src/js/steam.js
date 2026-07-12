@@ -15,8 +15,8 @@
 // Achievement + leaderboard API names must match the Steamworks dashboard
 // exactly — see docs/STEAMWORKS_FEATURES_SPEC.md.
 
-import { isSteamBuild } from './renderer.js?v=7a09e0b';
-import { Profile, CATALOG } from './profile.js?v=7a09e0b';
+import { isSteamBuild } from './renderer.js?v=ea053d1';
+import { Profile, CATALOG } from './profile.js?v=ea053d1';
 
 const PROFILE_KEY = 'wallop_profile_v1';
 const LEDGER_KEY  = 'wallop_steam_v1';
@@ -125,65 +125,82 @@ export function syncMeta() {
   } catch (e) {}
 }
 
-const _ARENA_BOARD = {
-  pepperoni_pines: 'LB_SURVIVAL_PINES',
-  sundried_slopes: 'LB_SURVIVAL_SLOPES',
-  frostbite_glacier: 'LB_SURVIVAL_GLACIER',
-};
-const _ENDLESS_BOARD = {
-  pepperoni_pines: 'LB_ENDLESS_PINES',
-  sundried_slopes: 'LB_ENDLESS_SLOPES',
-  frostbite_glacier: 'LB_ENDLESS_GLACIER',
-};
-// Submit an endless survival time (seconds) for an arena. Resolves to
-// { rank, previousRank, changed } | null — the end screen shows the rank.
-export function submitEndless(arena, seconds) {
-  const board = _ENDLESS_BOARD[arena];
-  if (!board) return Promise.resolve(null);
-  return submitScore(board, seconds);
+// ── Board naming (arena × difficulty matrix) ────────────────────────────────
+const _ARENA_CODE = { pepperoni_pines: 'PINES', sundried_slopes: 'SLOPES', frostbite_glacier: 'GLACIER' };
+const _DIFF_CODE  = { easy: 'EASY', normal: 'NORMAL', hard: 'HARD', extreme: 'EXTREME' };
+const _ac = (a) => _ARENA_CODE[a] || 'PINES';
+const _dc = (d) => _DIFF_CODE[d] || 'NORMAL';
+export const endlessBoard = (a, d) => `LB_ENDLESS_${_ac(a)}_${_dc(d)}`;
+export const fastWinBoard = (a, d) => `LB_FASTWIN_${_ac(a)}_${_dc(d)}`;
+export const levelBoard   = (a, d) => `LB_LEVEL_${_ac(a)}_${_dc(d)}`;
+
+// The weekly board rotates by week — Steam can't reset a board, so each week is
+// its own leaderboard named for that week's Sunday (00:00 America/New_York). The
+// game always reads/writes the CURRENT week's board, so a fresh board each Sunday
+// reads as a "reset". Computed in ET so DST (EST/EDT) is handled automatically.
+export function currentWeekKey(now = new Date()) {
+  const parts = new Intl.DateTimeFormat('en-US', {
+    timeZone: 'America/New_York', year: 'numeric', month: '2-digit', day: '2-digit', weekday: 'short',
+  }).formatToParts(now);
+  const p = {}; for (const x of parts) p[x.type] = x.value;
+  const wd = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 }[p.weekday] || 0;
+  // Treat the ET Y/M/D as UTC so we can do plain day arithmetic, then step back to
+  // the week's Sunday.
+  const sunday = new Date(Date.UTC(+p.year, +p.month - 1, +p.day) - wd * 86400000);
+  const y = sunday.getUTCFullYear();
+  const m = String(sunday.getUTCMonth() + 1).padStart(2, '0');
+  const dd = String(sunday.getUTCDate()).padStart(2, '0');
+  return `${y}${m}${dd}`;
 }
-// Board catalog for the in-game Leaderboards screen. fmt: 'time' → mm:ss, 'num' → plain.
-export const LEADERBOARDS = [
-  { id: 'LB_ENDLESS_PINES',   label: 'ENDLESS · Pepperoni Pines',   fmt: 'time' },
-  { id: 'LB_ENDLESS_SLOPES',  label: 'ENDLESS · Sundried Slopes',   fmt: 'time' },
-  { id: 'LB_ENDLESS_GLACIER', label: 'ENDLESS · Frostbite Glacier', fmt: 'time' },
-  { id: 'LB_HIGH_LEVEL',      label: 'Highest Level',               fmt: 'num'  },
-  { id: 'LB_MOST_KILLS',      label: 'Most Kills (1 run)',          fmt: 'num'  },
-  { id: 'LB_FAST_WIN',        label: 'Fastest Warlord Kill',        fmt: 'time' },
+export const weeklyKillsBoard = () => `LB_WEEKLY_KILLS_${currentWeekKey()}`;
+
+// Catalog for the Leaderboards screen. 'matrix' categories expand over unlocked
+// arena × difficulty; 'single' categories are one board. fmt: 'time' → mm:ss.
+export const LB_CATEGORIES = [
+  { id: 'endless', label: 'ENDLESS',       kind: 'matrix', fmt: 'time', board: endlessBoard },
+  { id: 'fastwin', label: 'FASTEST WIN',   kind: 'matrix', fmt: 'time', board: fastWinBoard },
+  { id: 'level',   label: 'HIGHEST LEVEL', kind: 'matrix', fmt: 'num',  board: levelBoard },
+  { id: 'weekly',  label: 'WEEKLY KILLS',  kind: 'single', fmt: 'num',  board: weeklyKillsBoard,
+    note: 'Cumulative kills · resets Sunday 00:00 Eastern' },
 ];
+
 const _DIFF_WIN_ACH = { normal: 'ACH_WIN_NORMAL', hard: 'ACH_WIN_HARD', extreme: 'ACH_WIN_EXTREME' };
 // Speed Demon: the final boss always spawns at 600s (CFG.GAME_TIME) of stage 3, so
 // ctx.time on victory is ~600 + how long you took to kill it. Under 660 = melted the
 // Warlord within ~60s of it appearing (a real DPS flex). Tune after a real win.
 const _SPEED_WIN_TIME = 660;
 
-// Called once from triggerGameOver(). ctx = {victory, difficulty, arena, level, kills, time, noHit}.
-export function runEnded(ctx) {
-  if (!steamAvailable() || !ctx) return;
+// Called once from triggerGameOver(). ctx = {victory, mode, difficulty, arena, level, kills, time, noHit}.
+// Resolves to { endlessRank } | null — endlessRank drives the end-screen rank line.
+export async function runEnded(ctx) {
+  if (!steamAvailable() || !ctx) return null;
+  const a = ctx.arena, d = ctx.difficulty;
   // Lifetime kills — the long-tail grind badge (endless kills count too).
   _L.kills += (ctx.kills || 0); _saveLedger();
   if (_L.kills >= 100000) unlock('ACH_KILLS_100000');
 
-  // Endless is a SEPARATE progression: it never "wins" and must not pollute the
-  // normal survival / level / kills / fast-win boards. Its own endless
-  // leaderboards come later; for now just persist and bail.
-  if (ctx.mode === 'endless') { cloudSave(); return; }
+  // Weekly cumulative kills (all runs) — additive, so ForceUpdate the new total.
+  const weeklyTotal = Profile.addWeeklyKills(ctx.kills || 0, currentWeekKey());
+  submitScore(weeklyKillsBoard(), weeklyTotal, true);
 
-  if (ctx.victory) {
+  // Highest level, per arena × difficulty (all runs).
+  submitScore(levelBoard(a, d), ctx.level);
+
+  let endlessRank = null;
+  if (ctx.mode === 'endless') {
+    // Endless survival, per arena × difficulty — capture the rank for the end screen.
+    const res = await submitScore(endlessBoard(a, d), ctx.time);
+    endlessRank = res && typeof res.rank === 'number' ? res.rank : null;
+  } else if (ctx.victory) {
     unlock('ACH_WARLORD');
     const wa = _DIFF_WIN_ACH[ctx.difficulty];
     if (wa) unlock(wa);
     if (_runBosses.has('mini1') && _runBosses.has('mini2')) unlock('ACH_TRIPLE_THREAT');
     if (ctx.noHit) unlock('ACH_UNTOUCHABLE');                  // won without taking a hit
     if (ctx.time && ctx.time < _SPEED_WIN_TIME) unlock('ACH_SPEED_DEMON');
-    submitScore('LB_FAST_WIN', ctx.time);
+    submitScore(fastWinBoard(a, d), ctx.time); // fastest Warlord kill, per arena × difficulty
   }
 
-  // Leaderboards (bridge stubs these until steamworks.js gains leaderboard support).
-  const board = _ARENA_BOARD[ctx.arena];
-  if (board) submitScore(board, ctx.time);
-  submitScore('LB_HIGH_LEVEL', ctx.level);
-  submitScore('LB_MOST_KILLS', ctx.kills);
-
   cloudSave();
+  return { endlessRank };
 }
