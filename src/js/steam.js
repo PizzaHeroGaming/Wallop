@@ -7,7 +7,7 @@
 //
 // Responsibilities:
 //   • unlock achievements (deduped so we never spam IPC)
-//   • submit leaderboard scores (bridge currently stubs these — see steam.js main)
+//   • submit + fetch leaderboard scores (arena×difficulty matrix + weekly board)
 //   • push the save to Steam Cloud at run-end
 //   • keep a tiny lifetime ledger (kills / chests / slices earned) for the
 //     counter-based achievements the Profile schema doesn't already track.
@@ -15,8 +15,8 @@
 // Achievement + leaderboard API names must match the Steamworks dashboard
 // exactly — see docs/STEAMWORKS_FEATURES_SPEC.md.
 
-import { isSteamBuild } from './renderer.js?v=4f55cd0';
-import { Profile, CATALOG } from './profile.js?v=4f55cd0';
+import { isSteamBuild } from './renderer.js?v=7518421';
+import { Profile, CATALOG } from './profile.js?v=7518421';
 
 const PROFILE_KEY = 'wallop_profile_v1';
 const LEDGER_KEY  = 'wallop_steam_v1';

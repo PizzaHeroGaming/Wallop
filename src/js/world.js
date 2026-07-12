@@ -1,9 +1,9 @@
-import { CFG, IS_MOBILE_EARLY } from './config.js?v=4f55cd0';
-import { scene } from './renderer.js?v=4f55cd0';
-import { groundHeight, addSolid, obstacles, solidProps } from './terrain.js?v=4f55cd0';
-import { ARENAS } from './profile.js?v=4f55cd0';
-import { killMesh } from './utils.js?v=4f55cd0';
-import { Audio } from './audio.js?v=4f55cd0';
+import { CFG, IS_MOBILE_EARLY } from './config.js?v=7518421';
+import { scene } from './renderer.js?v=7518421';
+import { groundHeight, addSolid, obstacles, solidProps } from './terrain.js?v=7518421';
+import { ARENAS } from './profile.js?v=7518421';
+import { killMesh } from './utils.js?v=7518421';
+import { Audio } from './audio.js?v=7518421';
 
 // ── Arena theming ──
 // Currently-applied arena slug. Used by add* functions to color procedural
