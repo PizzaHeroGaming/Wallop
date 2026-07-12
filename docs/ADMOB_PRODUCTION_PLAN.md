@@ -28,6 +28,12 @@ don't control), and register your own devices as test devices first.
 
 ---
 
+## Real IDs (created 2026-07-11 — swap in at the PRODUCTION cut only)
+Publisher `pub-8467944404188469`. **Do NOT put these in the closed-test build.**
+- **App ID** (manifest `APPLICATION_ID`): `ca-app-pub-8467944404188469~4041925584`
+- **Interstitial** (`AdsInterface.INTERSTITIAL_UNIT`): `ca-app-pub-8467944404188469/4102048028`
+- **Rewarded** (`AdsInterface.REWARDED_UNIT`): `ca-app-pub-8467944404188469/6007789545`
+
 ## Exact swap points (3 IDs)
 All three currently hold Google TEST IDs (`ca-app-pub-3940256099942544...`):
 
