@@ -25,7 +25,7 @@ import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=4af10e4';
 import {
   gameState, cam,
 } from './state.js?v=4af10e4';
-import { CFG, STAGE_MULTS, DIFFICULTIES } from './config.js?v=4af10e4';
+import { CFG, STAGE_MULTS, DIFFICULTIES, ENDLESS, stageMults } from './config.js?v=4af10e4';
 import { Profile, ARENAS, CHALLENGES } from './profile.js?v=4af10e4';
 import { groundHeight, resolveSolids, setTerrainArena } from './terrain.js?v=4af10e4';
 import { setWorldArena } from './world.js?v=4af10e4';
@@ -160,9 +160,10 @@ export function killEnemy(e, srcWeaponId = null) {
     }
     spawnParticle(e.pos.clone().setY(2), 0xffd23f, 30, 12);
     spawnParticle(e.pos.clone().setY(0.5), 0xff3864, 20, 10);
-    if (e.sliceDrop && e.sliceDrop > 0) {
-      // Apply stage + difficulty bonus to slice reward
-      const sm = STAGE_MULTS[gameState.stage]  || STAGE_MULTS[1];
+    if (e.sliceDrop && e.sliceDrop > 0 && gameState.mode !== 'endless') {
+      // Boss slice reward (normal runs only — in endless, bosses drop gold only
+      // and slices come from survival time instead; see awardEndlessSlices).
+      const sm = stageMults(gameState);
       const dm = DIFFICULTIES[gameState.difficulty] || DIFFICULTIES.normal;
       const rawMult = Math.min(sm.sliceBonus * dm.sliceBonus, 4.0); // cap at 4× to keep economy sane
       // Steam premium baseline: 2× base slices. Steam has no ads (gated by
@@ -195,8 +196,10 @@ export function killEnemy(e, srcWeaponId = null) {
         gameState.challengeData.hammerDefeatedAt = gameState.gameTime;
       }
     }
-    if (e.bossTier === 'final') {
+    if (e.bossTier === 'final' && gameState.mode !== 'endless') {
       // Track per-arena per-stage progress (legacy clearStage kept in sync inside).
+      // Skipped in endless: recurring 'final' bosses are just kills — no stage
+      // advance, no arena clear, no victory (the run only ends on death).
       Profile.recordStageClear(gameState.arena, gameState.stage);
       Profile.clearStage(gameState.stage);
       if (gameState.stage === 3) {
@@ -430,7 +433,7 @@ export const BOSS_VARIANTS = {
 export function spawnBoss(tier = 'final') {
   const cfg = BOSS_TIERS[tier];
   const lvl = player.level;
-  const sm  = STAGE_MULTS[gameState.stage]  || STAGE_MULTS[1];
+  const sm  = stageMults(gameState);
   const dm  = DIFFICULTIES[gameState.difficulty] || DIFFICULTIES.normal;
   const hp  = Math.round((cfg.baseHp  + lvl * cfg.hpPerLvl)  * sm.bossHp  * dm.enemy);
   const dmg = Math.round((cfg.baseDmg + lvl * cfg.dmgPerLvl) * sm.bossDmg * dm.enemy);
@@ -575,6 +578,25 @@ function getEligibleEnemies(t) {
   return _eligibleCache;
 }
 
+// Endless meta-slice reward: grant ENDLESS.slicesPerMinute every full minute
+// survived (× difficulty bonus × Steam premium mult, matching the boss-slice
+// economy). Slices count toward the run-end "Double Slices" ad like kill slices.
+function awardEndlessSlices() {
+  const mins = Math.floor(gameState.gameTime / 60);
+  if (mins <= gameState.endlessMinutes) return;
+  const newMins = mins - gameState.endlessMinutes;
+  gameState.endlessMinutes = mins;
+  const dm = DIFFICULTIES[gameState.difficulty] || DIFFICULTIES.normal;
+  const platMult = isSteamBuild() ? 2 : 1; // Steam premium: 2× slices (no ads)
+  const gained = Math.max(1, Math.round(newMins * ENDLESS.slicesPerMinute * dm.sliceBonus * platMult));
+  Profile.addSlices(gained);
+  Steam.slicesEarned(gained);
+  gameState.slicesEarned    = (gameState.slicesEarned || 0) + gained;
+  gameState.doublableSlices = (gameState.doublableSlices || 0) + gained;
+  Audio.play('pickup_slice');
+  syncSliceDisplays();
+}
+
 function updateSpawning(dt) {
   gameState.spawnTimer -= dt;
   const t   = gameState.gameTime;
@@ -623,17 +645,30 @@ function updateSpawning(dt) {
     }
   }
 
-  if (t >= 180 && !gameState.miniboss1Spawned) {
-    gameState.miniboss1Spawned = true;
-    spawnBoss('mini1');
-  }
-  if (t >= 360 && !gameState.miniboss2Spawned) {
-    gameState.miniboss2Spawned = true;
-    spawnBoss('mini2');
-  }
-  if (t >= CFG.GAME_TIME && !gameState.bossSpawned) {
-    gameState.bossSpawned = true;
-    spawnBoss('final');
+  if (gameState.mode === 'endless') {
+    // Endless: recurring bosses. First at firstBossTime, then one every
+    // bossInterval, cycling mini1 → mini2 → final → repeat. Each is scaled by
+    // the current endless tier via stageMults(). Killing one never ends the run
+    // (the final-boss win branch + win check are gated on mode elsewhere).
+    const nextBossTime = ENDLESS.firstBossTime + gameState.endlessBossIdx * ENDLESS.bossInterval;
+    if (t >= nextBossTime) {
+      const tier = ENDLESS.bossCycle[gameState.endlessBossIdx % ENDLESS.bossCycle.length];
+      gameState.endlessBossIdx++;
+      spawnBoss(tier);
+    }
+  } else {
+    if (t >= 180 && !gameState.miniboss1Spawned) {
+      gameState.miniboss1Spawned = true;
+      spawnBoss('mini1');
+    }
+    if (t >= 360 && !gameState.miniboss2Spawned) {
+      gameState.miniboss2Spawned = true;
+      spawnBoss('mini2');
+    }
+    if (t >= CFG.GAME_TIME && !gameState.bossSpawned) {
+      gameState.bossSpawned = true;
+      spawnBoss('final');
+    }
   }
   // Boss spawn banners removed — synth stinger + HP bar appearing = the announcement.
 }
@@ -1051,6 +1086,10 @@ export function resetGame() {
   gameState.finalSwarm        = false;
   gameState._lastWave         = 0;
   gameState.chestTimer        = 90;
+  // Endless counters (gameState.mode itself is set by the PLAY handler and
+  // preserved across "RUN IT BACK" restarts, so it is NOT reset here).
+  gameState.endlessMinutes    = 0;
+  gameState.endlessBossIdx    = 0;
 
   for (let i = 0; i < 5; i++) {
     const p = pickChestPosition();
@@ -2110,6 +2149,7 @@ export function update(dt) {
   }
 
   gameState.gameTime += dt;
+  if (gameState.mode === 'endless') awardEndlessSlices();
   updateSpawning(dt);
   updatePlayer(dt);
   if (playerMixer) playerMixer.update(dt);
@@ -2155,8 +2195,8 @@ export function update(dt) {
     }
   }
 
-  // Win condition
-  if (gameState.bossSpawned) {
+  // Win condition (normal runs only — endless has no win, it ends on death)
+  if (gameState.mode !== 'endless' && gameState.bossSpawned) {
     const finalBossAlive = enemies.some(e => e.isBoss && e.bossTier === 'final');
     if (!finalBossAlive) triggerGameOver(true);
   }

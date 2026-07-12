@@ -293,6 +293,9 @@ export const Profile = (function () {
       unlockedArenas: { pepperoni_pines: true },
       itemKills: {},
       completedChallenges: {},
+      // Endless mode: best survival time (seconds) per arena. Drives the
+      // end-screen "BEST" and, later, the separate endless leaderboards.
+      endlessBest: {},
       // Audio prefs — persisted across sessions, defaults match "low + on"
       audioMuted: false,
       audioVolume: 0.4,
@@ -519,6 +522,24 @@ export const Profile = (function () {
     return true;
   }
 
+  // ── Endless best times (per arena) ──
+  function getEndlessBest(arenaSlug) {
+    return (_state.endlessBest && _state.endlessBest[arenaSlug]) || 0;
+  }
+  // Records an endless survival time. Returns true if it's a new best for the
+  // arena (so the end-screen can show "NEW BEST").
+  function recordEndlessTime(arenaSlug, seconds) {
+    if (!_state.endlessBest) _state.endlessBest = {};
+    const prev = _state.endlessBest[arenaSlug] || 0;
+    if (seconds > prev) {
+      _state.endlessBest[arenaSlug] = seconds;
+      save();
+      return true;
+    }
+    save();
+    return false;
+  }
+
   return {
     get, save, isUnlocked, unlock, spendSlices, addSlices,
     getBoostLevel, setBoostLevel, setEquippedCharacter,
@@ -530,6 +551,7 @@ export const Profile = (function () {
     isChallengeCompleted, markChallengeCompleted,
     isTutorialDone, markTutorialDone,
     adSlicesRemainingToday, recordAdSliceWatch,
+    getEndlessBest, recordEndlessTime,
   };
 
   function isTutorialDone() { return !!_state.tutorialDone; }

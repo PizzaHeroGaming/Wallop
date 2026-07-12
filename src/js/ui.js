@@ -166,12 +166,15 @@ const hudEls = {
   timerTile:  document.getElementById('timer-tile'),
   goldVal:    document.getElementById('gold-val'),
   killsVal:   document.getElementById('kills-val'),
+  slicesTile: document.getElementById('slices-tile'),
+  slicesVal:  document.getElementById('run-slices-val'),
   dashBtn:    document.getElementById('dash-btn'),
   bossWrap:   document.getElementById('boss-wrap'),
   // bossName/bossFill/bossText IDs are gone — we render one .boss-row per
   // alive boss inside #boss-wrap (see _bossRows below).
 };
 let _hudTimer = 0;
+let _lastShownSlices = 0; // endless HUD counter — pulse the tile when this grows
 
 // ============================================================
 // DAMAGE NUMBERS (recycled pool)
@@ -317,12 +320,33 @@ export function updateHUD() {
   hudEls.xpFill.style.width = (player.xp / player.xpToNext) * 100 + '%';
   hudEls.lvlBadge.textContent = `LV ${player.level}`;
 
-  const timeLeft = Math.max(0, CFG.GAME_TIME - gameState.gameTime);
-  const mm = Math.floor(timeLeft / 60).toString().padStart(2, '0');
-  const ss = Math.floor(timeLeft % 60).toString().padStart(2, '0');
-  hudEls.timerVal.textContent = `${mm}:${ss}`;
-  if (timeLeft < 60) hudEls.timerVal.classList.add('danger');
-  else               hudEls.timerVal.classList.remove('danger');
+  if (gameState.mode === 'endless') {
+    // Endless: TIME counts UP (elapsed survival time = the score), and the
+    // slices tile shows the per-minute reward ticking up.
+    const el = Math.floor(gameState.gameTime);
+    hudEls.timerVal.textContent = `${Math.floor(el / 60).toString().padStart(2, '0')}:${(el % 60).toString().padStart(2, '0')}`;
+    hudEls.timerVal.classList.remove('danger');
+    if (hudEls.slicesTile) {
+      const earned = gameState.slicesEarned || 0;
+      if (earned < _lastShownSlices) _lastShownSlices = 0; // new run — resync
+      hudEls.slicesTile.style.display = '';
+      hudEls.slicesVal.textContent = earned;
+      if (earned > _lastShownSlices) {
+        hudEls.slicesTile.classList.remove('slice-pop');
+        void hudEls.slicesTile.offsetWidth; // reflow so the animation restarts
+        hudEls.slicesTile.classList.add('slice-pop');
+      }
+      _lastShownSlices = earned;
+    }
+  } else {
+    const timeLeft = Math.max(0, CFG.GAME_TIME - gameState.gameTime);
+    const mm = Math.floor(timeLeft / 60).toString().padStart(2, '0');
+    const ss = Math.floor(timeLeft % 60).toString().padStart(2, '0');
+    hudEls.timerVal.textContent = `${mm}:${ss}`;
+    if (timeLeft < 60) hudEls.timerVal.classList.add('danger');
+    else               hudEls.timerVal.classList.remove('danger');
+    if (hudEls.slicesTile) hudEls.slicesTile.style.display = 'none';
+  }
 
   hudEls.goldVal.textContent  = player.gold;
   hudEls.killsVal.textContent = gameState.kills;
@@ -959,13 +983,27 @@ export function triggerGameOver(victory) {
   const title = document.getElementById('gameover-title');
   const diffLabel  = (DIFFICULTIES[gameState.difficulty] || DIFFICULTIES.normal).label;
   const arenaName  = (ARENAS[gameState.arena] || ARENAS.pepperoni_pines).name;
-  const stageLine  = `${arenaName.toUpperCase()} · STAGE ${gameState.stage} · ${diffLabel}`;
-  if (victory) {
-    title.textContent = `YOU WALLOPED IT!`;
-    title.classList.add('victory');
-  } else {
-    title.textContent = 'YOU DIED';
+  const isEndless  = gameState.mode === 'endless';
+  let stageLine;
+  if (isEndless) {
+    // Record the survival time and note whether it's a new best for this arena.
+    const isNewBest = Profile.recordEndlessTime(gameState.arena, gameState.gameTime);
+    const best = Profile.getEndlessBest(gameState.arena);
+    const bm = Math.floor(best / 60).toString().padStart(2, '0');
+    const bs = Math.floor(best % 60).toString().padStart(2, '0');
+    const bestNote = isNewBest ? ' · 🏆 NEW BEST!' : ` · BEST ${bm}:${bs}`;
+    stageLine = `ENDLESS · ${arenaName.toUpperCase()} · ${diffLabel}${bestNote}`;
+    title.textContent = 'ENDLESS OVER';
     title.classList.remove('victory');
+  } else {
+    stageLine = `${arenaName.toUpperCase()} · STAGE ${gameState.stage} · ${diffLabel}`;
+    if (victory) {
+      title.textContent = `YOU WALLOPED IT!`;
+      title.classList.add('victory');
+    } else {
+      title.textContent = 'YOU DIED';
+      title.classList.remove('victory');
+    }
   }
   // Subtitle showing stage/difficulty
   let sub = document.getElementById('gameover-subtitle');
@@ -1016,6 +1054,7 @@ export function triggerGameOver(victory) {
   // Steam: win/leaderboard achievements + push the save to Steam Cloud (no-op off Steam).
   Steam.runEnded({
     victory,
+    mode: gameState.mode, // 'normal' | 'endless' — steam.js gates board submissions
     difficulty: gameState.difficulty,
     arena: gameState.arena,
     level: player.level,
@@ -2106,6 +2145,32 @@ export function initMobile() {
 }
 
 // ============================================================
+// MODE SELECTOR (Normal Run vs Endless — inline on run-config screen)
+// ============================================================
+let _selectedMode = 'normal';
+const _MODES = {
+  normal:  { label: 'NORMAL',  hint: 'Beat 3 stages — mini-bosses then the Warlord. Has a win.' },
+  endless: { label: 'ENDLESS', hint: 'No stages, no win. Survive as long as you can — earn slices every minute.' },
+};
+function renderModeSelect() {
+  const el = document.getElementById('mode-btns');
+  if (!el) return;
+  el.innerHTML = Object.entries(_MODES).map(([key, m]) =>
+    `<button class="diff-btn${key === _selectedMode ? ' active' : ''}" data-mode="${key}" title="${m.hint.replace(/"/g, '&quot;')}">${m.label}</button>`
+  ).join('');
+}
+function initModeSelect() {
+  renderModeSelect();
+  const el = document.getElementById('mode-btns');
+  if (el) el.addEventListener('click', e => {
+    const btn = e.target.closest('[data-mode]');
+    if (!btn) return;
+    _selectedMode = btn.dataset.mode;
+    document.querySelectorAll('#mode-btns .diff-btn').forEach(b => b.classList.toggle('active', b === btn));
+  });
+}
+
+// ============================================================
 // STAGE + DIFFICULTY SELECTOR (inline on start screen)
 // ============================================================
 let _selectedDiff = 'normal';
@@ -2232,6 +2297,7 @@ function initArenaSelect() {
 // BUTTON EVENT LISTENERS (start, gameover, armory, pause, exit)
 // ============================================================
 export function initButtons() {
+  try { initModeSelect(); }  catch(e) { console.error('[wallop] initModeSelect failed:', e); }
   try { initDiffSelect(); }  catch(e) { console.error('[wallop] initDiffSelect failed:', e); }
   try { initArenaSelect(); } catch(e) { console.error('[wallop] initArenaSelect failed:', e); }
 
@@ -2239,6 +2305,7 @@ export function initButtons() {
   document.getElementById('start-btn').addEventListener('click', () => {
     document.getElementById('start-screen').classList.add('hidden');
     // Refresh selectors so newly-unlocked arenas / current selections show correctly
+    renderModeSelect();
     renderDiffSelect();
     renderArenaSelect();
     _refreshMobileArenaUI();
@@ -2251,6 +2318,7 @@ export function initButtons() {
     document.getElementById('run-config-screen').classList.add('hidden');
     document.getElementById('hud').style.display = 'none'; // stay hidden through the cinematic
     gameState.difficulty = Profile.isDifficultyUnlocked(_selectedArena, _selectedDiff) ? _selectedDiff : 'normal';
+    gameState.mode = _selectedMode; // 'normal' | 'endless'
     gameState.activeChallenge = null; // normal run — clear any leftover challenge
     tryEnterFullscreen();
     // Cinematic sweep: camera orbits behind the hero, then the run begins

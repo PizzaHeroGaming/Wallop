@@ -1,4 +1,4 @@
-import { CFG, IS_MOBILE_EARLY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=4af10e4';
+import { CFG, IS_MOBILE_EARLY, STAGE_MULTS, DIFFICULTIES, stageMults } from './config.js?v=4af10e4';
 import { scene, camera, isMobile, tryEnterFullscreen, renderer, acquirePtLight, releasePtLight } from './renderer.js?v=4af10e4';
 import { groundHeight, addSolid, resolveSolids, solidProps } from './terrain.js?v=4af10e4';
 import { killMesh, clamp, rand, tmp, tmp2, flatPhong, smoothPhong } from './utils.js?v=4af10e4';
@@ -1265,7 +1265,7 @@ export function spawnEnemy(typeKey, opts = {}) {
   dmgScale *= 1 + (player.curse || 0) * 0.12;
   if (gameState.finalSwarm) { hpScale *= 1.35; dmgScale *= 1.15; }
   // Apply stage + difficulty multipliers
-  const _stageMult = (STAGE_MULTS[gameState.stage] || STAGE_MULTS[1]).enemy;
+  const _stageMult = stageMults(gameState).enemy;
   const _diffMult  = (DIFFICULTIES[gameState.difficulty] || DIFFICULTIES.normal).enemy;
   hpScale  *= _stageMult * _diffMult;
   dmgScale *= _stageMult * _diffMult;

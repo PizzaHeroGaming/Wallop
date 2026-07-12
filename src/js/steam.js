@@ -130,9 +130,14 @@ const _SPEED_WIN_TIME = 660;
 // Called once from triggerGameOver(). ctx = {victory, difficulty, arena, level, kills, time, noHit}.
 export function runEnded(ctx) {
   if (!steamAvailable() || !ctx) return;
-  // Lifetime kills — the long-tail grind badge.
+  // Lifetime kills — the long-tail grind badge (endless kills count too).
   _L.kills += (ctx.kills || 0); _saveLedger();
   if (_L.kills >= 100000) unlock('ACH_KILLS_100000');
+
+  // Endless is a SEPARATE progression: it never "wins" and must not pollute the
+  // normal survival / level / kills / fast-win boards. Its own endless
+  // leaderboards come later; for now just persist and bail.
+  if (ctx.mode === 'endless') { cloudSave(); return; }
 
   if (ctx.victory) {
     unlock('ACH_WARLORD');

@@ -34,6 +34,37 @@ export const DIFFICULTIES = {
   extreme: { enemy: 2.0,  sliceBonus: 2.5,  label: 'EXTREME' },
 };
 
+// Endless mode tuning. Endless has no stages and no win — difficulty ratchets
+// every `tierSeconds` and bosses recur, so STAGE_MULTS (keys 1-3 only) is
+// replaced by a time-tier formula in stageMults() below. Slices are earned per
+// minute survived instead of from boss kills.
+export const ENDLESS = {
+  slicesPerMinute: 1,    // base meta slices per full minute survived (× difficulty × platform)
+  tierSeconds: 120,      // difficulty ratchets up every 2 minutes
+  firstBossTime: 180,    // first recurring boss at 3:00
+  bossInterval: 150,     // then one boss every 2.5 min
+  bossCycle: ['mini1', 'mini2', 'final'], // cycled in order; each scaled by the current tier
+  enemyPerTier: 0.35,    // +35% enemy hp/dmg multiplier per tier
+  bossHpPerTier: 0.55,   // +55% boss hp per tier
+  bossDmgPerTier: 0.30,  // +30% boss dmg per tier
+};
+
+// Effective per-stage multipliers. Normal runs use the fixed STAGE_MULTS table;
+// Endless runs derive an ever-growing multiplier from the elapsed-time tier so
+// difficulty keeps climbing past stage 3's ceiling (STAGE_MULTS has no key > 3).
+export function stageMults(gs) {
+  if (gs && gs.mode === 'endless') {
+    const tier = Math.floor((gs.gameTime || 0) / ENDLESS.tierSeconds);
+    return {
+      enemy:      1.0 + tier * ENDLESS.enemyPerTier,
+      bossHp:     1.0 + tier * ENDLESS.bossHpPerTier,
+      bossDmg:    1.0 + tier * ENDLESS.bossDmgPerTier,
+      sliceBonus: 1.0,
+    };
+  }
+  return STAGE_MULTS[gs ? gs.stage : 1] || STAGE_MULTS[1];
+}
+
 export const RARITY = {
   common:    { weight: 100, color: '#c7cad8', mult: 1.0 },
   uncommon:  { weight: 55,  color: '#42f5a1', mult: 1.4 },

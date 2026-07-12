@@ -4,7 +4,8 @@
 
 export const gameState = {
   state: 'start', // start, playing, levelup, paused, gameover, victory
-  stage: 1,        // current run stage (1, 2, 3)
+  mode: 'normal',  // 'normal' (3-stage arena run, has a win) | 'endless' (survive as long as possible, no win)
+  stage: 1,        // current run stage (1, 2, 3) — stays 1 in endless
   difficulty: 'normal', // 'easy' | 'normal' | 'hard' | 'extreme'
   arena: 'pepperoni_pines', // 'pepperoni_pines' | 'sundried_slopes' | 'frostbite_glacier'
   gameTime: 0,
@@ -21,6 +22,10 @@ export const gameState = {
   finalSwarm: false,
   _lastWave: 0,
   chestTimer: 90,
+  // Endless mode: full minutes survived so far — drives the per-minute slice
+  // reward and its HUD counter. Also gates the recurring-boss cadence.
+  endlessMinutes: 0,
+  endlessBossIdx: 0, // index into ENDLESS.bossCycle for the next recurring boss
   // First-run tutorial active flag. While true, update() freezes the clock and
   // spawns so a new player can learn MOVE + LOOK in a calm arena.
   tutorialActive: false,

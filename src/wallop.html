@@ -166,6 +166,9 @@
   }
   #timer-tile .value.danger { color: var(--hot); animation: pulse 0.8s infinite; }
   @keyframes pulse { 0%,100% { transform: scale(1); } 50% { transform: scale(1.08); } }
+  /* Endless slices tile pops each time a per-minute reward lands. */
+  #slices-tile.slice-pop .value { animation: slicePop 0.55s ease; }
+  @keyframes slicePop { 0%,100% { transform: scale(1); color: var(--ink); } 45% { transform: scale(1.35); color: var(--accent); } }
 
   /* Weapon icons */
   /* Boss HP bar — sits below the TIME/KILLS/GOLD stat tiles.
@@ -3092,6 +3095,10 @@ window.addEventListener('load', () => {
     <div class="stat-tile">
       <div class="label">GOLD</div><div class="value" id="gold-val">0</div>
     </div>
+    <!-- Endless-only: slices earned this run (per minute survived). Hidden in normal runs. -->
+    <div class="stat-tile" id="slices-tile" style="display:none">
+      <div class="label">🍕 SLICES</div><div class="value" id="run-slices-val">0</div>
+    </div>
   </div>
   <div id="xp-wrap" class="hud-bar-wrap">
     <div id="xp-bar"><div id="xp-fill"></div></div>
@@ -3210,6 +3217,10 @@ window.addEventListener('load', () => {
 <div id="run-config-screen" class="overlay hidden">
   <div id="run-config-title">CONFIGURE YOUR RUN</div>
   <div id="run-config-body">
+    <div class="start-run-config">
+      <div class="sel-title">MODE</div>
+      <div id="mode-btns" class="sel-row"></div>
+    </div>
     <div class="start-run-config">
       <div class="sel-title">DIFFICULTY</div>
       <div id="diff-btns" class="sel-row"></div>
