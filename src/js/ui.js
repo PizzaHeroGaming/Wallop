@@ -15,7 +15,7 @@
 //   keyboard/mobile → tryJump, tryDash (game.js): use _jumpFn/_dashFn, set via setJumpDashCbs()
 //   openChest → presentChoiceScreen (this file): setOpenChestDeps is called in initUI()
 
-import { camera, renderer, isMobile, isSteamBuild, tryEnterFullscreen } from './renderer.js?v=3b4e781';
+import { camera, renderer, isMobile, isSteamBuild, tryEnterFullscreen } from './renderer.js?v=7a09e0b';
 import {
   player, enemies,
   tryInteract, setOpenChestDeps,
@@ -23,21 +23,21 @@ import {
   spawnParticle,
   CHARACTER_MODELS, _animClips, loadCharAsset,
   _applyCharacterModel,
-} from './entities.js?v=3b4e781';
-import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=3b4e781';
-import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=3b4e781';
-import { gameState, cam } from './state.js?v=3b4e781';
-import { Audio } from './audio.js?v=3b4e781';
-import * as Steam from './steam.js?v=3b4e781';
-import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=3b4e781';
+} from './entities.js?v=7a09e0b';
+import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=7a09e0b';
+import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=7a09e0b';
+import { gameState, cam } from './state.js?v=7a09e0b';
+import { Audio } from './audio.js?v=7a09e0b';
+import * as Steam from './steam.js?v=7a09e0b';
+import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=7a09e0b';
 // VERSION lives on CFG.VERSION too — reading via property access doesn't
 // blow up if a cached older config.js is loaded without the named export
 const VERSION = CFG.VERSION || '0.0.0';
 // Slices granted per on-demand "watch ad for slices" view (daily-capped in Profile).
 const AD_SLICE_REWARD = 3;
-import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=3b4e781';
-import { tmp, tmp2 } from './utils.js?v=3b4e781';
-import { Settings } from './settings.js?v=3b4e781';
+import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=7a09e0b';
+import { tmp, tmp2 } from './utils.js?v=7a09e0b';
+import { Settings } from './settings.js?v=7a09e0b';
 
 // ============================================================
 // INJECTION CALLBACKS (break circular deps)
@@ -2363,7 +2363,7 @@ function _renderLbBoardPicker() {
 function _renderLbScopePicker() {
   const row = document.getElementById('lb-scope-row');
   if (!row) return;
-  const scopes = [['global', 'GLOBAL'], ['friends', 'FRIENDS'], ['around', 'AROUND ME']];
+  const scopes = [['global', 'GLOBAL'], ['friends', 'FRIENDS']];
   row.innerHTML = scopes.map(([id, label]) =>
     `<button class="diff-btn${id === _lbScope ? ' active' : ''}" data-scope="${id}">${label}</button>`
   ).join('');
