@@ -1822,6 +1822,28 @@
   #lb-board-row .diff-btn { font-size: 8px; padding: 8px 10px; }
   /* ===== end leaderboards ===== */
 
+  /* ===== main-menu weekly-kills board (Steam only) ===== */
+  #menu-lb {
+    position: absolute; top: 28px; right: 28px; width: 320px; z-index: 6;
+    background: #f5e9c8; border: 3px solid #000; box-shadow: 6px 6px 0 #000;
+    padding: 12px 14px 14px;
+  }
+  #menu-lb-title { font-family: 'Press Start 2P', monospace; font-size: 11px; color: #b8501c; text-align: center; }
+  #menu-lb-sub   { font-family: 'VT323', monospace; font-size: 15px; color: #7a2d0a; text-align: center; margin: 2px 0 8px; }
+  .menu-lb-row {
+    display: flex; align-items: center; gap: 8px; padding: 3px 5px; margin-bottom: 2px;
+    font-family: 'VT323', monospace; font-size: 18px; color: #3a2510;
+  }
+  .menu-lb-row.self { background: #ffd23f; }
+  .menu-lb-rank  { min-width: 30px; font-family: 'Press Start 2P', monospace; font-size: 9px; color: #b8501c; }
+  .menu-lb-row.self .menu-lb-rank { color: #7a2d0a; }
+  .menu-lb-name  { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .menu-lb-kills { font-family: 'Press Start 2P', monospace; font-size: 9px; }
+  .menu-lb-empty { font-family: 'VT323', monospace; font-size: 17px; color: #3a2510; text-align: center; padding: 10px 4px; }
+  /* Hide on small screens so it never collides with the menu/logo. */
+  @media (max-width: 900px) { #menu-lb { display: none !important; } }
+  /* ===== end main-menu board ===== */
+
   /* ===== CHARACTER SELECT (start screen) ===== */
   #start-main {
     display: flex; flex-direction: row; gap: 24px;
@@ -3177,6 +3199,12 @@ window.addEventListener('load', () => {
 
 <!-- Start screen -->
 <div id="start-screen" class="overlay hidden">
+  <!-- Live weekly-kills leaderboard (Steam build only; revealed by JS) -->
+  <div id="menu-lb" style="display:none">
+    <div id="menu-lb-title">🏆 WEEKLY KILLS</div>
+    <div id="menu-lb-sub">Top killers · resets Sunday</div>
+    <div id="menu-lb-list"></div>
+  </div>
   <div id="title-block">
     <div id="title">WALLOP</div>
     <div id="subtitle">smash. survive. snowball.</div>
@@ -3840,6 +3868,6 @@ window.addEventListener('load', () => {
 <script src="src/vendor/three/UnrealBloomPass.js"></script>
 <script src="src/vendor/three/GLTFLoader.js"></script>
 <script src="src/vendor/three/SkeletonUtils.js"></script>
-<script type="module" src="src/js/main.js?v=ea053d1"></script>
+<script type="module" src="src/js/main.js?v=4f55cd0"></script>
 </body>
 </html>

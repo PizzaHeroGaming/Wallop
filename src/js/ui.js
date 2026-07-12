@@ -15,7 +15,7 @@
 //   keyboard/mobile → tryJump, tryDash (game.js): use _jumpFn/_dashFn, set via setJumpDashCbs()
 //   openChest → presentChoiceScreen (this file): setOpenChestDeps is called in initUI()
 
-import { camera, renderer, isMobile, isSteamBuild, tryEnterFullscreen } from './renderer.js?v=ea053d1';
+import { camera, renderer, isMobile, isSteamBuild, tryEnterFullscreen } from './renderer.js?v=4f55cd0';
 import {
   player, enemies,
   tryInteract, setOpenChestDeps,
@@ -23,21 +23,21 @@ import {
   spawnParticle,
   CHARACTER_MODELS, _animClips, loadCharAsset,
   _applyCharacterModel,
-} from './entities.js?v=ea053d1';
-import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=ea053d1';
-import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=ea053d1';
-import { gameState, cam } from './state.js?v=ea053d1';
-import { Audio } from './audio.js?v=ea053d1';
-import * as Steam from './steam.js?v=ea053d1';
-import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=ea053d1';
+} from './entities.js?v=4f55cd0';
+import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=4f55cd0';
+import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=4f55cd0';
+import { gameState, cam } from './state.js?v=4f55cd0';
+import { Audio } from './audio.js?v=4f55cd0';
+import * as Steam from './steam.js?v=4f55cd0';
+import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=4f55cd0';
 // VERSION lives on CFG.VERSION too — reading via property access doesn't
 // blow up if a cached older config.js is loaded without the named export
 const VERSION = CFG.VERSION || '0.0.0';
 // Slices granted per on-demand "watch ad for slices" view (daily-capped in Profile).
 const AD_SLICE_REWARD = 3;
-import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=ea053d1';
-import { tmp, tmp2 } from './utils.js?v=ea053d1';
-import { Settings } from './settings.js?v=ea053d1';
+import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=4f55cd0';
+import { tmp, tmp2 } from './utils.js?v=4f55cd0';
+import { Settings } from './settings.js?v=4f55cd0';
 
 // ============================================================
 // INJECTION CALLBACKS (break circular deps)
@@ -2453,6 +2453,35 @@ function closeLeaderboards() {
   document.getElementById('start-screen').classList.remove('hidden');
 }
 
+// Live weekly-kills board shown on the main menu (Steam build only). Fetches the
+// current week's global top few and renders them; hidden entirely off Steam.
+let _menuLbBusy = false;
+export async function refreshMenuLeaderboard() {
+  const panel = document.getElementById('menu-lb');
+  const list = document.getElementById('menu-lb-list');
+  if (!panel || !list) return;
+  if (!(typeof window !== 'undefined' && window.WallopSteam)) { panel.style.display = 'none'; return; }
+  panel.style.display = 'block';
+  if (_menuLbBusy) return;
+  _menuLbBusy = true;
+  let res = null;
+  try { res = await Steam.fetchLeaderboard(Steam.weeklyKillsBoard(), 'global', 6); } catch (e) {}
+  _menuLbBusy = false;
+  const entries = (res && res.entries) || [];
+  if (entries.length === 0) {
+    list.innerHTML = '<div class="menu-lb-empty">No kills logged yet this week.<br>Be the first!</div>';
+    return;
+  }
+  list.innerHTML = entries.map(e => {
+    const name = String(e.name || 'Player').replace(/[<>&]/g, '');
+    return `<div class="menu-lb-row${e.isSelf ? ' self' : ''}">
+      <span class="menu-lb-rank">#${e.rank}</span>
+      <span class="menu-lb-name">${e.isSelf ? '▶ ' : ''}${name}</span>
+      <span class="menu-lb-kills">${(e.score || 0).toLocaleString()}</span>
+    </div>`;
+  }).join('');
+}
+
 // ============================================================
 // BUTTON EVENT LISTENERS (start, gameover, armory, pause, exit)
 // ============================================================
@@ -2482,6 +2511,14 @@ export function initButtons() {
     const btn = e.target.closest('[data-scope]'); if (!btn) return;
     _lbScope = btn.dataset.scope; _renderLbScope(); _loadLbEntries();
   });
+
+  // Live weekly-kills board on the main menu (Steam only): initial fetch + a light
+  // refresh while the menu is up, so it reflects new kills after a run.
+  refreshMenuLeaderboard();
+  setInterval(() => {
+    const start = document.getElementById('start-screen');
+    if (start && !start.classList.contains('hidden')) refreshMenuLeaderboard();
+  }, 45000);
 
   // START RUN now opens the run-config screen instead of starting immediately
   document.getElementById('start-btn').addEventListener('click', () => {
