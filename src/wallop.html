@@ -858,8 +858,9 @@
     transform: translate(2px, 2px);
     box-shadow: 2px 2px 0 #000;
   }
-  /* During timer countdown, push the timer tile left so it doesn't overlap pause */
-  #top-bar { padding-right: 64px; }
+  /* Reserve space so the timer tile doesn't overlap the pause button — mobile
+     only, since the pause button is hidden on desktop (ESC pauses there). */
+  body.is-mobile #top-bar { padding-right: 64px; }
 
   /* Mobile interact button */
   #interact-btn {
@@ -881,9 +882,11 @@
      (not on splash, start screen, level-up screen, pause, or game over). */
   #mobile-controls { display: none; }
   body.playing #mobile-controls.active { display: block; }
-  /* Pause button: also gated to playing — we don't want a pause icon on the splash */
+  /* Pause button: mobile-only. On desktop the mouse is pointer-locked so it's
+     unreachable — ESC opens the pause menu there. Gated to playing so it never
+     shows on the splash/menus. */
   #pause-btn { display: none; }
-  body.playing #pause-btn { display: flex; }
+  body.playing.is-mobile #pause-btn { display: flex; }
 
   /* Touch zones cover the bottom 70% of each half of the screen. They're
      invisible but capture all touch input. The top 30% is left clear so the

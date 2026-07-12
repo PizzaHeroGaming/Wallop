@@ -2113,6 +2113,10 @@ function _bindFloatingStick(zoneEl, stickEl, knobEl, output, maxRadius) {
 
 export function initMobile() {
   if (!isMobile()) return;
+  // Tag the body so CSS can show touch-only affordances (mobile controls, the
+  // HUD pause button). On desktop the mouse is pointer-locked, so the pause
+  // button is unreachable there anyway — ESC opens the pause menu instead.
+  document.body.classList.add('is-mobile');
   document.getElementById('mobile-controls').classList.add('active');
 
   _bindFloatingStick(
