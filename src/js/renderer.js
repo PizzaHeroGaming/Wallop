@@ -1,5 +1,5 @@
-import { CFG, IS_MOBILE_EARLY } from './config.js?v=9c7fb1d';
-import { ARENAS } from './profile.js?v=9c7fb1d';
+import { CFG, IS_MOBILE_EARLY } from './config.js?v=505baad';
+import { ARENAS } from './profile.js?v=505baad';
 
 // ============================================================
 // THREE.JS SETUP

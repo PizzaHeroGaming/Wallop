@@ -15,7 +15,7 @@
 //   keyboard/mobile → tryJump, tryDash (game.js): use _jumpFn/_dashFn, set via setJumpDashCbs()
 //   openChest → presentChoiceScreen (this file): setOpenChestDeps is called in initUI()
 
-import { camera, renderer, isMobile, isSteamBuild, tryEnterFullscreen } from './renderer.js?v=9c7fb1d';
+import { camera, renderer, isMobile, isSteamBuild, tryEnterFullscreen } from './renderer.js?v=505baad';
 import {
   player, enemies,
   tryInteract, setOpenChestDeps,
@@ -23,21 +23,21 @@ import {
   spawnParticle,
   CHARACTER_MODELS, _animClips, loadCharAsset,
   _applyCharacterModel,
-} from './entities.js?v=9c7fb1d';
-import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=9c7fb1d';
-import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=9c7fb1d';
-import { gameState, cam } from './state.js?v=9c7fb1d';
-import { Audio } from './audio.js?v=9c7fb1d';
-import * as Steam from './steam.js?v=9c7fb1d';
-import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=9c7fb1d';
+} from './entities.js?v=505baad';
+import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=505baad';
+import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=505baad';
+import { gameState, cam } from './state.js?v=505baad';
+import { Audio } from './audio.js?v=505baad';
+import * as Steam from './steam.js?v=505baad';
+import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=505baad';
 // VERSION lives on CFG.VERSION too — reading via property access doesn't
 // blow up if a cached older config.js is loaded without the named export
 const VERSION = CFG.VERSION || '0.0.0';
 // Slices granted per on-demand "watch ad for slices" view (daily-capped in Profile).
 const AD_SLICE_REWARD = 3;
-import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=9c7fb1d';
-import { tmp, tmp2 } from './utils.js?v=9c7fb1d';
-import { Settings } from './settings.js?v=9c7fb1d';
+import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=505baad';
+import { tmp, tmp2 } from './utils.js?v=505baad';
+import { Settings } from './settings.js?v=505baad';
 
 // ============================================================
 // INJECTION CALLBACKS (break circular deps)
