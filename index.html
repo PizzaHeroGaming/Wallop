@@ -1798,6 +1798,52 @@
   }
   /* ===== end stage select ===== */
 
+  /* ===== leaderboards ===== */
+  /* .about-panel is a transparent wrapper (padding:0), so give the leaderboard
+     its own cream frame explicitly. */
+  #leaderboard-screen .about-panel {
+    width: 100%; max-width: 660px; margin: 0 auto;
+    background: #f5e9c8 !important; border: 3px solid #000 !important; box-shadow: 6px 6px 0 #000;
+    padding: 20px 24px 24px !important;
+  }
+  #lb-list { min-height: 160px; }
+  .lb-row {
+    display: flex; align-items: center; gap: 12px;
+    padding: 7px 12px; margin-bottom: 4px;
+    border: 2px solid #000; background: #fff5e0;
+    font-family: 'VT323', monospace; font-size: 19px; color: #3a2510;
+  }
+  .lb-row.self { background: #ffd23f; box-shadow: 3px 3px 0 #000; }
+  .lb-rank  { min-width: 52px; font-family: 'Press Start 2P', monospace; font-size: 10px; color: #b8501c; }
+  .lb-row.self .lb-rank { color: #7a2d0a; }
+  .lb-name  { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .lb-score { font-family: 'Press Start 2P', monospace; font-size: 10px; }
+  .lb-msg   { font-family: 'VT323', monospace; font-size: 20px; color: #3a2510; text-align: center; padding: 28px 12px; }
+  #lb-board-row .diff-btn { font-size: 8px; padding: 8px 10px; }
+  /* ===== end leaderboards ===== */
+
+  /* ===== main-menu weekly-kills board (Steam only) ===== */
+  #menu-lb {
+    position: absolute; top: 28px; right: 28px; width: 320px; z-index: 6;
+    background: #f5e9c8; border: 3px solid #000; box-shadow: 6px 6px 0 #000;
+    padding: 12px 14px 14px;
+  }
+  #menu-lb-title { font-family: 'Press Start 2P', monospace; font-size: 11px; color: #b8501c; text-align: center; }
+  #menu-lb-sub   { font-family: 'VT323', monospace; font-size: 15px; color: #7a2d0a; text-align: center; margin: 2px 0 8px; }
+  .menu-lb-row {
+    display: flex; align-items: center; gap: 8px; padding: 3px 5px; margin-bottom: 2px;
+    font-family: 'VT323', monospace; font-size: 18px; color: #3a2510;
+  }
+  .menu-lb-row.self { background: #ffd23f; }
+  .menu-lb-rank  { min-width: 30px; font-family: 'Press Start 2P', monospace; font-size: 9px; color: #b8501c; }
+  .menu-lb-row.self .menu-lb-rank { color: #7a2d0a; }
+  .menu-lb-name  { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .menu-lb-kills { font-family: 'Press Start 2P', monospace; font-size: 9px; }
+  .menu-lb-empty { font-family: 'VT323', monospace; font-size: 17px; color: #3a2510; text-align: center; padding: 10px 4px; }
+  /* Hide on small screens so it never collides with the menu/logo. */
+  @media (max-width: 900px) { #menu-lb { display: none !important; } }
+  /* ===== end main-menu board ===== */
+
   /* ===== CHARACTER SELECT (start screen) ===== */
   #start-main {
     display: flex; flex-direction: row; gap: 24px;
@@ -3153,6 +3199,12 @@ window.addEventListener('load', () => {
 
 <!-- Start screen -->
 <div id="start-screen" class="overlay hidden">
+  <!-- Live weekly-kills leaderboard (Steam build only; revealed by JS) -->
+  <div id="menu-lb" style="display:none">
+    <div id="menu-lb-title">🏆 WEEKLY KILLS</div>
+    <div id="menu-lb-sub">Top killers · resets Sunday</div>
+    <div id="menu-lb-list"></div>
+  </div>
   <div id="title-block">
     <div id="title">WALLOP</div>
     <div id="subtitle">smash. survive. snowball.</div>
@@ -3188,6 +3240,7 @@ window.addEventListener('load', () => {
       <div class="start-actions">
         <button class="btn hot" id="start-btn">▶ PLAY</button>
         <button class="btn secondary" id="challenges-btn">🏆 CHALLENGES</button>
+        <button class="btn secondary" id="leaderboards-btn" style="display:none">📊 LEADERBOARDS</button>
         <button class="btn secondary" id="armory-btn">🍕 ARMORY</button>
         <button class="btn secondary" id="settings-btn">⚙ SETTINGS</button>
         <button class="btn secondary" id="about-btn">📋 ABOUT</button>
@@ -3254,6 +3307,20 @@ window.addEventListener('load', () => {
   <div id="run-config-actions">
     <button class="btn hot" id="run-config-play-btn">▶ PLAY</button>
     <button class="btn" id="run-config-back-btn">◀ BACK</button>
+  </div>
+</div>
+
+<!-- Leaderboards screen (Steam build only) -->
+<div id="leaderboard-screen" class="overlay hidden" style="overflow-y:auto;">
+  <div class="about-panel" style="max-width:660px;">
+    <div class="about-title">LEADERBOARDS</div>
+    <div id="lb-cat-row" class="sel-row" style="margin-top:6px;margin-bottom:8px;"></div>
+    <div id="lb-arena-row" class="sel-row" style="margin-bottom:8px;"></div>
+    <div id="lb-diff-row" class="sel-row" style="margin-bottom:8px;"></div>
+    <div id="lb-scope-row" class="sel-row" style="margin-bottom:10px;"></div>
+    <div id="lb-note" style="display:none;font-family:'VT323',monospace;font-size:17px;color:#7a2d0a;margin-bottom:10px;"></div>
+    <div id="lb-list"></div>
+    <button class="btn" id="lb-back-btn" style="margin-top:16px;">← BACK</button>
   </div>
 </div>
 
@@ -3801,6 +3868,6 @@ window.addEventListener('load', () => {
 <script src="src/vendor/three/UnrealBloomPass.js"></script>
 <script src="src/vendor/three/GLTFLoader.js"></script>
 <script src="src/vendor/three/SkeletonUtils.js"></script>
-<script type="module" src="src/js/main.js?v=5d455db"></script>
+<script type="module" src="src/js/main.js?v=7518421"></script>
 </body>
 </html>

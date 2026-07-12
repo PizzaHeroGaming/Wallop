@@ -1,6 +1,6 @@
 {
   "name": "wallop-desktop",
-  "version": "0.9.9",
+  "version": "0.10.0",
   "description": "WALLOP — desktop (Steam) build wrapper",
   "main": "main.js",
   "author": "Pizza Hero Gaming",
@@ -26,15 +26,21 @@
       "steam.js",
       "package.json",
       "steam_appid.txt",
-      "node_modules/steamworks.js/**/*"
+      "node_modules/steamworks-ffi-node/**/*",
+      "node_modules/koffi/**/*"
     ],
     "asarUnpack": [
-      "node_modules/steamworks.js/**/*"
+      "node_modules/steamworks-ffi-node/**/*",
+      "node_modules/koffi/**/*"
     ],
     "extraResources": [
       {
         "from": "../www",
         "to": "game"
+      },
+      {
+        "from": "../steamworks_sdk_164/sdk/redistributable_bin/win64/steam_api64.dll",
+        "to": "steamworks_sdk/redistributable_bin/win64/steam_api64.dll"
       }
     ],
     "win": {
@@ -61,6 +67,6 @@
     }
   },
   "dependencies": {
-    "steamworks.js": "^0.4.0"
+    "steamworks-ffi-node": "^0.10.4"
   }
 }

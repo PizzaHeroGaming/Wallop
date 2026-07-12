@@ -1,6 +1,6 @@
 {
   "_comment": "Latest published version per platform. The game fetches this from the canonical Pages URL and prompts a stale client to update. 'web' is auto-synced to config.js VERSION by scripts/build-pages.py on every build. 'android' and 'steam' are bumped BY HAND only when that store release actually goes live (so a web-only push never nags store users about a version they can't get yet).",
-  "web": "0.9.9",
+  "web": "0.10.0",
   "android": "0.9.9",
   "steam": "0.9.7",
   "androidUrl": "https://play.google.com/store/apps/details?id=com.pizzaherogaming.wallop",

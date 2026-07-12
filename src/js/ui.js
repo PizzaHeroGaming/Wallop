@@ -15,7 +15,7 @@
 //   keyboard/mobile → tryJump, tryDash (game.js): use _jumpFn/_dashFn, set via setJumpDashCbs()
 //   openChest → presentChoiceScreen (this file): setOpenChestDeps is called in initUI()
 
-import { camera, renderer, isMobile, isSteamBuild, tryEnterFullscreen } from './renderer.js?v=5d455db';
+import { camera, renderer, isMobile, isSteamBuild, tryEnterFullscreen } from './renderer.js?v=7518421';
 import {
   player, enemies,
   tryInteract, setOpenChestDeps,
@@ -23,21 +23,21 @@ import {
   spawnParticle,
   CHARACTER_MODELS, _animClips, loadCharAsset,
   _applyCharacterModel,
-} from './entities.js?v=5d455db';
-import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=5d455db';
-import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=5d455db';
-import { gameState, cam } from './state.js?v=5d455db';
-import { Audio } from './audio.js?v=5d455db';
-import * as Steam from './steam.js?v=5d455db';
-import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=5d455db';
+} from './entities.js?v=7518421';
+import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=7518421';
+import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=7518421';
+import { gameState, cam } from './state.js?v=7518421';
+import { Audio } from './audio.js?v=7518421';
+import * as Steam from './steam.js?v=7518421';
+import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=7518421';
 // VERSION lives on CFG.VERSION too — reading via property access doesn't
 // blow up if a cached older config.js is loaded without the named export
 const VERSION = CFG.VERSION || '0.0.0';
 // Slices granted per on-demand "watch ad for slices" view (daily-capped in Profile).
 const AD_SLICE_REWARD = 3;
-import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=5d455db';
-import { tmp, tmp2 } from './utils.js?v=5d455db';
-import { Settings } from './settings.js?v=5d455db';
+import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=7518421';
+import { tmp, tmp2 } from './utils.js?v=7518421';
+import { Settings } from './settings.js?v=7518421';
 
 // ============================================================
 // INJECTION CALLBACKS (break circular deps)
@@ -1052,9 +1052,11 @@ export function triggerGameOver(victory) {
   Profile.save();
 
   // Steam: win/leaderboard achievements + push the save to Steam Cloud (no-op off Steam).
-  Steam.runEnded({
+  // runEnded submits every leaderboard for this run and resolves to
+  // { endlessRank }. Steam-only — resolves null on web/mobile.
+  const _runEndResult = Steam.runEnded({
     victory,
-    mode: gameState.mode, // 'normal' | 'endless' — steam.js gates board submissions
+    mode: gameState.mode, // 'normal' | 'endless'
     difficulty: gameState.difficulty,
     arena: gameState.arena,
     level: player.level,
@@ -1062,6 +1064,26 @@ export function triggerGameOver(victory) {
     time: gameState.gameTime,
     noHit: !gameState.tookDamageThisRun, // Untouchable: won without taking a hit
   });
+
+  // Endless: reveal the instant global rank from the run-end submission when it
+  // returns. The line stays hidden off Steam (endlessRank is null there).
+  if (isEndless) {
+    let rankEl = document.getElementById('gameover-rank');
+    if (!rankEl) {
+      rankEl = document.createElement('div');
+      rankEl.id = 'gameover-rank';
+      rankEl.style.cssText = 'font-family:"Press Start 2P",monospace;font-size:12px;color:var(--accent);text-shadow:2px 2px 0 #000;margin:2px 0 8px;display:none;';
+      sub.after(rankEl);
+    }
+    rankEl.style.display = 'none';
+    Promise.resolve(_runEndResult).then((res) => {
+      const rank = res && res.endlessRank;
+      if (typeof rank === 'number' && rank > 0) {
+        rankEl.innerHTML = `🏆 GLOBAL RANK #${rank.toLocaleString()}`;
+        rankEl.style.display = 'block';
+      }
+    }).catch(() => {});
+  }
 
   __runsPlayed++;
   // Arm the interstitial (every other run) but DON'T show it yet — wait until the
@@ -1644,7 +1666,7 @@ export function vibrateController(ms = 120, strong = 0.4, weak = 0.2) {
 // ============================================================
 const _GP_OVERLAYS = ['confirm-overlay', 'settings-screen', 'armory-detail', 'levelup-screen',
   'stage-clear-screen', 'pause-screen', 'gameover-screen', 'armory-screen', 'challenges-screen',
-  'about-screen', 'run-config-screen', 'start-screen'];
+  'leaderboard-screen', 'about-screen', 'run-config-screen', 'start-screen'];
 const _GP_FOCUSABLE = 'button, .choice, .armory-card, .challenge-card, input[type="checkbox"], input[type="range"], select, [data-gp]';
 let _gpFocusEl = null;
 let _padNavDir = null;
@@ -2318,12 +2340,185 @@ function initArenaSelect() {
 }
 
 // ============================================================
+// LEADERBOARDS SCREEN (Steam build only) — 2-level picker
+// category → (arena → difficulty for matrix boards) → Global/Friends
+// ============================================================
+let _lbCat = (Steam.LB_CATEGORIES[0] || {}).id || 'endless';
+let _lbArena = null;
+let _lbDiff = null;
+let _lbScope = 'global';
+let _lbLoadToken = 0;
+
+function _lbCatDef() { return Steam.LB_CATEGORIES.find(c => c.id === _lbCat) || Steam.LB_CATEGORIES[0]; }
+function _lbUnlockedArenas() { return _arenaOrder.filter(s => Profile.isArenaUnlocked(s)); }
+function _lbUnlockedDiffs(arena) { return _DIFF_ORDER.filter(k => Profile.isDifficultyUnlocked(arena, k)); }
+function _lbCurrentBoard() {
+  const cat = _lbCatDef();
+  return cat.kind === 'matrix' ? cat.board(_lbArena, _lbDiff) : cat.board();
+}
+function _lbFmtScore(value, fmt) {
+  if (fmt === 'time') {
+    const s = Math.max(0, Math.floor(value));
+    const h = Math.floor(s / 3600), m = Math.floor((s % 3600) / 60), sec = s % 60;
+    const mm = m.toString().padStart(2, '0'), ss = sec.toString().padStart(2, '0');
+    return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`;
+  }
+  return (value || 0).toLocaleString();
+}
+function _renderLbCat() {
+  const row = document.getElementById('lb-cat-row');
+  if (!row) return;
+  row.innerHTML = Steam.LB_CATEGORIES.map(c =>
+    `<button class="diff-btn${c.id === _lbCat ? ' active' : ''}" data-lbcat="${c.id}">${c.label}</button>`
+  ).join('');
+}
+function _renderLbArena() {
+  const row = document.getElementById('lb-arena-row');
+  if (!row) return;
+  if (_lbCatDef().kind !== 'matrix') { row.style.display = 'none'; return; }
+  row.style.display = '';
+  const arenas = _lbUnlockedArenas();
+  if (!arenas.includes(_lbArena)) _lbArena = arenas[0] || null;
+  row.innerHTML = arenas.map(s =>
+    `<button class="diff-btn${s === _lbArena ? ' active' : ''}" data-lbarena="${s}">${(ARENAS[s] || {}).name || s}</button>`
+  ).join('');
+}
+function _renderLbDiff() {
+  const row = document.getElementById('lb-diff-row');
+  if (!row) return;
+  if (_lbCatDef().kind !== 'matrix') { row.style.display = 'none'; return; }
+  row.style.display = '';
+  const diffs = _lbUnlockedDiffs(_lbArena);
+  if (!diffs.includes(_lbDiff)) _lbDiff = diffs[0] || 'normal';
+  row.innerHTML = diffs.map(k =>
+    `<button class="diff-btn${k === _lbDiff ? ' active' : ''}" data-lbdiff="${k}">${(DIFFICULTIES[k] || {}).label || k}</button>`
+  ).join('');
+}
+function _renderLbScope() {
+  const row = document.getElementById('lb-scope-row');
+  if (!row) return;
+  const scopes = [['global', 'GLOBAL'], ['friends', 'FRIENDS']];
+  row.innerHTML = scopes.map(([id, label]) =>
+    `<button class="diff-btn${id === _lbScope ? ' active' : ''}" data-scope="${id}">${label}</button>`
+  ).join('');
+}
+function _renderLbNote() {
+  const el = document.getElementById('lb-note');
+  if (!el) return;
+  const note = _lbCatDef().note;
+  if (note) { el.textContent = note; el.style.display = 'block'; }
+  else { el.style.display = 'none'; }
+}
+function _lbRenderAll() { _renderLbCat(); _renderLbArena(); _renderLbDiff(); _renderLbScope(); _renderLbNote(); }
+async function _loadLbEntries() {
+  const list = document.getElementById('lb-list');
+  if (!list) return;
+  const cat = _lbCatDef();
+  const board = _lbCurrentBoard();
+  list.innerHTML = '<div class="lb-msg">Loading…</div>';
+  const token = ++_lbLoadToken;
+  let res = null;
+  try { res = await Steam.fetchLeaderboard(board, _lbScope, 25); } catch (e) {}
+  if (token !== _lbLoadToken) return; // a newer request superseded this one
+  if (!res) { list.innerHTML = '<div class="lb-msg">Leaderboards are available on the Steam version of WALLOP.</div>'; return; }
+  const entries = res.entries || [];
+  if (entries.length === 0) {
+    const msg = _lbScope === 'friends'
+      ? 'None of your Steam friends have a score here yet.'
+      : 'No scores yet — be the first!';
+    list.innerHTML = `<div class="lb-msg">${msg}</div>`;
+    return;
+  }
+  list.innerHTML = entries.map(e => {
+    const name = String(e.name || 'Player').replace(/[<>&]/g, '');
+    return `<div class="lb-row${e.isSelf ? ' self' : ''}">
+      <span class="lb-rank">#${e.rank}</span>
+      <span class="lb-name">${e.isSelf ? '▶ ' : ''}${name}</span>
+      <span class="lb-score">${_lbFmtScore(e.score, cat.fmt)}</span>
+    </div>`;
+  }).join('');
+}
+export function openLeaderboards() {
+  document.getElementById('start-screen').classList.add('hidden');
+  document.getElementById('leaderboard-screen').classList.remove('hidden');
+  const arenas = _lbUnlockedArenas();
+  if (!arenas.includes(_lbArena)) _lbArena = arenas[0] || null;
+  const diffs = _lbUnlockedDiffs(_lbArena);
+  if (!diffs.includes(_lbDiff)) _lbDiff = diffs[0] || 'normal';
+  _lbRenderAll();
+  _loadLbEntries();
+}
+function closeLeaderboards() {
+  document.getElementById('leaderboard-screen').classList.add('hidden');
+  document.getElementById('start-screen').classList.remove('hidden');
+}
+
+// Live weekly-kills board shown on the main menu (Steam build only). Fetches the
+// current week's global top few and renders them; hidden entirely off Steam.
+let _menuLbBusy = false;
+export async function refreshMenuLeaderboard() {
+  const panel = document.getElementById('menu-lb');
+  const list = document.getElementById('menu-lb-list');
+  if (!panel || !list) return;
+  if (!(typeof window !== 'undefined' && window.WallopSteam)) { panel.style.display = 'none'; return; }
+  panel.style.display = 'block';
+  if (_menuLbBusy) return;
+  _menuLbBusy = true;
+  let res = null;
+  try { res = await Steam.fetchLeaderboard(Steam.weeklyKillsBoard(), 'global', 6); } catch (e) {}
+  _menuLbBusy = false;
+  const entries = (res && res.entries) || [];
+  if (entries.length === 0) {
+    list.innerHTML = '<div class="menu-lb-empty">No kills logged yet this week.<br>Be the first!</div>';
+    return;
+  }
+  list.innerHTML = entries.map(e => {
+    const name = String(e.name || 'Player').replace(/[<>&]/g, '');
+    return `<div class="menu-lb-row${e.isSelf ? ' self' : ''}">
+      <span class="menu-lb-rank">#${e.rank}</span>
+      <span class="menu-lb-name">${e.isSelf ? '▶ ' : ''}${name}</span>
+      <span class="menu-lb-kills">${(e.score || 0).toLocaleString()}</span>
+    </div>`;
+  }).join('');
+}
+
+// ============================================================
 // BUTTON EVENT LISTENERS (start, gameover, armory, pause, exit)
 // ============================================================
 export function initButtons() {
   try { initModeSelect(); }  catch(e) { console.error('[wallop] initModeSelect failed:', e); }
   try { initDiffSelect(); }  catch(e) { console.error('[wallop] initDiffSelect failed:', e); }
   try { initArenaSelect(); } catch(e) { console.error('[wallop] initArenaSelect failed:', e); }
+
+  // Leaderboards (Steam build only — reveal the menu button when the bridge exists)
+  const _lbBtn = document.getElementById('leaderboards-btn');
+  if (_lbBtn && typeof window !== 'undefined' && window.WallopSteam) _lbBtn.style.display = '';
+  if (_lbBtn) _lbBtn.addEventListener('click', openLeaderboards);
+  document.getElementById('lb-back-btn')?.addEventListener('click', closeLeaderboards);
+  document.getElementById('lb-cat-row')?.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-lbcat]'); if (!btn) return;
+    _lbCat = btn.dataset.lbcat; _lbRenderAll(); _loadLbEntries();
+  });
+  document.getElementById('lb-arena-row')?.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-lbarena]'); if (!btn) return;
+    _lbArena = btn.dataset.lbarena; _renderLbArena(); _renderLbDiff(); _loadLbEntries();
+  });
+  document.getElementById('lb-diff-row')?.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-lbdiff]'); if (!btn) return;
+    _lbDiff = btn.dataset.lbdiff; _renderLbDiff(); _loadLbEntries();
+  });
+  document.getElementById('lb-scope-row')?.addEventListener('click', (e) => {
+    const btn = e.target.closest('[data-scope]'); if (!btn) return;
+    _lbScope = btn.dataset.scope; _renderLbScope(); _loadLbEntries();
+  });
+
+  // Live weekly-kills board on the main menu (Steam only): initial fetch + a light
+  // refresh while the menu is up, so it reflects new kills after a run.
+  refreshMenuLeaderboard();
+  setInterval(() => {
+    const start = document.getElementById('start-screen');
+    if (start && !start.classList.contains('hidden')) refreshMenuLeaderboard();
+  }, 45000);
 
   // START RUN now opens the run-config screen instead of starting immediately
   document.getElementById('start-btn').addEventListener('click', () => {
