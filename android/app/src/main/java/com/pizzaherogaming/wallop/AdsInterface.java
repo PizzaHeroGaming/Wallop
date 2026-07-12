@@ -36,7 +36,12 @@ public class AdsInterface {
     AdsInterface(Activity activity, WebView webView) {
         this.activity = activity;
         this.webView = webView;
-        // Warm up both formats so the first show is instant.
+    }
+
+    /** Warm up both ad formats so the first show is instant. Called by MainActivity
+     *  once UMP consent is resolved — never before, so we never fire an ad request
+     *  ahead of the user's consent (EEA/UK). */
+    void startLoading() {
         activity.runOnUiThread(() -> { loadRewarded(); loadInterstitial(); });
     }
 

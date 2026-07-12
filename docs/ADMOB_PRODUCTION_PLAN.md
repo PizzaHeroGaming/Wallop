@@ -17,7 +17,10 @@ don't control), and register your own devices as test devices first.
 ## What's already done (no work needed)
 - Native bridge `AdsInterface.java` → `window.AndroidAds` (rewarded + interstitial),
   result delivered via `window.__onRewarded(success)`.
-- `MainActivity` initializes `MobileAds` + registers the JS interface.
+- `MainActivity` registers the JS interface and gathers **UMP consent** before
+  initializing `MobileAds` / loading any ad — ad loading is deferred to
+  `AdsInterface.startLoading()`, called only once `canRequestAds()` is true.
+  (UMP SDK `user-messaging-platform:3.1.0` added to `build.gradle`.)
 - Web `window.GameAds` fallback simulates the rewarded ad in-browser.
 - Placements gated to mobile + throttled (interstitial every other run; rewarded
   for Double Slices + Armory "+3 slices"). Steam/PC never calls ad code.
@@ -50,12 +53,15 @@ All three currently hold Google TEST IDs (`ca-app-pub-3940256099942544...`):
    both unit IDs into the 3 swap points above (in the production build only).
 
 ### B. UMP consent (REQUIRED before serving real ads to EEA/UK)
+**Code is DONE** — the UMP SDK + consent flow (gather consent → `MobileAds.initialize`
+→ `AdsInterface.startLoading`) is wired in `MainActivity`. Remaining is account-side:
 4. In AdMob → **Privacy & messaging** → create a **GDPR/UMP consent message**
-   and an **ATT** message (iOS later).
-5. Add the **User Messaging Platform (UMP) SDK** and request consent on launch
-   BEFORE initializing ads / loading the first ad. Wire it in `MainActivity`
-   (gather consent → then `MobileAds.initialize` → then `AdsInterface` loads).
-   Test with UMP **debug geography = EEA** to verify the prompt.
+   (and an **ATT** message for iOS later). Until this message exists, the SDK
+   returns "consent not required" and ads proceed — so create it before the
+   real-ID flip.
+5. Smoke-test with UMP **debug geography = EEA** (+ your device's UMP debug ID)
+   to verify the consent prompt appears and ads only load after consent. To force
+   a re-prompt during testing, call `consentInformation.reset()`.
 
 ### C. app-ads.txt (authorize your inventory)
 6. Publish **`app-ads.txt`** at the site in the Play listing's developer website
