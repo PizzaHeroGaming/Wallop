@@ -3783,6 +3783,17 @@ window.addEventListener('load', () => {
     </div>
 
     <div class="settings-section">
+      <div class="settings-h">GRAPHICS</div>
+      <div class="set-row"><label>Quality</label>
+        <select id="set-quality">
+          <option value="battery">Battery Saver</option>
+          <option value="balanced">Balanced</option>
+          <option value="high">High</option>
+        </select></div>
+      <div style="font-family:'VT323',monospace;font-size:15px;color:var(--ink-dim);">Lower quality caps the frame rate and resolution to run cooler and save battery. Try Battery Saver if your phone runs warm.</div>
+    </div>
+
+    <div class="settings-section">
       <div class="settings-h">ACCESSIBILITY</div>
       <div class="set-row"><label>Screen shake</label>
         <input type="checkbox" id="set-screenshake"></div>
@@ -3868,6 +3879,6 @@ window.addEventListener('load', () => {
 <script src="src/vendor/three/UnrealBloomPass.js"></script>
 <script src="src/vendor/three/GLTFLoader.js"></script>
 <script src="src/vendor/three/SkeletonUtils.js"></script>
-<script type="module" src="src/js/main.js?v=b20c8b7"></script>
+<script type="module" src="src/js/main.js?v=b81e1d0"></script>
 </body>
 </html>
