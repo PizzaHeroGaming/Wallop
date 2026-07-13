@@ -35,6 +35,10 @@ function createWindow() {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,
       nodeIntegration: false,
+      // Disable DevTools entirely in the shipped build so players can't open the
+      // console to edit their save or spoof leaderboard/achievement calls. Stays
+      // on in dev (`npm start`) for debugging.
+      devTools: !app.isPackaged,
     },
   });
   Menu.setApplicationMenu(null); // no menu bar in the shipped game
@@ -49,7 +53,8 @@ function createWindow() {
       win.setFullScreen(!win.isFullScreen());
       e.preventDefault();
     }
-    if (input.type === 'keyDown' && input.key === 'F12') {
+    // F12 toggles DevTools in dev only — no-op (and blocked above) in the shipped build.
+    if (input.type === 'keyDown' && input.key === 'F12' && !app.isPackaged) {
       win.webContents.toggleDevTools();
       e.preventDefault();
     }
