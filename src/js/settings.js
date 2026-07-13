@@ -10,7 +10,8 @@ const DEFAULTS = {
   // Display — desktop/Electron only (hidden on web + mobile)
   displayMode: 'fullscreen',     // 'fullscreen' | 'borderless' | 'windowed'
   resolution: 'native',          // 'native' | '1920x1080' | ...
-  fpsCap: 0,                      // 0 = unlimited (desktop); mobile is capped separately
+  fpsCap: 0,                      // 0 = unlimited (desktop); mobile fps is governed by graphicsQuality
+  graphicsQuality: 'balanced',    // 'battery' | 'balanced' | 'high' — caps fps + resolution + particles (mainly mobile heat/battery)
   // Controls
   mouseSensitivity: 1.0,         // multiplier on mouse-look
   invertY: false,

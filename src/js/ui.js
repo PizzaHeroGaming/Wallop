@@ -15,7 +15,7 @@
 //   keyboard/mobile → tryJump, tryDash (game.js): use _jumpFn/_dashFn, set via setJumpDashCbs()
 //   openChest → presentChoiceScreen (this file): setOpenChestDeps is called in initUI()
 
-import { camera, renderer, isMobile, isSteamBuild, tryEnterFullscreen } from './renderer.js?v=b20c8b7';
+import { camera, renderer, isMobile, isSteamBuild, tryEnterFullscreen, applyGraphicsQuality } from './renderer.js?v=b20c8b7';
 import {
   player, enemies,
   tryInteract, setOpenChestDeps,
@@ -2947,6 +2947,8 @@ function _syncSettingsUI() {
   if (resRow) resRow.style.display = (Settings.get('displayMode') === 'windowed') ? '' : 'none';
   const fpsSel = document.getElementById('set-fpscap');
   if (fpsSel) fpsSel.value = String(Settings.get('fpsCap'));
+  const qSel = document.getElementById('set-quality');
+  if (qSel) qSel.value = Settings.get('graphicsQuality');
 
   _setRangeUI('set-mouse-sens', 'set-mouse-readout', Settings.get('mouseSensitivity'));
   _setCheckUI('set-invert-y', Settings.get('invertY'));
@@ -3052,6 +3054,10 @@ function initSettings() {
   document.getElementById('set-fpscap')?.addEventListener('change', e => {
     Settings.set('fpsCap', parseInt(e.target.value, 10) || 0);
   });
+  document.getElementById('set-quality')?.addEventListener('change', e => {
+    Settings.set('graphicsQuality', e.target.value);
+    applyGraphicsQuality(e.target.value); // fps cap + pixel ratio + particles, live
+  });
 
   _bindSettingRange('set-mouse-sens', 'set-mouse-readout', 'mouseSensitivity');
   document.getElementById('set-invert-y')?.addEventListener('change', e => Settings.set('invertY', e.target.checked));
@@ -3083,6 +3089,7 @@ function initSettings() {
   });
 
   _applyDisplaySettings(); // apply the saved display mode on boot (Electron)
+  applyGraphicsQuality(Settings.get('graphicsQuality')); // apply saved quality on boot
 }
 
 // ============================================================

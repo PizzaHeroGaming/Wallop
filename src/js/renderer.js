@@ -49,13 +49,36 @@ camera.position.set(0, 12, 15);
 
 export const renderer = new THREE.WebGLRenderer({
   antialias: !IS_MOBILE_EARLY,
-  powerPreference: 'high-performance',
+  // Don't pin a phone's GPU to max clocks — that just adds heat. Desktop can.
+  powerPreference: IS_MOBILE_EARLY ? 'default' : 'high-performance',
   alpha: false,
 });
 renderer.setSize(window.innerWidth, window.innerHeight);
 renderer.setPixelRatio(IS_MOBILE_EARLY
   ? Math.min(window.devicePixelRatio, 1.5)
   : Math.min(window.devicePixelRatio, 2));
+
+// ── Graphics quality presets ────────────────────────────────────────────────
+// Phones (esp. high-refresh, high-DPI ones like the S25 Ultra) overheat running
+// the game uncapped at 120fps. These presets cap the frame rate, scale the render
+// resolution, and thin out particles. The frame cap is enforced in main.js's loop
+// via getQualityFpsCap(); pixel ratio + particle scale apply here at call time.
+const _QUALITY = {
+  battery:  { fps: 30, prMobile: 1.0,  particles: 0.5 },
+  balanced: { fps: 60, prMobile: 1.25, particles: 1.0 },
+  high:     { fps: 60, prMobile: 1.5,  particles: 1.0 },
+};
+let _particleScale = 1.0;
+let _qualityFpsCap = IS_MOBILE_EARLY ? 60 : 0; // desktop keeps its own fpsCap setting
+export function getParticleScale() { return _particleScale; }
+export function getQualityFpsCap() { return _qualityFpsCap; }
+// Apply a preset ('battery' | 'balanced' | 'high'). Safe at boot + on change.
+export function applyGraphicsQuality(preset) {
+  const q = _QUALITY[preset] || _QUALITY.balanced;
+  _particleScale = q.particles;
+  _qualityFpsCap = IS_MOBILE_EARLY ? q.fps : 0; // fps cap only governs mobile
+  if (IS_MOBILE_EARLY) renderer.setPixelRatio(Math.min(window.devicePixelRatio, q.prMobile));
+}
 renderer.shadowMap.enabled = !IS_MOBILE_EARLY;
 renderer.shadowMap.type = IS_MOBILE_EARLY ? THREE.BasicShadowMap : THREE.PCFSoftShadowMap;
 renderer.outputEncoding = THREE.sRGBEncoding;

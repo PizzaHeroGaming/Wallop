@@ -9,7 +9,7 @@
 //   game.js        → damageEnemy, update, initGame
 //   main.js        → animate, splash, resize
 
-import { scene, camera, renderer, clock, composer, isMobile, tryEnterFullscreen, rearmFullscreenOnNextTap } from './renderer.js?v=b20c8b7';
+import { scene, camera, renderer, clock, composer, isMobile, tryEnterFullscreen, rearmFullscreenOnNextTap, getQualityFpsCap, applyGraphicsQuality } from './renderer.js?v=b20c8b7';
 import { gameState, cam } from './state.js?v=b20c8b7';
 import { initGame, update, updateTitleScene, updateIntroSweep, spawnBoss } from './game.js?v=b20c8b7';
 import { updateArenaWalls } from './world.js?v=b20c8b7'; // also builds terrain scenery + boundary walls at load (side-effect)
@@ -181,7 +181,9 @@ try {
 // Mobile is always capped to 60 (heat/battery). Desktop honors the player's
 // FPS-cap setting (0 = unlimited) so the Steam build can run free or be limited.
 function _frameMs() {
-  if (isMobile()) return 1000 / 60;
+  // Mobile: the graphics-quality preset caps fps (Battery 30 / Balanced+High 60)
+  // so high-refresh phones don't cook running at 120fps. Desktop: player's fps-cap.
+  if (isMobile()) { const c = getQualityFpsCap() || 60; return 1000 / c; }
   const cap = Settings.get('fpsCap') || 0;
   return cap ? 1000 / cap : 0;
 }

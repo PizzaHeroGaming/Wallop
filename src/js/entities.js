@@ -1,5 +1,5 @@
 import { CFG, IS_MOBILE_EARLY, STAGE_MULTS, DIFFICULTIES, stageMults } from './config.js?v=b20c8b7';
-import { scene, camera, isMobile, tryEnterFullscreen, renderer, acquirePtLight, releasePtLight } from './renderer.js?v=b20c8b7';
+import { scene, camera, isMobile, tryEnterFullscreen, renderer, acquirePtLight, releasePtLight, getParticleScale } from './renderer.js?v=b20c8b7';
 import { groundHeight, addSolid, resolveSolids, solidProps } from './terrain.js?v=b20c8b7';
 import { killMesh, clamp, rand, tmp, tmp2, flatPhong, smoothPhong } from './utils.js?v=b20c8b7';
 import { gameState } from './state.js?v=b20c8b7';
@@ -1973,6 +1973,8 @@ export function updateChests(dt) {
 // ============================================================
 export function spawnParticle(pos, color, count = 6, speed = 6) {
   if (IS_MOBILE_EARLY) count = Math.max(2, Math.floor(count * 0.5));
+  const _ps = getParticleScale();
+  if (_ps !== 1) count = Math.max(1, Math.floor(count * _ps)); // graphics-quality thinning (Battery Saver)
   for (let i = 0; i < count; i++) {
     const m = new THREE.Mesh(
       new THREE.BoxGeometry(0.14, 0.14, 0.14),
