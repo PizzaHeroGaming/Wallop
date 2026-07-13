@@ -681,14 +681,27 @@ let _arenaWalls = [];
 
 function _wallGradientTexture() {
   const cv = document.createElement('canvas');
-  cv.width = 2; cv.height = 64;
+  cv.width = 64; cv.height = 64;
   const ctx = cv.getContext('2d');
-  const g = ctx.createLinearGradient(0, 64, 0, 0); // strong through the visible band, soft fade at the top
+  // Base: vertical alpha gradient — strong through the visible band, soft top fade.
+  const g = ctx.createLinearGradient(0, 64, 0, 0);
   g.addColorStop(0.00, 'rgba(255,255,255,1.00)');
-  g.addColorStop(0.62, 'rgba(255,255,255,0.85)');
+  g.addColorStop(0.62, 'rgba(255,255,255,0.82)');
   g.addColorStop(1.00, 'rgba(255,255,255,0.00)');
-  ctx.fillStyle = g; ctx.fillRect(0, 0, 2, 64);
+  ctx.fillStyle = g; ctx.fillRect(0, 0, 64, 64);
+  // Faint brighter grid lines so the wall reads as a containment field. Additive,
+  // and kept to the lower/visible band so the top fade stays clean. The vertical
+  // bar tiles along the wall's length (repeat.x below); the horizontal bands map
+  // once up the height.
+  ctx.globalCompositeOperation = 'lighter';
+  ctx.fillStyle = 'rgba(255,255,255,0.22)';
+  ctx.fillRect(0, 16, 2, 48);   // vertical bar (→ evenly spaced posts when tiled)
+  ctx.fillRect(0, 27, 64, 2);   // horizontal band (upper-mid)
+  ctx.fillRect(0, 45, 64, 2);   // horizontal band (lower-mid)
   const t = new THREE.CanvasTexture(cv);
+  t.wrapS = THREE.RepeatWrapping;      // tile along the wall length
+  t.wrapT = THREE.ClampToEdgeWrapping; // gradient maps once up the height
+  t.repeat.set(22, 1);                 // ~22 posts across the 220-unit edge (~10u apart)
   t.needsUpdate = true;
   return t;
 }
