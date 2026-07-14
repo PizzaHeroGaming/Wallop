@@ -8,10 +8,13 @@ import androidx.core.view.WindowInsetsControllerCompat;
 
 import com.getcapacitor.BridgeActivity;
 import com.google.android.gms.ads.MobileAds;
+import com.google.android.gms.ads.RequestConfiguration;
+import com.google.android.gms.games.PlayGamesSdk;
 import com.google.android.ump.ConsentInformation;
 import com.google.android.ump.ConsentRequestParameters;
 import com.google.android.ump.UserMessagingPlatform;
 
+import java.util.Collections;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 public class MainActivity extends BridgeActivity {
@@ -23,6 +26,22 @@ public class MainActivity extends BridgeActivity {
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         enableImmersiveMode();
+
+        // Initialize Play Games Services (v2). Kicks off the automatic, silent
+        // sign-in attempt at startup — matching the no-prompt cloud-sync design.
+        // Must run before SavesBridge checks auth state.
+        PlayGamesSdk.initialize(this);
+
+        // Cloud-save bridge (Play Games Saved Games). js/cloud.js calls
+        // window.PlayCloud.* to sync the whole wallop_profile_v1 JSON to the
+        // cloud (last-write-wins). No-ops silently if the player isn't signed in.
+        getBridge().getWebView().addJavascriptInterface(
+            new SavesBridge(this, getBridge().getWebView()), "PlayCloud");
+
+        // Play Games achievements + leaderboards bridge → window.AndroidGames.
+        // (Cloud save is PlayCloud above; both share the same silent PGS sign-in.)
+        getBridge().getWebView().addJavascriptInterface(
+            new GamesBridge(this, getBridge().getWebView()), "AndroidGames");
 
         // Expose window.AndroidAds.* to the game's GameAds bridge (ui.js). Ad
         // loading is deferred (see startLoading) until UMP consent is resolved,
@@ -53,6 +72,16 @@ public class MainActivity extends BridgeActivity {
     /** Initialize the Ads SDK exactly once, then let the bridge warm up formats. */
     private void initializeMobileAdsSdk() {
         if (mobileAdsInitialized.getAndSet(true)) return;
+        // Register dev/tester devices so they receive TEST creatives even though the
+        // build now serves the REAL Wallop ad units. Clicking a test ad never counts
+        // as invalid traffic, so this keeps our own phones safe. This hashed ID is the
+        // same physical device registered for Athanor (get new ones from logcat:
+        // "Use RequestConfiguration.Builder().setTestDeviceIds(...)"). MUST be set
+        // before MobileAds.initialize so the very first ad request honors it.
+        MobileAds.setRequestConfiguration(
+            new RequestConfiguration.Builder()
+                .setTestDeviceIds(Collections.singletonList("998F7B531862D3F0969C32837B395A22"))
+                .build());
         MobileAds.initialize(this, initStatus -> {});
         adsInterface.startLoading();
     }

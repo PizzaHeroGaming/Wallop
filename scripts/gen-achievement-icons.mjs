@@ -8,7 +8,12 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const OUT = path.join(ROOT, 'steam', 'achievements');
+// PGS=1 → 512×512 "achieved"-only set for Play Games (store/pgs-achievements/).
+// Default → the 256×256 achieved+locked Steam set (steam/achievements/).
+const PGS = !!process.env.PGS;
+const OUT = PGS ? path.join(ROOT, 'store', 'pgs-achievements') : path.join(ROOT, 'steam', 'achievements');
+const DSF = PGS ? 2 : 1;                 // deviceScaleFactor: 256 CSS layout × 2 = 512px PNG
+const LOCKED_VARIANTS = PGS ? [false] : [false, true]; // PGS auto-greys locked — achieved only
 fs.mkdirSync(OUT, { recursive: true });
 const FONT_B64 = fs.readFileSync(path.join(ROOT, 'store', '.fonts', 'PressStart2P.ttf')).toString('base64');
 
@@ -104,10 +109,10 @@ for (const f of fs.readdirSync(OUT)) if (f.endsWith('.png')) fs.unlinkSync(path.
 
 const browser = await puppeteer.launch({ headless: true, args: ['--no-sandbox', '--force-color-profile=srgb'] });
 const page = await browser.newPage();
-await page.setViewport({ width: 256, height: 256, deviceScaleFactor: 1 });
+await page.setViewport({ width: 256, height: 256, deviceScaleFactor: DSF });
 let n = 0;
 for (const c of ICONS) {
-  for (const locked of [false, true]) {
+  for (const locked of LOCKED_VARIANTS) {
     await page.setContent(pageHTML(c, locked), { waitUntil: 'load' });
     await page.evaluate(() => document.fonts.ready);
     await page.screenshot({ path: path.join(OUT, c.id + (locked ? '_locked' : '') + '.png') });
@@ -115,4 +120,5 @@ for (const c of ICONS) {
   }
 }
 await browser.close();
-console.log(`Generated ${n} icons (${ICONS.length} achieved + ${ICONS.length} locked) → steam/achievements/`);
+const px = 256 * DSF;
+console.log(`Generated ${n} icons (${px}×${px}) → ${path.relative(ROOT, OUT)}/`);

@@ -4,4 +4,8 @@
     <string name="title_activity_main">Wallop</string>
     <string name="package_name">com.pizzaherogaming.wallop</string>
     <string name="custom_url_scheme">com.pizzaherogaming.wallop</string>
+    <!-- Play Games Services numeric project ID for Wallop (Play Console → Play
+         Games Services → Configuration → Project ID). Kept as a string resource
+         so the long numeric ID isn't mis-parsed as an integer. -->
+    <string name="game_services_project_id" translatable="false">635605242379</string>
 </resources>

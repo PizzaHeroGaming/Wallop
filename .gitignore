@@ -58,3 +58,6 @@ steam-sdk/
 steam/output/
 trailer-kit/
 steam/achievements/_contact_sheet.html
+
+# Derived PGS achievements import bundle (regenerate: python scripts/gen-pgs-import.py)
+store/pgs-import/*.zip

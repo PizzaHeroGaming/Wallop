@@ -21,11 +21,18 @@
             </intent-filter>
         </activity>
 
-        <!-- AdMob App ID — Google TEST app id. Replace with the real Wallop
-             AdMob app id before release. -->
+        <!-- AdMob App ID — REAL Wallop production app id (pub-8467944404188469).
+             Dev/tester devices are registered in MainActivity so they still see
+             TEST creatives (no invalid traffic). -->
         <meta-data
             android:name="com.google.android.gms.ads.APPLICATION_ID"
-            android:value="ca-app-pub-3940256099942544~3347511713" />
+            android:value="ca-app-pub-8467944404188469~4041925584" />
+
+        <!-- Play Games Services app id (cloud save / Saved Games). References the
+             string resource so the numeric ID isn't mis-parsed as an integer. -->
+        <meta-data
+            android:name="com.google.android.gms.games.APP_ID"
+            android:value="@string/game_services_project_id" />
 
         <provider
             android:name="androidx.core.content.FileProvider"

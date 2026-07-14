@@ -20,13 +20,14 @@ import com.google.android.gms.ads.rewarded.RewardedAdLoadCallback;
  * AdMob. Rewarded results are delivered back to the WebView via
  * window.__onRewarded(success), exactly the contract the JS expects.
  *
- * Uses Google-provided TEST ad unit IDs — safe to display/click in development.
- * Swap REWARDED_UNIT / INTERSTITIAL_UNIT (and the manifest APPLICATION_ID) for
- * the real Wallop AdMob units before release.
+ * Uses the REAL Wallop AdMob units (publisher pub-8467944404188469). Dev/tester
+ * devices registered via MobileAds.setRequestConfiguration(...setTestDeviceIds)
+ * in MainActivity still receive TEST creatives, so it stays safe to click on
+ * those phones without generating invalid traffic.
  */
 public class AdsInterface {
-    private static final String REWARDED_UNIT     = "ca-app-pub-3940256099942544/5224354917";
-    private static final String INTERSTITIAL_UNIT = "ca-app-pub-3940256099942544/1033173712";
+    private static final String REWARDED_UNIT     = "ca-app-pub-8467944404188469/6007789545";
+    private static final String INTERSTITIAL_UNIT = "ca-app-pub-8467944404188469/4102048028";
 
     private final Activity activity;
     private final WebView webView;

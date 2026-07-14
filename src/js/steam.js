@@ -1,9 +1,11 @@
-// src/js/steam.js — game-side Steam features bridge.
+// src/js/steam.js — game-side platform-services bridge (achievements + leaderboards).
 //
-// Thin, defensive wrapper over window.WallopSteam (exposed by the Electron
-// preload on the desktop/Steam build). EVERY export no-ops unless we're on the
-// Steam build AND the bridge is present, so this file is completely inert on the
-// web and mobile builds — no gameplay changes, just taps.
+// Originally Steam-only; now the shared, platform-neutral trigger layer for BOTH
+// backends: Steam via window.WallopSteam (Electron desktop) and Play Games via
+// pgs.js/window.AndroidGames (Android). The game's trigger call sites are unchanged
+// — each unlock/score is dispatched to whichever backend(s) are live. Web has
+// neither bridge, so every export stays completely inert there. Cloud save is
+// separate (Steam Cloud in cloudSave() here; PGS Saved Games in cloud.js).
 //
 // Responsibilities:
 //   • unlock achievements (deduped so we never spam IPC)
@@ -15,8 +17,9 @@
 // Achievement + leaderboard API names must match the Steamworks dashboard
 // exactly — see docs/STEAMWORKS_FEATURES_SPEC.md.
 
-import { isSteamBuild } from './renderer.js?v=c5ce52f';
-import { Profile, CATALOG } from './profile.js?v=c5ce52f';
+import { isSteamBuild } from './renderer.js?v=b17d24e';
+import { Profile, CATALOG } from './profile.js?v=b17d24e';
+import * as PGS from './pgs.js?v=b17d24e'; // Play Games (mobile) — same triggers, second backend
 
 const PROFILE_KEY = 'wallop_profile_v1';
 const LEDGER_KEY  = 'wallop_steam_v1';
@@ -29,26 +32,41 @@ function _saveLedger() { try { localStorage.setItem(LEDGER_KEY, JSON.stringify(_
 // ── Availability ────────────────────────────────────────────────────────────
 function _bridge() { return (typeof window !== 'undefined' && window.WallopSteam) || null; }
 export function steamAvailable() { return isSteamBuild() && !!_bridge(); }
+// True when EITHER platform's achievement/leaderboard backend is live. The whole
+// trigger layer below is platform-neutral: it gates on this and dispatches each
+// unlock/score to whichever backend(s) are present (Steam on desktop, Play Games
+// on Android). Web has neither, so everything stays inert there.
+export function servicesAvailable() { return steamAvailable() || PGS.available(); }
 
 // ── Core primitives ─────────────────────────────────────────────────────────
 const _sent = new Set(); // in-session dedupe so per-frame checks fire IPC once
 export function unlock(api) {
-  if (!api || !steamAvailable() || _sent.has(api)) return;
+  if (!api || _sent.has(api)) return;
+  const steam = steamAvailable(), pgs = PGS.available();
+  if (!steam && !pgs) return;      // no backend yet → don't burn the dedupe; allow a later retry
   _sent.add(api);
-  try { _bridge().unlock(api); } catch (e) {}
+  if (steam) { try { _bridge().unlock(api); } catch (e) {} }
+  if (pgs) PGS.unlock(api);        // pgs.js maps the API name → PGS id + checks availability
 }
-// Resolves to { rank, previousRank, changed } | null (null on web/mobile/error).
+// Resolves to { rank, ... } | null. Prefers Steam on desktop, else Play Games.
 export function submitScore(board, value) {
-  if (!steamAvailable() || !isFinite(value)) return Promise.resolve(null);
-  try { return Promise.resolve(_bridge().submitScore(board, Math.round(value))); }
-  catch (e) { return Promise.resolve(null); }
+  if (!isFinite(value)) return Promise.resolve(null);
+  if (steamAvailable()) {
+    try { return Promise.resolve(_bridge().submitScore(board, Math.round(value))); }
+    catch (e) { return Promise.resolve(null); }
+  }
+  if (PGS.available()) return PGS.submitScore(board, value);
+  return Promise.resolve(null);
 }
 // Resolves to { displayType, entries:[{rank,score,name,isSelf}] } | null.
 // mode: 'global' | 'friends' | 'around'.
 export function fetchLeaderboard(board, mode = 'global', count = 20) {
-  if (!steamAvailable()) return Promise.resolve(null);
-  try { return Promise.resolve(_bridge().fetchLeaderboard(board, mode, count)); }
-  catch (e) { return Promise.resolve(null); }
+  if (steamAvailable()) {
+    try { return Promise.resolve(_bridge().fetchLeaderboard(board, mode, count)); }
+    catch (e) { return Promise.resolve(null); }
+  }
+  if (PGS.available()) return PGS.fetchLeaderboard(board, mode, count);
+  return Promise.resolve(null);
 }
 export function cloudSave() {
   if (!steamAvailable()) return;
@@ -68,7 +86,7 @@ export function newRun() {
 export function checkRunKills(kills) { if (kills >= 5000) unlock('ACH_RUSH_HOUR'); }
 
 export function bossKilled(tier) {
-  if (!steamAvailable()) return;
+  if (!servicesAvailable()) return;
   if (tier === 'mini1') { unlock('ACH_SAUCE_SLINGER'); _runBosses.add('mini1'); }
   else if (tier === 'mini2') { unlock('ACH_HAMMER_CHEF'); _runBosses.add('mini2'); }
   // 'final' is credited on victory (see runEnded) — the final boss also appears
@@ -90,13 +108,13 @@ export function checkLoadout(weapons, armor, tomes) {
 export function weaponMaxed() { unlock('ACH_MAX_WEAPON'); }
 
 export function chestOpened() {
-  if (!steamAvailable()) return;
+  if (!servicesAvailable()) return;
   _L.chests++; _saveLedger();
   if (_L.chests >= 250) unlock('ACH_CHESTS_250');
 }
 
 export function slicesEarned(n) {
-  if (!steamAvailable() || !n) return;
+  if (!servicesAvailable() || !n) return;
   _L.slices += n; _saveLedger();
   if (_L.slices >= 500) unlock('ACH_SLICE_BARON');
 }
@@ -111,7 +129,7 @@ export function challengeCompleted() { unlock('ACH_OVERACHIEVER'); }
 
 // Lifetime / meta achievements derived from Profile state.
 export function syncMeta() {
-  if (!steamAvailable()) return;
+  if (!servicesAvailable()) return;
   try {
     const chars = CATALOG.characters || [];
     const unlockedChars = chars.filter(c => Profile.isUnlocked(c.slug)).length;
@@ -173,7 +191,7 @@ const _SPEED_WIN_TIME = 660;
 // Called once from triggerGameOver(). ctx = {victory, mode, difficulty, arena, level, kills, time, noHit}.
 // Resolves to { endlessRank } | null — endlessRank drives the end-screen rank line.
 export async function runEnded(ctx) {
-  if (!steamAvailable() || !ctx) return null;
+  if (!servicesAvailable() || !ctx) return null;
   const a = ctx.arena, d = ctx.difficulty;
   // Lifetime kills — the long-tail grind badge (endless kills count too).
   _L.kills += (ctx.kills || 0); _saveLedger();

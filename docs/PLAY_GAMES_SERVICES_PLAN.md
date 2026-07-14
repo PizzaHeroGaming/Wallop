@@ -1,8 +1,42 @@
 # WALLOP — Play Games Services Plan (cloud save + achievements)
 
-Status: **planned, not started.** Do this as ONE deliberate pass AFTER the
-closed-test window stabilizes — both features share the same PGS prerequisite.
-Keep it OFF the critical path of the current closed test.
+Status (2026-07-13): **CLOUD SAVE CODE DONE — blocked only on Play Console setup.**
+The client integration (native bridge + JS sync) is implemented and boots
+cleanly. What remains for cloud save is entirely account-side: create the PGS
+game in Play Console, enable Saved Games, add the OAuth credential (SHA-1s), and
+drop the numeric project ID into `strings.xml`. Achievements + leaderboards
+(Part 2 / Part 3) are still to-do and share the same PGS prerequisite.
+
+### What's already coded (cloud save) — 2026-07-13
+- `android/app/build.gradle` — `play-services-games-v2:20.1.2` added.
+- `AndroidManifest.xml` — `com.google.android.gms.games.APP_ID` meta →
+  `@string/game_services_project_id`.
+- `strings.xml` — `game_services_project_id` placeholder = `0`
+  (**REPLACE with the real numeric PGS ID from Play Console**).
+- `MainActivity.java` — `PlayGamesSdk.initialize(this)` + registers
+  `SavesBridge` as `window.PlayCloud`.
+- `SavesBridge.java` — Java port of Athanor's `SavesBridge.kt`; snapshot name
+  `wallop_save_v1`, most-recently-modified conflict policy.
+- `src/js/cloud.js` — whole-profile LAST-WRITE-WINS sync (not field-merge, so a
+  reset propagates), debounced push on every `Profile.save()`, background flush,
+  first-boot `progressScore` tiebreak so a smaller cloud never wipes local.
+- `src/js/profile.js` — added `onSave()` / `serialize()` / `adoptCloudState()`.
+- `src/js/main.js` — `Cloud.init()` at boot (no-op on web/Steam).
+- **Upload-key SHA-1** (for the OAuth credential):
+  `98:8E:5C:4C:95:3A:E0:19:A2:D2:F3:1D:60:60:68:01:E7:45:88:2D`
+  (also add the Play App-Signing SHA-1 from Console → App integrity).
+
+### Remaining for cloud save (Play Console — Jamie)
+1. Play Games Services → create game for `com.pizzaherogaming.wallop`.
+2. Add Android OAuth credential with BOTH SHA-1s (upload + Play App Signing).
+3. Enable **Saved Games**.
+4. Add PGS testers (separate tester list).
+5. **Publish** the PGS configuration.
+6. Put the numeric project ID into `strings.xml` `game_services_project_id`,
+   then rebuild the AAB. Until then PGS auth fails and cloud silently no-ops.
+
+Original plan (both features) below — keep OFF the critical path of the closed
+test; do as ONE deliberate pass. Both share the same PGS prerequisite.
 
 Both features run on **Google Play Games Services (PGS)**:
 - **Cloud save** = PGS **Saved Games** (Google hosts the snapshot — the

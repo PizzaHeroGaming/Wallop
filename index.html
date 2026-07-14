@@ -2972,6 +2972,32 @@
   .keybind-key:hover { background: var(--accent); color: #000; }
   #settings-buttons { display: flex; gap: 12px; justify-content: center; margin-top: 10px; flex-wrap: wrap; }
   #settings-buttons .btn { font-size: 12px; padding: 12px 18px; }
+
+  /* Cloud-save sync indicator — transient pill, Play Games (Android) only.
+     Shows "SAVING…" while a snapshot commits, then "SAVED" for ~1.6s. */
+  #cloud-sync {
+    position: fixed;
+    bottom: calc(env(safe-area-inset-bottom, 0px) + 12px);
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 60;
+    display: flex; align-items: center; gap: 8px;
+    padding: 6px 14px;
+    background: var(--panel-2);
+    border: 3px solid #000;
+    box-shadow: 4px 4px 0 rgba(0,0,0,0.5);
+    font-family: 'Press Start 2P', monospace;
+    font-size: 9px;
+    letter-spacing: 1px;
+    color: var(--ink-dim);
+    pointer-events: none;
+  }
+  #cloud-sync.hidden { display: none; }
+  #cloud-sync .cloud-sync-icon { font-size: 12px; }
+  #cloud-sync.saving .cloud-sync-icon { animation: cloudpulse 0.9s ease-in-out infinite; }
+  #cloud-sync.saved { color: var(--accent); }
+  #cloud-sync.saved .cloud-sync-icon { color: var(--accent); }
+  @keyframes cloudpulse { 0%, 100% { opacity: 0.35; } 50% { opacity: 1; } }
 </style>
 </head>
 <body>
@@ -3241,6 +3267,7 @@ window.addEventListener('load', () => {
         <button class="btn hot" id="start-btn">▶ PLAY</button>
         <button class="btn secondary" id="challenges-btn">🏆 CHALLENGES</button>
         <button class="btn secondary" id="leaderboards-btn" style="display:none">📊 LEADERBOARDS</button>
+        <button class="btn secondary" id="achievements-btn" style="display:none">🏅 ACHIEVEMENTS</button>
         <button class="btn secondary" id="armory-btn">🍕 ARMORY</button>
         <button class="btn secondary" id="settings-btn">⚙ SETTINGS</button>
         <button class="btn secondary" id="about-btn">📋 ABOUT</button>
@@ -3817,6 +3844,17 @@ window.addEventListener('load', () => {
         <input type="checkbox" id="set-damagenums"></div>
     </div>
 
+    <!-- Play Games cloud save (Android only — revealed by ui.js when the bridge
+         is present). Hidden on web/Steam, which use their own save paths. -->
+    <div class="settings-section" id="settings-cloud" style="display:none;">
+      <div class="settings-h">CLOUD SAVE</div>
+      <div class="set-row"><label>Play Games</label>
+        <span id="cloud-status-line" class="set-readout" style="max-width:58%;text-align:right;">…</span></div>
+      <div class="set-row"><label>Back up progress now</label>
+        <button class="btn" id="cloud-backup-btn" style="font-size:11px;padding:10px 14px;">☁ BACK UP</button></div>
+      <div style="font-family:'VT323',monospace;font-size:15px;color:var(--ink-dim);">Progress syncs to Google Play Games automatically. Tap Back Up to force a save before switching devices.</div>
+    </div>
+
     <div class="settings-section">
       <div class="settings-h">DATA</div>
       <div class="set-row"><label>Erase all save data</label>
@@ -3829,6 +3867,13 @@ window.addEventListener('load', () => {
       <button class="btn hot" id="settings-back">← BACK</button>
     </div>
   </div>
+</div>
+
+<!-- Cloud-save sync indicator (Play Games / Android only; shown transiently on
+     each snapshot commit). Driven by cloud.js showSaving/showSaved. -->
+<div id="cloud-sync" class="hidden">
+  <span class="cloud-sync-icon">☁</span>
+  <span class="cloud-sync-text">SAVED</span>
 </div>
 
 <!-- Reusable confirmation modal (e.g. RESTART / MAIN MENU mid-run).
@@ -3893,6 +3938,6 @@ window.addEventListener('load', () => {
 <script src="src/vendor/three/UnrealBloomPass.js"></script>
 <script src="src/vendor/three/GLTFLoader.js"></script>
 <script src="src/vendor/three/SkeletonUtils.js"></script>
-<script type="module" src="src/js/main.js?v=c5ce52f"></script>
+<script type="module" src="src/js/main.js?v=b17d24e"></script>
 </body>
 </html>

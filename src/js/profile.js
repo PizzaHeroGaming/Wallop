@@ -367,9 +367,26 @@ export const Profile = (function () {
     try { localStorage.setItem(PROFILE_KEY, JSON.stringify(_state)); } catch (e) {}
   }
   function get() { return _state; }
+  // Cloud-save hook: cloud.js registers a callback here so every local save also
+  // schedules a debounced push to Play Games Saved Games. No-op on web/Steam.
+  let _onSaveHook = null;
+  function onSave(cb) { _onSaveHook = cb; }
   function save() {
     try { localStorage.setItem(PROFILE_KEY, JSON.stringify(_state)); }
     catch (e) {}
+    if (_onSaveHook) { try { _onSaveHook(); } catch (e) {} }
+  }
+  // Serialize the full profile for the cloud snapshot (whole-profile save).
+  function serialize() { return JSON.stringify(_state); }
+  // Replace the in-memory + persisted profile with a cloud snapshot that won the
+  // last-write-wins compare. Runs it through migrate() so an older-schema cloud
+  // save is upgraded, then persists locally. Returns true on success.
+  function adoptCloudState(obj) {
+    try {
+      _state = migrate(obj);
+      save();
+      return true;
+    } catch (e) { return false; }
   }
   function isUnlocked(slug) {
     for (const cat of Object.values(CATALOG)) {
@@ -572,6 +589,7 @@ export const Profile = (function () {
     adSlicesRemainingToday, recordAdSliceWatch,
     getEndlessBest, recordEndlessTime,
     getWeeklyKills, addWeeklyKills,
+    onSave, serialize, adoptCloudState,
   };
 
   function isTutorialDone() { return !!_state.tutorialDone; }

@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--Google Play game services IDs. Save this file as res/values/games-ids.xml in your project.-->
+<resources>
+  <!--app_id-->
+  <string name="app_id" translatable="false">635605242379</string>
+  <!--package_name-->
+  <string name="package_name" translatable="false">com.pizzaherogaming.wallop</string>
+  <!--achievement First Delivery-->
+  <string name="achievement_first_delivery" translatable="false">CgkIi6SZ6L8SEAIQEA</string>
+  <!--achievement Saucy-->
+  <string name="achievement_saucy" translatable="false">CgkIi6SZ6L8SEAIQAQ</string>
+  <!--achievement Tenderized-->
+  <string name="achievement_tenderized" translatable="false">CgkIi6SZ6L8SEAIQEQ</string>
+  <!--achievement Employee of the Month-->
+  <string name="achievement_employee_of_the_month" translatable="false">CgkIi6SZ6L8SEAIQBg</string>
+  <!--achievement Triple Threat-->
+  <string name="achievement_triple_threat" translatable="false">CgkIi6SZ6L8SEAIQDQ</string>
+  <!--achievement Well Done-->
+  <string name="achievement_well_done" translatable="false">CgkIi6SZ6L8SEAIQGw</string>
+  <!--achievement Extra Crispy-->
+  <string name="achievement_extra_crispy" translatable="false">CgkIi6SZ6L8SEAIQCA</string>
+  <!--achievement Burnt to a Crisp-->
+  <string name="achievement_burnt_to_a_crisp" translatable="false">CgkIi6SZ6L8SEAIQCg</string>
+  <!--achievement Getting Warmed Up-->
+  <string name="achievement_getting_warmed_up" translatable="false">CgkIi6SZ6L8SEAIQFA</string>
+  <!--achievement Fully Stacked-->
+  <string name="achievement_fully_stacked" translatable="false">CgkIi6SZ6L8SEAIQAw</string>
+  <!--achievement Overcooked-->
+  <string name="achievement_overcooked" translatable="false">CgkIi6SZ6L8SEAIQBQ</string>
+  <!--achievement The Works-->
+  <string name="achievement_the_works" translatable="false">CgkIi6SZ6L8SEAIQCQ</string>
+  <!--achievement Perfected Recipe-->
+  <string name="achievement_perfected_recipe" translatable="false">CgkIi6SZ6L8SEAIQDg</string>
+  <!--achievement Big Tipper-->
+  <string name="achievement_big_tipper" translatable="false">CgkIi6SZ6L8SEAIQGA</string>
+  <!--achievement Rush Hour-->
+  <string name="achievement_rush_hour" translatable="false">CgkIi6SZ6L8SEAIQFw</string>
+  <!--achievement Meat Grinder-->
+  <string name="achievement_meat_grinder" translatable="false">CgkIi6SZ6L8SEAIQFQ</string>
+  <!--achievement Treasure Hunter-->
+  <string name="achievement_treasure_hunter" translatable="false">CgkIi6SZ6L8SEAIQGg</string>
+  <!--achievement Pines Patrol-->
+  <string name="achievement_pines_patrol" translatable="false">CgkIi6SZ6L8SEAIQDA</string>
+  <!--achievement Slope Style-->
+  <string name="achievement_slope_style" translatable="false">CgkIi6SZ6L8SEAIQGQ</string>
+  <!--achievement Cold Cuts-->
+  <string name="achievement_cold_cuts" translatable="false">CgkIi6SZ6L8SEAIQDw</string>
+  <!--achievement New Hire-->
+  <string name="achievement_new_hire" translatable="false">CgkIi6SZ6L8SEAIQCw</string>
+  <!--achievement Full Roster-->
+  <string name="achievement_full_roster" translatable="false">CgkIi6SZ6L8SEAIQAg</string>
+  <!--achievement Signature Dish-->
+  <string name="achievement_signature_dish" translatable="false">CgkIi6SZ6L8SEAIQEw</string>
+  <!--achievement Slice Baron-->
+  <string name="achievement_slice_baron" translatable="false">CgkIi6SZ6L8SEAIQEg</string>
+  <!--achievement Overachiever-->
+  <string name="achievement_overachiever" translatable="false">CgkIi6SZ6L8SEAIQBw</string>
+  <!--achievement Untouchable-->
+  <string name="achievement_untouchable" translatable="false">CgkIi6SZ6L8SEAIQFg</string>
+  <!--achievement Speed Demon-->
+  <string name="achievement_speed_demon" translatable="false">CgkIi6SZ6L8SEAIQBA</string>
+  <!--leaderboard Endless — Pepperoni Pines (Easy)-->
+  <string name="leaderboard_endless__pepperoni_pines_easy" translatable="false">CgkIi6SZ6L8SEAIQHA</string>
+  <!--leaderboard Endless — Pepperoni Pines (Normal)-->
+  <string name="leaderboard_endless__pepperoni_pines_normal" translatable="false">CgkIi6SZ6L8SEAIQHQ</string>
+  <!--leaderboard Endless — Pepperoni Pines (Hard)-->
+  <string name="leaderboard_endless__pepperoni_pines_hard" translatable="false">CgkIi6SZ6L8SEAIQHg</string>
+  <!--leaderboard Endless — Pepperoni Pines (Extreme)-->
+  <string name="leaderboard_endless__pepperoni_pines_extreme" translatable="false">CgkIi6SZ6L8SEAIQHw</string>
+  <!--leaderboard Endless — Sundried Slopes (Easy)-->
+  <string name="leaderboard_endless__sundried_slopes_easy" translatable="false">CgkIi6SZ6L8SEAIQIA</string>
+  <!--leaderboard Endless — Sundried Slopes (Normal)-->
+  <string name="leaderboard_endless__sundried_slopes_normal" translatable="false">CgkIi6SZ6L8SEAIQIQ</string>
+  <!--leaderboard Endless — Sundried Slopes (Hard)-->
+  <string name="leaderboard_endless__sundried_slopes_hard" translatable="false">CgkIi6SZ6L8SEAIQIg</string>
+  <!--leaderboard Endless — Sundried Slopes (Extreme)-->
+  <string name="leaderboard_endless__sundried_slopes_extreme" translatable="false">CgkIi6SZ6L8SEAIQIw</string>
+  <!--leaderboard Endless — Frostbite Glacier (Easy)-->
+  <string name="leaderboard_endless__frostbite_glacier_easy" translatable="false">CgkIi6SZ6L8SEAIQJA</string>
+  <!--leaderboard Endless — Frostbite Glacier (Normal)-->
+  <string name="leaderboard_endless__frostbite_glacier_normal" translatable="false">CgkIi6SZ6L8SEAIQJQ</string>
+  <!--leaderboard Endless — Frostbite Glacier (Hard)-->
+  <string name="leaderboard_endless__frostbite_glacier_hard" translatable="false">CgkIi6SZ6L8SEAIQJg</string>
+  <!--leaderboard Endless — Frostbite Glacier (Extreme)-->
+  <string name="leaderboard_endless__frostbite_glacier_extreme" translatable="false">CgkIi6SZ6L8SEAIQJw</string>
+  <!--leaderboard Fastest Win — Pepperoni Pines (Easy)-->
+  <string name="leaderboard_fastest_win__pepperoni_pines_easy" translatable="false">CgkIi6SZ6L8SEAIQKA</string>
+  <!--leaderboard Fastest Win — Pepperoni Pines (Normal)-->
+  <string name="leaderboard_fastest_win__pepperoni_pines_normal" translatable="false">CgkIi6SZ6L8SEAIQKQ</string>
+  <!--leaderboard Fastest Win — Pepperoni Pines (Hard)-->
+  <string name="leaderboard_fastest_win__pepperoni_pines_hard" translatable="false">CgkIi6SZ6L8SEAIQKg</string>
+  <!--leaderboard Fastest Win — Pepperoni Pines (Extreme)-->
+  <string name="leaderboard_fastest_win__pepperoni_pines_extreme" translatable="false">CgkIi6SZ6L8SEAIQKw</string>
+  <!--leaderboard Fastest Win — Sundried Slopes (Easy)-->
+  <string name="leaderboard_fastest_win__sundried_slopes_easy" translatable="false">CgkIi6SZ6L8SEAIQLA</string>
+  <!--leaderboard Fastest Win — Sundried Slopes (Normal)-->
+  <string name="leaderboard_fastest_win__sundried_slopes_normal" translatable="false">CgkIi6SZ6L8SEAIQLQ</string>
+  <!--leaderboard Fastest Win — Sundried Slopes (Hard)-->
+  <string name="leaderboard_fastest_win__sundried_slopes_hard" translatable="false">CgkIi6SZ6L8SEAIQLg</string>
+  <!--leaderboard Fastest Win — Sundried Slopes (Extreme)-->
+  <string name="leaderboard_fastest_win__sundried_slopes_extreme" translatable="false">CgkIi6SZ6L8SEAIQLw</string>
+  <!--leaderboard Fastest Win — Frostbite Glacier (Easy)-->
+  <string name="leaderboard_fastest_win__frostbite_glacier_easy" translatable="false">CgkIi6SZ6L8SEAIQMA</string>
+  <!--leaderboard Fastest Win — Frostbite Glacier (Normal)-->
+  <string name="leaderboard_fastest_win__frostbite_glacier_normal" translatable="false">CgkIi6SZ6L8SEAIQMQ</string>
+  <!--leaderboard Fastest Win — Frostbite Glacier (Hard)-->
+  <string name="leaderboard_fastest_win__frostbite_glacier_hard" translatable="false">CgkIi6SZ6L8SEAIQMg</string>
+  <!--leaderboard Fastest Win — Frostbite Glacier (Extreme)-->
+  <string name="leaderboard_fastest_win__frostbite_glacier_extreme" translatable="false">CgkIi6SZ6L8SEAIQMw</string>
+  <!--leaderboard Highest Level — Pepperoni Pines (Easy)-->
+  <string name="leaderboard_highest_level__pepperoni_pines_easy" translatable="false">CgkIi6SZ6L8SEAIQNA</string>
+  <!--leaderboard Highest Level — Pepperoni Pines (Normal)-->
+  <string name="leaderboard_highest_level__pepperoni_pines_normal" translatable="false">CgkIi6SZ6L8SEAIQNQ</string>
+  <!--leaderboard Highest Level — Pepperoni Pines (Hard)-->
+  <string name="leaderboard_highest_level__pepperoni_pines_hard" translatable="false">CgkIi6SZ6L8SEAIQNg</string>
+  <!--leaderboard Highest Level — Pepperoni Pines (Extreme)-->
+  <string name="leaderboard_highest_level__pepperoni_pines_extreme" translatable="false">CgkIi6SZ6L8SEAIQNw</string>
+  <!--leaderboard Highest Level — Sundried Slopes (Easy)-->
+  <string name="leaderboard_highest_level__sundried_slopes_easy" translatable="false">CgkIi6SZ6L8SEAIQOA</string>
+  <!--leaderboard Highest Level — Sundried Slopes (Normal)-->
+  <string name="leaderboard_highest_level__sundried_slopes_normal" translatable="false">CgkIi6SZ6L8SEAIQOQ</string>
+  <!--leaderboard Highest Level — Sundried Slopes (Hard)-->
+  <string name="leaderboard_highest_level__sundried_slopes_hard" translatable="false">CgkIi6SZ6L8SEAIQOg</string>
+  <!--leaderboard Highest Level — Sundried Slopes (Extreme)-->
+  <string name="leaderboard_highest_level__sundried_slopes_extreme" translatable="false">CgkIi6SZ6L8SEAIQOw</string>
+  <!--leaderboard Highest Level — Frostbite Glacier (Easy)-->
+  <string name="leaderboard_highest_level__frostbite_glacier_easy" translatable="false">CgkIi6SZ6L8SEAIQPA</string>
+  <!--leaderboard Highest Level — Frostbite Glacier (Normal)-->
+  <string name="leaderboard_highest_level__frostbite_glacier_normal" translatable="false">CgkIi6SZ6L8SEAIQPQ</string>
+  <!--leaderboard Highest Level — Frostbite Glacier (Hard)-->
+  <string name="leaderboard_highest_level__frostbite_glacier_hard" translatable="false">CgkIi6SZ6L8SEAIQPg</string>
+  <!--leaderboard Highest Level — Frostbite Glacier (Extreme)-->
+  <string name="leaderboard_highest_level__frostbite_glacier_extreme" translatable="false">CgkIi6SZ6L8SEAIQPw</string>
+  <!--leaderboard Weekly Kills-->
+  <string name="leaderboard_weekly_kills" translatable="false">CgkIi6SZ6L8SEAIQQA</string>
+</resources>

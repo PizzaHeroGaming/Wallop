@@ -9,14 +9,15 @@
 //   game.js        → damageEnemy, update, initGame
 //   main.js        → animate, splash, resize
 
-import { scene, camera, renderer, clock, composer, isMobile, tryEnterFullscreen, rearmFullscreenOnNextTap, getQualityFpsCap, applyGraphicsQuality } from './renderer.js?v=c5ce52f';
-import { gameState, cam } from './state.js?v=c5ce52f';
-import { initGame, update, updateTitleScene, updateIntroSweep, spawnBoss } from './game.js?v=c5ce52f';
-import { updateArenaWalls } from './world.js?v=c5ce52f'; // also builds terrain scenery + boundary walls at load (side-effect)
-import { Settings } from './settings.js?v=c5ce52f';
-import { pollGamepad, applyOffer } from './ui.js?v=c5ce52f';
-import { spawnEnemy, enemies, player, ENEMY_DEFS } from './entities.js?v=c5ce52f';
-import { WEAPONS, ARMOR, TOMES } from './weapons.js?v=c5ce52f';
+import { scene, camera, renderer, clock, composer, isMobile, tryEnterFullscreen, rearmFullscreenOnNextTap, getQualityFpsCap, applyGraphicsQuality } from './renderer.js?v=b17d24e';
+import { gameState, cam } from './state.js?v=b17d24e';
+import { initGame, update, updateTitleScene, updateIntroSweep, spawnBoss } from './game.js?v=b17d24e';
+import { updateArenaWalls } from './world.js?v=b17d24e'; // also builds terrain scenery + boundary walls at load (side-effect)
+import { Settings } from './settings.js?v=b17d24e';
+import { pollGamepad, applyOffer } from './ui.js?v=b17d24e';
+import { spawnEnemy, enemies, player, ENEMY_DEFS } from './entities.js?v=b17d24e';
+import { WEAPONS, ARMOR, TOMES } from './weapons.js?v=b17d24e';
+import { Cloud } from './cloud.js?v=b17d24e'; // Play Games cloud save (Android only; no-op elsewhere)
 
 // ── Marketing capture hook (only on the local capture server) ──
 // Lets the headless capture scripts stage a late-game, full-loadout swarm for
@@ -161,6 +162,10 @@ document.addEventListener('webkitfullscreenchange', () => {
 // ============================================================
 try {
   initGame();
+  // Start cloud sync (Play Games Saved Games). No-op on web/Steam or when the
+  // player isn't signed in; on Android it pulls the cloud save and reconciles
+  // (last-write-wins), then pushes local changes on every Profile.save().
+  Cloud.init();
 } catch (e) {
   console.error('[wallop] initGame() failed:', e);
   // Show a visible error overlay so the issue surfaces in production

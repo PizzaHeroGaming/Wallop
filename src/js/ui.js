@@ -15,7 +15,7 @@
 //   keyboard/mobile → tryJump, tryDash (game.js): use _jumpFn/_dashFn, set via setJumpDashCbs()
 //   openChest → presentChoiceScreen (this file): setOpenChestDeps is called in initUI()
 
-import { camera, renderer, isMobile, isSteamBuild, tryEnterFullscreen, applyGraphicsQuality } from './renderer.js?v=c5ce52f';
+import { camera, renderer, isMobile, isSteamBuild, tryEnterFullscreen, applyGraphicsQuality } from './renderer.js?v=b17d24e';
 import {
   player, enemies,
   tryInteract, setOpenChestDeps,
@@ -23,21 +23,23 @@ import {
   spawnParticle,
   CHARACTER_MODELS, _animClips, loadCharAsset,
   _applyCharacterModel,
-} from './entities.js?v=c5ce52f';
-import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=c5ce52f';
-import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=c5ce52f';
-import { gameState, cam } from './state.js?v=c5ce52f';
-import { Audio } from './audio.js?v=c5ce52f';
-import * as Steam from './steam.js?v=c5ce52f';
-import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=c5ce52f';
+} from './entities.js?v=b17d24e';
+import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=b17d24e';
+import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=b17d24e';
+import { gameState, cam } from './state.js?v=b17d24e';
+import { Audio } from './audio.js?v=b17d24e';
+import * as Steam from './steam.js?v=b17d24e';
+import * as PGS from './pgs.js?v=b17d24e'; // native Play Games UIs (achievements/leaderboard views)
+import { CFG, RARITY, STAGE_MULTS, DIFFICULTIES } from './config.js?v=b17d24e';
 // VERSION lives on CFG.VERSION too — reading via property access doesn't
 // blow up if a cached older config.js is loaded without the named export
 const VERSION = CFG.VERSION || '0.0.0';
 // Slices granted per on-demand "watch ad for slices" view (daily-capped in Profile).
 const AD_SLICE_REWARD = 3;
-import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=c5ce52f';
-import { tmp, tmp2 } from './utils.js?v=c5ce52f';
-import { Settings } from './settings.js?v=c5ce52f';
+import { Profile, CATALOG, ARENAS, CHALLENGES } from './profile.js?v=b17d24e';
+import { Cloud } from './cloud.js?v=b17d24e';
+import { tmp, tmp2 } from './utils.js?v=b17d24e';
+import { Settings } from './settings.js?v=b17d24e';
 
 // ============================================================
 // INJECTION CALLBACKS (break circular deps)
@@ -2460,7 +2462,8 @@ export async function refreshMenuLeaderboard() {
   const panel = document.getElementById('menu-lb');
   const list = document.getElementById('menu-lb-list');
   if (!panel || !list) return;
-  if (!(typeof window !== 'undefined' && window.WallopSteam)) { panel.style.display = 'none'; return; }
+  const hasBoards = typeof window !== 'undefined' && (window.WallopSteam || window.AndroidGames);
+  if (!hasBoards) { panel.style.display = 'none'; return; }
   panel.style.display = 'block';
   if (_menuLbBusy) return;
   _menuLbBusy = true;
@@ -2490,10 +2493,19 @@ export function initButtons() {
   try { initDiffSelect(); }  catch(e) { console.error('[wallop] initDiffSelect failed:', e); }
   try { initArenaSelect(); } catch(e) { console.error('[wallop] initArenaSelect failed:', e); }
 
-  // Leaderboards (Steam build only — reveal the menu button when the bridge exists)
+  // Leaderboards — reveal the menu button when EITHER services bridge exists
+  // (Steam desktop or Play Games on Android). Present-but-signed-out still shows
+  // the button; the board just reads empty until sign-in.
+  const _hasBoards = typeof window !== 'undefined' && (window.WallopSteam || window.AndroidGames);
   const _lbBtn = document.getElementById('leaderboards-btn');
-  if (_lbBtn && typeof window !== 'undefined' && window.WallopSteam) _lbBtn.style.display = '';
+  if (_lbBtn && _hasBoards) _lbBtn.style.display = '';
   if (_lbBtn) _lbBtn.addEventListener('click', openLeaderboards);
+
+  // Achievements — Play Games only (Steam surfaces these via its own overlay).
+  // Opens the native PGS achievements UI.
+  const _achBtn = document.getElementById('achievements-btn');
+  if (_achBtn && typeof window !== 'undefined' && window.AndroidGames) _achBtn.style.display = '';
+  if (_achBtn) _achBtn.addEventListener('click', () => { try { PGS.showAchievements(); } catch (e) {} });
   document.getElementById('lb-back-btn')?.addEventListener('click', closeLeaderboards);
   document.getElementById('lb-cat-row')?.addEventListener('click', (e) => {
     const btn = e.target.closest('[data-lbcat]'); if (!btn) return;
@@ -2962,6 +2974,40 @@ function _syncSettingsUI() {
 
   _buildKeybindRows();
   _syncAllAudioControlUIs();
+  _syncCloudSettings();
+}
+
+// ── Cloud save (Play Games) settings section ──
+// Human "time ago" for the last-saved status line.
+function _agoText(ms) {
+  if (!ms) return '';
+  const s = Math.max(0, Math.floor((Date.now() - ms) / 1000));
+  if (s < 10) return 'just now';
+  if (s < 60) return s + 's ago';
+  const m = Math.floor(s / 60);
+  if (m < 60) return m + 'm ago';
+  const h = Math.floor(m / 60);
+  if (h < 24) return h + 'h ago';
+  return Math.floor(h / 24) + 'd ago';
+}
+// Reveal + populate the CLOUD SAVE section. Android only — hidden entirely on
+// web/Steam (no Play Games bridge), which have their own save paths.
+function _syncCloudSettings() {
+  const sec = document.getElementById('settings-cloud');
+  if (!sec) return;
+  const st = (Cloud && Cloud.getStatus) ? Cloud.getStatus() : { available: false };
+  if (!st.available) { sec.style.display = 'none'; return; }
+  sec.style.display = '';
+  const line = document.getElementById('cloud-status-line');
+  const btn = document.getElementById('cloud-backup-btn');
+  if (st.signedIn) {
+    const ago = _agoText(st.lastSavedMs);
+    if (line) line.textContent = ago ? ('Signed in · saved ' + ago) : 'Signed in · syncing…';
+    if (btn) { btn.disabled = false; btn.style.opacity = ''; }
+  } else {
+    if (line) line.textContent = 'Sign in to Google Play to sync';
+    if (btn) { btn.disabled = true; btn.style.opacity = '0.5'; }
+  }
 }
 
 // ── Key rebinding ──
@@ -3088,8 +3134,29 @@ function initSettings() {
     });
   });
 
+  // Manual "BACK UP" — force an immediate cloud push (Play Games). Reassurance
+  // for players before switching devices; the auto-save already covers normal play.
+  document.getElementById('cloud-backup-btn')?.addEventListener('click', () => {
+    const line = document.getElementById('cloud-status-line');
+    const ok = Cloud && Cloud.backupNow && Cloud.backupNow();
+    if (ok) {
+      if (line) line.textContent = 'Backing up…';
+      // The #cloud-sync pill shows SAVING→SAVED; refresh the line once it lands.
+      setTimeout(_syncCloudSettings, 2500);
+    } else if (line) {
+      line.textContent = 'Sign in to Google Play to sync';
+    }
+  });
+
   _applyDisplaySettings(); // apply the saved display mode on boot (Electron)
   applyGraphicsQuality(Settings.get('graphicsQuality')); // apply saved quality on boot
+
+  // A cloud restore (fresh install / new device) swaps the whole profile in —
+  // refresh the menu currency + armory so the UI reflects the adopted save.
+  window.addEventListener('wallop:profilechanged', () => {
+    try { syncSliceDisplays(); } catch (e) {}
+    try { if (document.getElementById('armory-screen') && !document.getElementById('armory-screen').classList.contains('hidden')) renderArmoryGrid(); } catch (e) {}
+  });
 }
 
 // ============================================================

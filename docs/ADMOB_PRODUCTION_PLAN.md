@@ -1,9 +1,11 @@
 # WALLOP — AdMob Production Checklist (test ads → real ads)
 
-Status: **planned, not started.** The ad *integration* is already done and
-working with Google **test** ad units. This doc is the production-launch flip to
-**real** ad units. Do it as part of the going-live push (ideally bundled with
-[[project_play_closed_testing]] graduation + the PGS pass).
+Status: **REAL IDs SWAPPED IN (2026-07-13).** The build now serves the real
+Wallop ad units (publisher `pub-8467944404188469`). Our own devices are protected
+by a registered test device (`998F7B531862D3F0969C32837B395A22`, same phone as
+Athanor) so we still see TEST creatives. This build is for the **production**
+track only — do NOT ship it to closed testing. Remaining account-side: link the
+AdMob app to the Play listing (lifts limited serving) + confirm app-ads.txt.
 
 ## ⚠️ The rule that gates all of this
 **Do NOT put real ad units in any build that you or your closed testers run.**
@@ -80,10 +82,14 @@ All three currently hold Google TEST IDs (`ca-app-pub-3940256099942544...`):
      points at the /Wallop/ project page, confirm AdMob resolves the root domain
      — may need a dedicated domain/root page.
 
-### D. Test devices (protect the account)
-7. In `MobileAds`/`RequestConfiguration`, add your phone's **test device ID**
-   (logcat prints it on first ad request) so even post-flip you never generate
-   invalid traffic while smoke-testing.
+### D. Test devices (protect the account) — DONE
+7. ✅ `MainActivity.initializeMobileAdsSdk()` calls
+   `MobileAds.setRequestConfiguration(new RequestConfiguration.Builder()
+   .setTestDeviceIds(Collections.singletonList("998F7B531862D3F0969C32837B395A22")))`
+   BEFORE `MobileAds.initialize`, so registered devices always get TEST creatives.
+   `998F7B531862D3F0969C32837B395A22` is the same physical phone registered for
+   Athanor. To add another tester's phone, grab its hashed ID from logcat
+   ("Use RequestConfiguration.Builder().setTestDeviceIds(...)") and append it.
 
 ### E. Release
 8. Bump `versionCode`/`versionName` (build.gradle) + `VERSION` (config.js).
