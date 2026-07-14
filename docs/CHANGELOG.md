@@ -11,6 +11,20 @@ add an in-game patch-log entry (ABOUT screen in `wallop.html`), then build/uploa
 
 ---
 
+## v0.12.0 — 2026-07-13 (cut for Play — versionCode 14 / versionName 0.12.0)
+
+Follow-up fixes on the 0.11.0 Play Games services release.
+
+### Fixed
+- **Quit-to-menu now counts as an end run** — leaving mid-run via the pause menu
+  or stage-clear screen banks all kills (weekly + lifetime + leaderboards) and, in
+  Endless, records the survival time (local best + leaderboard). Previously an
+  abandoned run recorded nothing.
+- **Mobile start screen** — hid the live weekly-kills panel on phones, where it
+  crowded the slice total + logo. Mobile reaches boards via the 📊 button.
+
+---
+
 ## v0.11.0 — 2026-07-13 (cut for Play — versionCode 13 / versionName 0.11.0)
 
 Big mobile services release: Play Games cloud save, achievements, leaderboards,
@@ -41,14 +55,6 @@ bridges, so the web + Steam builds are functionally unchanged.
   inside its damage range, so it presses against the player (still deals contact
   damage) instead of overlapping the model. O(1) per enemy; bosses excluded.
   (Was on the web build; rides along to Play with this cut.)
-
-### Fixed (versionCode 14, testing iteration)
-- **Quit-to-menu now counts as an end run** — leaving mid-run via the pause menu
-  or stage-clear screen banks all kills (weekly + lifetime + leaderboards) and, in
-  Endless, records the survival time (local best + leaderboard). Previously an
-  abandoned run recorded nothing.
-- **Mobile start screen** — hid the live weekly-kills panel on phones, where it
-  crowded the slice total + logo. Mobile reaches boards via the 📊 button.
 
 ---
 
