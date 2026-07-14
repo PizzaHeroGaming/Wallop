@@ -49,9 +49,8 @@ public class GamesBridge {
     private void cacheSelfPlayerId() {
         try {
             PlayGames.getPlayersClient(activity).getCurrentPlayer()
-                .addOnSuccessListener(data -> {
-                    com.google.android.gms.games.Player p = (data != null) ? data.get() : null;
-                    if (p != null) selfPlayerId = p.getPlayerId();
+                .addOnSuccessListener(player -> {
+                    if (player != null) selfPlayerId = player.getPlayerId();
                 });
         } catch (Exception e) { /* self-highlight just won't resolve */ }
     }
