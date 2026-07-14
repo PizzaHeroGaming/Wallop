@@ -2462,8 +2462,11 @@ export async function refreshMenuLeaderboard() {
   const panel = document.getElementById('menu-lb');
   const list = document.getElementById('menu-lb-list');
   if (!panel || !list) return;
+  // Steam / desktop only. On phones this live panel crowds the start screen
+  // (overlapping the slice total + logo), so hide it — mobile reaches every board
+  // through the 📊 LEADERBOARDS button instead.
   const hasBoards = typeof window !== 'undefined' && (window.WallopSteam || window.AndroidGames);
-  if (!hasBoards) { panel.style.display = 'none'; return; }
+  if (!hasBoards || isMobile()) { panel.style.display = 'none'; return; }
   panel.style.display = 'block';
   if (_menuLbBusy) return;
   _menuLbBusy = true;
