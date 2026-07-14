@@ -42,6 +42,14 @@ bridges, so the web + Steam builds are functionally unchanged.
   damage) instead of overlapping the model. O(1) per enemy; bosses excluded.
   (Was on the web build; rides along to Play with this cut.)
 
+### Fixed (versionCode 14, testing iteration)
+- **Quit-to-menu now counts as an end run** — leaving mid-run via the pause menu
+  or stage-clear screen banks all kills (weekly + lifetime + leaderboards) and, in
+  Endless, records the survival time (local best + leaderboard). Previously an
+  abandoned run recorded nothing.
+- **Mobile start screen** — hid the live weekly-kills panel on phones, where it
+  crowded the slice total + logo. Mobile reaches boards via the 📊 button.
+
 ---
 
 ## v0.9.9 — 2026-07-03 (cut for Play — versionCode 10 / versionName 0.9.9)
