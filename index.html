@@ -3430,6 +3430,13 @@ window.addEventListener('load', () => {
       <div class="about-heading">PATCH LOG</div>
 
       <details class="patch-entry" open>
+        <summary class="patch-ver">v0.12.0 — Run Tracking Fixes</summary>
+        <ul class="patch-list">
+          <li><strong>Leaving a run early still counts</strong> — quit to the menu mid-run and your kills still bank toward the leaderboards, and in Endless your survival time is recorded too. No more losing progress by bailing out.</li>
+          <li><strong>Cleaner start screen on phones</strong> — the weekly board no longer crowds the slice total and logo; tap 📊 Leaderboards to see it.</li>
+        </ul>
+      </details>
+      <details class="patch-entry">
         <summary class="patch-ver">v0.11.0 — Cloud Save &amp; Achievements</summary>
         <ul class="patch-list">
           <li><strong>Cloud saves (Android)</strong> — your slices, unlocks, and progress now sync to Google Play Games, so a new phone or reinstall picks up right where you left off. A “Back Up” button lives in Settings, and a little cloud icon flashes whenever it saves.</li>
@@ -3946,6 +3953,6 @@ window.addEventListener('load', () => {
 <script src="src/vendor/three/UnrealBloomPass.js"></script>
 <script src="src/vendor/three/GLTFLoader.js"></script>
 <script src="src/vendor/three/SkeletonUtils.js"></script>
-<script type="module" src="src/js/main.js?v=1e5de5f"></script>
+<script type="module" src="src/js/main.js?v=62487c8"></script>
 </body>
 </html>
