@@ -972,6 +972,29 @@ function _flushGameOverInterstitial() {
   _pendingGameOverInterstitial = false;
 }
 
+// Run-end bookkeeping for the ABANDON paths (pause → quit, stage-clear → quit).
+// Quitting mid-run must count exactly like a finished run: bank every kill
+// (lifetime + weekly) and submit the leaderboards via Steam.runEnded, and — in
+// Endless — record the survival time up to the moment they left. triggerGameOver
+// does this same accounting inline for the death/victory screens, so this is only
+// for the paths that would otherwise drop to the menu with nothing recorded.
+function finalizeAbandonedRun() {
+  if (gameState.mode === 'endless') {
+    Profile.recordEndlessTime(gameState.arena, gameState.gameTime);
+  }
+  Profile.save();
+  Steam.runEnded({
+    victory: false,
+    mode: gameState.mode,
+    difficulty: gameState.difficulty,
+    arena: gameState.arena,
+    level: player.level,
+    kills: gameState.kills,
+    time: gameState.gameTime,
+    noHit: !gameState.tookDamageThisRun,
+  });
+}
+
 export function triggerGameOver(victory) {
   _bossArrowEl.style.display = 'none';
   gameState.state = victory ? 'victory' : 'gameover';
@@ -2718,6 +2741,7 @@ export function initButtons() {
       message: 'Your current run will be lost. Slices earned from boss kills are already saved.',
       confirmLabel: 'MAIN MENU',
       onConfirm: () => {
+        finalizeAbandonedRun(); // count kills + endless time before leaving the run
         document.getElementById('pause-screen').classList.add('hidden');
         document.getElementById('hud').style.display = 'none';
         document.getElementById('start-screen').classList.remove('hidden');
@@ -2738,6 +2762,7 @@ export function initButtons() {
     if (_advanceStageFn) _advanceStageFn();
   });
   document.getElementById('stage-quit-btn').addEventListener('click', () => {
+    finalizeAbandonedRun(); // count kills before leaving the run
     document.getElementById('stage-clear-screen').classList.add('hidden');
     document.getElementById('hud').style.display = 'none';
     document.getElementById('start-screen').classList.remove('hidden');
