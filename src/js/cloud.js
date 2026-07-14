@@ -18,7 +18,7 @@
 //
 // In a browser / Steam (no window.PlayCloud) or for a signed-out player, every
 // entry point no-ops silently and the game runs exactly as before.
-import { Profile } from './profile.js?v=b17d24e';
+import { Profile } from './profile.js?v=41ed89f';
 // NOTE: no import from ui.js — we signal a profile swap via the
 // 'wallop:profilechanged' event instead, so there's no cloud↔ui import cycle.
 
