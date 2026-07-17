@@ -9,7 +9,7 @@
 // but the game works in seconds — so we submit seconds×1000 for time boards and
 // convert entries back to seconds on read, keeping the shared UI formatting
 // (LB_CATEGORIES fmt) identical across Steam and mobile.
-import { pgsAchId, pgsBoardId } from './pgs-ids.js?v=62487c8';
+import { pgsAchId, pgsBoardId } from './pgs-ids.js?v=b7f6f26';
 
 function bridge() { return (typeof window !== 'undefined' && window.AndroidGames) || null; }
 
