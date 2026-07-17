@@ -2061,7 +2061,11 @@ export function initInput() {
   });
   window.addEventListener('gamepaddisconnected', () => {
     const pads = navigator.getGamepads ? navigator.getGamepads() : [];
-    if (![...pads].some(p => p && p.connected)) _hideGpHints();
+    if ([...pads].some(p => p && p.connected)) return;   // another pad still attached
+    _hideGpHints();
+    // Steam review: unplugging the pad mid-run must auto-pause, so a controller-only
+    // player isn't left stranded. openPauseMenu() no-ops unless state === 'playing'.
+    if (Settings.get('controllerEnabled')) openPauseMenu();
   });
 
   renderer.domElement.addEventListener('click', () => {

@@ -11,6 +11,33 @@ add an in-game patch-log entry (ABOUT screen in `wallop.html`), then build/uploa
 
 ---
 
+## v0.12.1 — 2026-07-14 (Steam review fixes)
+
+Response to the Steamworks review of BuildID 24166958, which failed on
+"Full Controller Support" (Xbox pad read as completely dead) and flagged the
+Steam Overlay never appearing. Both trace to the same root cause.
+
+### Fixed
+- **Steam Overlay never hooked** — Electron renders in a separate GPU process by
+  default, but Steam's overlay hooks the process where `SteamAPI_Init` ran (main),
+  so it never found a rendering surface and Shift+Tab/Home did nothing. Added
+  `in-process-gpu` (moves rendering into the main process so the overlay can hook)
+  + `disable-direct-composition` (stops the overlay drawing as a white rect) in
+  `electron/main.js`, set before app-ready. Steam Input rides the same injection
+  path, so this is also the prime suspect for the dead controller.
+- **No auto-pause on controller unplug** — `gamepaddisconnected` only hid the
+  button glyphs; it now calls `openPauseMenu()` when the last pad is removed so a
+  controller-only player isn't stranded mid-run.
+
+### Verified (no change needed)
+- Leaderboards are fully controller-navigable: category / arena / difficulty /
+  Global-Friends scope / BACK are all reachable and A activates them (the picker
+  chips are real `<button>`s and `leaderboard-screen` is in `_GP_OVERLAYS`).
+- `controllerEnabled` already defaults to **true**, so the pad never required a
+  mouse to switch on — ruling out the obvious "opt-in toggle" explanation.
+
+---
+
 ## v0.12.0 — 2026-07-13 (cut for Play — versionCode 14 / versionName 0.12.0)
 
 Follow-up fixes on the 0.11.0 Play Games services release.

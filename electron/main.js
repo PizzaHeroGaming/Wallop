@@ -15,6 +15,17 @@ const path = require('path');
 const { pathToFileURL } = require('url');
 const steam = require('./steam');
 
+// ── Steam Overlay compatibility (MUST be set before app is ready) ────────────
+// Electron renders in a separate GPU process by default, but Steam's overlay
+// hooks the process where SteamAPI_Init ran (this one) — so it never finds a
+// rendering surface and Shift+Tab does nothing. `in-process-gpu` moves rendering
+// into the main process so the overlay can hook it. `disable-direct-composition`
+// stops the overlay from drawing as a solid white rectangle once it does hook.
+// Steam Input rides the same injection path, so this is also the most likely fix
+// for the controller reading as dead through Steam.
+app.commandLine.appendSwitch('in-process-gpu');
+app.commandLine.appendSwitch('disable-direct-composition');
+
 const GAME_ROOT = app.isPackaged
   ? path.join(process.resourcesPath, 'game')   // packaged: extraResources/game
   : path.join(__dirname, '..');                // dev: repo root
