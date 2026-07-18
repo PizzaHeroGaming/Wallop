@@ -11,8 +11,8 @@
 // field, a parse error, or a blocked fetch just means "no nudge", never a broken
 // game. The prompt is non-blocking (LATER keeps you playing the current build).
 
-import { VERSION } from './config.js?v=b7f6f26';
-import { isSteamBuild } from './renderer.js?v=b7f6f26';
+import { VERSION } from './config.js?v=3c43b91';
+import { isSteamBuild } from './renderer.js?v=3c43b91';
 
 // Canonical manifest — same-origin on the web build, cross-origin (CORS-allowed)
 // from the Capacitor + Electron shells. Cache-busted per fetch.
