@@ -11,6 +11,26 @@ add an in-game patch-log entry (ABOUT screen in `wallop.html`), then build/uploa
 
 ---
 
+## v0.12.3 — 2026-07-16 (Steam review — controller-unplug pause)
+
+### Fixed
+- **Pause on controller unplug now works** — the previous fix relied on the
+  `gamepaddisconnected` event, which doesn't fire reliably in Electron / Steam
+  Input, so it never paused. Replaced with **poll-based detection** in
+  `pollGamepad`: it watches for a present→absent transition each frame (debounced
+  ~6 frames to ignore a transient Steam-Input flicker) and pauses mid-run when the
+  pad vanishes. Unplug is a hardware removal Chromium reflects without a gesture,
+  so the poll catches it where the event didn't. The `gamepaddisconnected` handler
+  now only hides the on-screen glyphs.
+
+### Still a caution (post-launch)
+- **Pause on Steam Overlay** — the overlay is an injected layer that doesn't fire
+  window `blur`, and `steamworks-ffi-node` exposes no `GameOverlayActivated`
+  callback, so it can't be detected without custom koffi FFI. Not a release
+  blocker (Steam lists it as best-practice, not required).
+
+---
+
 ## v0.12.2 — 2026-07-16 (Steam review round 2)
 
 Follow-up to the reviewer retest of the 0.12.1 build: overlay now hooks and the

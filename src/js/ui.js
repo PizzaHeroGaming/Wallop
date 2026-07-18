@@ -1671,6 +1671,13 @@ export function applyCameraJoystick(dt) {
 // edge-triggered into the existing jump/dash/interact/pause hooks. Polled once
 // per frame from the animate loop (main.js).
 const _padPrev = [];
+// Poll-based controller-disconnect detection (Steam review: pause mid-run when
+// the pad is unplugged). The 'gamepaddisconnected' event is unreliable in
+// Electron / Steam Input, so pollGamepad watches for a present→absent transition
+// instead. _padSeen = we currently have a pad; _padGone = consecutive empty polls
+// (debounce so a 1-frame Steam-Input flicker doesn't false-pause).
+let _padSeen = false;
+let _padGone = 0;
 function _dz(v, d = 0.18) { return Math.abs(v) < d ? 0 : v; }
 
 export function vibrateController(ms = 120, strong = 0.4, weak = 0.2) {
@@ -1956,7 +1963,18 @@ export function pollGamepad(dt) {
   const pads = navigator.getGamepads ? navigator.getGamepads() : [];
   let gp = null;
   for (const p of pads) { if (p && p.connected) { gp = p; break; } }
-  if (!gp) { _hideGpHints(); _updateInteractGlyph(null); return; }
+  if (!gp) {
+    // No pad this frame. If we HAD one and we're mid-run, it was unplugged —
+    // pause after a short debounce (Steam review). Outside 'playing' (menus) or
+    // if we never had a pad, just disarm so a later keyboard run isn't paused.
+    if (_padSeen && !isMobile() && gameState.state === 'playing') {
+      if (++_padGone >= 6) { _padSeen = false; _padGone = 0; openPauseMenu(); }
+    } else {
+      _padSeen = false; _padGone = 0;
+    }
+    _hideGpHints(); _updateInteractGlyph(null); return;
+  }
+  _padSeen = true; _padGone = 0;
   _updateGpHints(gp);
   _updateInteractGlyph(gp);
   const playing = gameState.state === 'playing';
@@ -2067,12 +2085,11 @@ export function initInput() {
     if (e && e.gamepad) _updateGpHints(e.gamepad);
   });
   window.addEventListener('gamepaddisconnected', () => {
+    // Glyphs only — the mid-run auto-pause is handled by pollGamepad's poll-based
+    // present→absent detection, which is reliable in Electron where this event
+    // is not. (Kept so the on-screen button hints hide promptly on unplug.)
     const pads = navigator.getGamepads ? navigator.getGamepads() : [];
-    if ([...pads].some(p => p && p.connected)) return;   // another pad still attached
-    _hideGpHints();
-    // Steam review: unplugging the pad mid-run must auto-pause, so a controller-only
-    // player isn't left stranded. openPauseMenu() no-ops unless state === 'playing'.
-    if (Settings.get('controllerEnabled')) openPauseMenu();
+    if (![...pads].some(p => p && p.connected)) _hideGpHints();
   });
 
   renderer.domElement.addEventListener('click', () => {
