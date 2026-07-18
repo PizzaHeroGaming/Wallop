@@ -11,6 +11,24 @@ add an in-game patch-log entry (ABOUT screen in `wallop.html`), then build/uploa
 
 ---
 
+## v0.12.5 — 2026-07-17 (Steam review — overlay pause attempt + cleanup)
+
+### Added
+- **Pause on Steam Overlay (attempt)** — the lib exposes no `GameOverlayActivated`
+  callback, but it DOES bind `BOverlayNeedsPresent`. `electron/steam.js` now polls
+  `steam.utils.overlayNeedsPresent()` in the callback timer and, on the rising edge,
+  sends `wallop:overlay-open` → preload re-dispatches as a window event → `ui.js`
+  pauses the run. ⚠️ Steam docs warn `BOverlayNeedsPresent` can also read true for
+  notification popups; **needs on-device verification that achievement toasts don't
+  spuriously pause mid-run.** If they do, gate/remove it (it's a caution, not a
+  release blocker).
+
+### Removed
+- **F10 gamepad diagnostic overlay** — stripped for the clean review build (it did
+  its job finding the phantom-headset root cause in 0.12.4).
+
+---
+
 ## v0.12.4 — 2026-07-16 (Steam review — phantom HID pad = root cause)
 
 ### Fixed

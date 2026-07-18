@@ -49,6 +49,12 @@ contextBridge.exposeInMainWorld('WallopSteam', {
   openAchievements: () => ipcRenderer.invoke('wallop:open-achievements'),
 });
 
+// Steam Overlay opened → re-dispatch as a window event the game listens for
+// (ui.js) to auto-pause a single-player run. Main polls BOverlayNeedsPresent.
+ipcRenderer.on('wallop:overlay-open', () => {
+  try { window.dispatchEvent(new Event('wallop:overlay-open')); } catch (e) {}
+});
+
 // Display controls for the in-game Settings menu (absent on web/mobile).
 contextBridge.exposeInMainWorld('WallopDesktop', {
   setDisplayMode: (mode) => ipcRenderer.invoke('wallop:setDisplayMode', mode),

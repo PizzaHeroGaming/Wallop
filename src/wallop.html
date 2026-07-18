@@ -3427,8 +3427,9 @@ window.addEventListener('load', () => {
       <div class="about-heading">PATCH LOG</div>
 
       <details class="patch-entry" open>
-        <summary class="patch-ver">v0.12.4 — Steam Polish</summary>
+        <summary class="patch-ver">v0.12.5 — Steam Polish</summary>
         <ul class="patch-list">
+          <li><strong>Pauses with the Steam Overlay</strong> — opening the Steam Overlay mid-run now pauses the game, so you don't take hits while you're checking your friends list.</li>
           <li><strong>Auto-pause when your controller unplugs</strong> — if your pad disconnects mid-run (battery dies, cable pops out), the game now pauses so you don't take hits you can't react to.</li>
           <li><strong>Pauses when you tab away</strong> — alt-tabbing off the desktop build pauses the game.</li>
         </ul>
@@ -3887,14 +3888,6 @@ window.addEventListener('load', () => {
     </div>
   </div>
 </div>
-
-<!-- Gamepad diagnostic readout (toggle with F10). Shows what navigator.getGamepads()
-     reports live, so we can see how a controller disconnect actually manifests
-     (e.g. Steam Input keeping a virtual pad "connected"). Harmless debug tool. -->
-<div id="gp-debug" class="hidden" style="position:fixed;top:8px;left:8px;z-index:70;
-  font-family:monospace;font-size:12px;line-height:1.35;color:#9dff9d;
-  background:rgba(0,0,0,0.82);border:1px solid #2a5a2a;padding:6px 9px;border-radius:4px;
-  white-space:pre;pointer-events:none;max-width:80vw;"></div>
 
 <!-- Cloud-save sync indicator (Play Games / Android only; shown transiently on
      each snapshot commit). Driven by cloud.js showSaving/showSaved. -->
