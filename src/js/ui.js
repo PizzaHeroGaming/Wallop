@@ -2057,7 +2057,14 @@ export function initInput() {
   // them makes mid-session connects wake up; pollGamepad() then picks the pad
   // up on the next frame. Refresh the on-screen glyphs immediately on connect.
   window.addEventListener('gamepadconnected', (e) => {
-    if (e && e.gamepad && Settings.get('controllerEnabled')) _updateGpHints(e.gamepad);
+    if (!Settings.get('controllerEnabled')) return;
+    // Chromium only exposes a pad to navigator.getGamepads() after a focused
+    // button-press gesture — which is exactly what fires this event. Touch
+    // getGamepads() here to prime the array so a pad plugged in MID-RUN starts
+    // reporting to pollGamepad() on the next frame (best-effort: a mid-session
+    // hotplug can still need a button press with the window focused).
+    try { navigator.getGamepads(); } catch (err) {}
+    if (e && e.gamepad) _updateGpHints(e.gamepad);
   });
   window.addEventListener('gamepaddisconnected', () => {
     const pads = navigator.getGamepads ? navigator.getGamepads() : [];
@@ -2080,6 +2087,19 @@ export function initInput() {
     // Suppress it for ~1.4s after closePauseMenu so the Esc-to-close path
     // doesn't immediately re-pause due to Chrome's lock-acquire cooldown.
     if (!_mouseLocked && gameState.state === 'playing' && !isMobile()
+        && Date.now() > _pauseAutoSuppressUntil) {
+      openPauseMenu();
+    }
+  });
+
+  // Steam review: a single-player game must pause when the Steam Overlay opens.
+  // The pointer-lock path above misses it when playing on a CONTROLLER (no lock
+  // was ever engaged) and when the overlay doesn't release pointer lock. The
+  // overlay grabs OS focus, so a window blur is the reliable signal — it also
+  // covers Alt-Tab. Desktop/Steam build only (window.WallopDesktop); the web
+  // build shouldn't pause on every click-away.
+  window.addEventListener('blur', () => {
+    if (window.WallopDesktop && gameState.state === 'playing' && !isMobile()
         && Date.now() > _pauseAutoSuppressUntil) {
       openPauseMenu();
     }

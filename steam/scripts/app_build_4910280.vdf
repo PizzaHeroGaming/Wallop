@@ -3,7 +3,7 @@
 "appbuild"
 {
 	"appid"	"4910280"
-	"desc"	"v0.12.1 — overlay hook fix + controller/review fixes"  // shows in Steamworks build history
+	"desc"	"v0.12.2 — pause on overlay + controller hotplug best-effort"  // shows in Steamworks build history
 
 	"buildoutput" "..\output\"              // steamcmd logs/chunks (steam/output/, gitignored)
 	"contentroot" "..\..\electron\dist\win-unpacked\"

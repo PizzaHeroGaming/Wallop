@@ -11,6 +11,27 @@ add an in-game patch-log entry (ABOUT screen in `wallop.html`), then build/uploa
 
 ---
 
+## v0.12.2 — 2026-07-16 (Steam review round 2)
+
+Follow-up to the reviewer retest of the 0.12.1 build: overlay now hooks and the
+controller works when connected before launch. Remaining review items:
+
+### Fixed
+- **Pause on Steam Overlay** — a single-player game must pause when the overlay
+  opens (Steam requirement). The existing pointer-lock auto-pause missed it when
+  playing on a **controller** (pointer lock is never engaged) or when the overlay
+  doesn't release lock, so added a **window `blur`** auto-pause (desktop build
+  only, `window.WallopDesktop`) — the overlay grabs OS focus, and this also covers
+  Alt-Tab.
+- **Controller mid-run hotplug (best-effort)** — prime `navigator.getGamepads()`
+  from inside the `gamepadconnected` gesture so a pad plugged in during a run has
+  a better chance of registering. NOTE: Chromium only exposes a pad after a
+  *focused* button-press gesture, so a mid-session hotplug may still need a button
+  press with the window focused — a platform limitation, not fully fixable in JS.
+  Connecting the pad before launch works reliably (the review blocker is cleared).
+
+---
+
 ## v0.12.1 — 2026-07-14 (Steam review fixes)
 
 Response to the Steamworks review of BuildID 24166958, which failed on
