@@ -1678,6 +1678,26 @@ const _padPrev = [];
 // (debounce so a 1-frame Steam-Input flicker doesn't false-pause).
 let _padSeen = false;
 let _padGone = 0;
+// Gamepad diagnostic overlay (F10). Writes what getGamepads() reports each frame
+// so we can see exactly how an unplug manifests through Steam Input.
+let _gpDebug = false;
+function _gpDebugWrite(pads, gp) {
+  const el = document.getElementById('gp-debug');
+  if (!el) return;
+  const rows = [...pads].filter(Boolean).map(p =>
+    `#${p.index} conn=${p.connected} ts=${Math.round(p.timestamp)} ${(p.id || '').slice(0, 22)}`);
+  el.textContent = `state=${gameState.state} seen=${_padSeen} gone=${_padGone} chosen=${gp ? gp.index : 'none'}\n`
+    + (rows.join('\n') || '(no pads in getGamepads)');
+  el.classList.remove('hidden');
+}
+if (typeof window !== 'undefined') {
+  window.addEventListener('keydown', (e) => {
+    if (e.code !== 'F10') return;
+    _gpDebug = !_gpDebug;
+    const el = document.getElementById('gp-debug');
+    if (el && !_gpDebug) el.classList.add('hidden');
+  });
+}
 function _dz(v, d = 0.18) { return Math.abs(v) < d ? 0 : v; }
 
 export function vibrateController(ms = 120, strong = 0.4, weak = 0.2) {
@@ -1963,6 +1983,7 @@ export function pollGamepad(dt) {
   const pads = navigator.getGamepads ? navigator.getGamepads() : [];
   let gp = null;
   for (const p of pads) { if (p && p.connected) { gp = p; break; } }
+  if (_gpDebug) _gpDebugWrite(pads, gp);
   if (!gp) {
     // No pad this frame. If we HAD one and we're mid-run, it was unplugged —
     // pause after a short debounce (Steam review). Outside 'playing' (menus) or

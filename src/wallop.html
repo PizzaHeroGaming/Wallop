@@ -3888,6 +3888,14 @@ window.addEventListener('load', () => {
   </div>
 </div>
 
+<!-- Gamepad diagnostic readout (toggle with F10). Shows what navigator.getGamepads()
+     reports live, so we can see how a controller disconnect actually manifests
+     (e.g. Steam Input keeping a virtual pad "connected"). Harmless debug tool. -->
+<div id="gp-debug" class="hidden" style="position:fixed;top:8px;left:8px;z-index:70;
+  font-family:monospace;font-size:12px;line-height:1.35;color:#9dff9d;
+  background:rgba(0,0,0,0.82);border:1px solid #2a5a2a;padding:6px 9px;border-radius:4px;
+  white-space:pre;pointer-events:none;max-width:80vw;"></div>
+
 <!-- Cloud-save sync indicator (Play Games / Android only; shown transiently on
      each snapshot commit). Driven by cloud.js showSaving/showSaved. -->
 <div id="cloud-sync" class="hidden">
