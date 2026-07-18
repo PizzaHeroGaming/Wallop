@@ -1678,6 +1678,16 @@ const _padPrev = [];
 // (debounce so a 1-frame Steam-Input flicker doesn't false-pause).
 let _padSeen = false;
 let _padGone = 0;
+// A REAL game controller vs a phantom HID device. Some headsets/keyboards
+// enumerate through the Gamepad API as "gamepads" with no sticks — e.g. a Corsair
+// HS80 headset that stays conn=true forever, so the game never saw the Xbox pad as
+// "disconnected" (and would even switch to reading input from the headset). A pad
+// is real if it's standard-mapped, or (for odd pads that report a blank mapping)
+// it has a full complement of sticks + buttons. A headset clears neither bar.
+function _isGamePad(p) {
+  return !!p && (p.mapping === 'standard'
+    || ((p.axes ? p.axes.length : 0) >= 4 && (p.buttons ? p.buttons.length : 0) >= 12));
+}
 // Gamepad diagnostic overlay (F10). Writes what getGamepads() reports each frame
 // so we can see exactly how an unplug manifests through Steam Input.
 let _gpDebug = false;
@@ -1685,7 +1695,8 @@ function _gpDebugWrite(pads, gp) {
   const el = document.getElementById('gp-debug');
   if (!el) return;
   const rows = [...pads].filter(Boolean).map(p =>
-    `#${p.index} conn=${p.connected} ts=${Math.round(p.timestamp)} ${(p.id || '').slice(0, 22)}`);
+    `#${p.index} conn=${p.connected} real=${_isGamePad(p)} map=${p.mapping || '-'} `
+    + `ax=${p.axes ? p.axes.length : 0} bt=${p.buttons ? p.buttons.length : 0} ${(p.id || '').slice(0, 16)}`);
   el.textContent = `state=${gameState.state} seen=${_padSeen} gone=${_padGone} chosen=${gp ? gp.index : 'none'}\n`
     + (rows.join('\n') || '(no pads in getGamepads)');
   el.classList.remove('hidden');
@@ -1982,7 +1993,7 @@ export function pollGamepad(dt) {
   if (!Settings.get('controllerEnabled')) { _hideGpHints(); _updateInteractGlyph(null); return; }
   const pads = navigator.getGamepads ? navigator.getGamepads() : [];
   let gp = null;
-  for (const p of pads) { if (p && p.connected) { gp = p; break; } }
+  for (const p of pads) { if (p && p.connected && _isGamePad(p)) { gp = p; break; } }
   if (_gpDebug) _gpDebugWrite(pads, gp);
   if (!gp) {
     // No pad this frame. If we HAD one and we're mid-run, it was unplugged —
@@ -2110,7 +2121,7 @@ export function initInput() {
     // present→absent detection, which is reliable in Electron where this event
     // is not. (Kept so the on-screen button hints hide promptly on unplug.)
     const pads = navigator.getGamepads ? navigator.getGamepads() : [];
-    if (![...pads].some(p => p && p.connected)) _hideGpHints();
+    if (![...pads].some(p => p && p.connected && _isGamePad(p))) _hideGpHints();
   });
 
   renderer.domElement.addEventListener('click', () => {

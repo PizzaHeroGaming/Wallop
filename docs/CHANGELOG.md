@@ -11,6 +11,28 @@ add an in-game patch-log entry (ABOUT screen in `wallop.html`), then build/uploa
 
 ---
 
+## v0.12.4 — 2026-07-16 (Steam review — phantom HID pad = root cause)
+
+### Fixed
+- **Ignore phantom HID "gamepads"** — root cause of the controller-unplug and
+  mid-run hotplug issues. A **Corsair HS80 headset** enumerates through the Gamepad
+  API as a connected "gamepad" (no sticks/buttons, `mapping: ""`, frozen timestamp).
+  Confirmed via the F10 diagnostic: after unplugging the Xbox, `getGamepads()` still
+  returned the headset as `conn=true`, and the game even switched to it as the active
+  pad (`chosen=1`). So the game never saw "no controller" (→ never paused on unplug),
+  and a mid-run hotplug landed on the headset instead of the Xbox (→ "recognized but
+  doesn't work"). Added `_isGamePad()` — only standard-mapped pads, or pads with ≥4
+  axes + ≥12 buttons, count. A headset clears neither bar. `pollGamepad`'s scan +
+  the disconnect glyph check now filter through it, so unplugging the real pad
+  correctly triggers the poll-based auto-pause and input never routes to a headset.
+- F10 gamepad diagnostic overlay retained (now shows `real=`/`map=`/`ax=`/`bt=`).
+
+### Still a caution (post-launch)
+- **Pause on Steam Overlay** — needs a native `GameOverlayActivated` callback the
+  lib doesn't expose; not a release blocker.
+
+---
+
 ## v0.12.3 — 2026-07-16 (Steam review — controller-unplug pause)
 
 ### Fixed
