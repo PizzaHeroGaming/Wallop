@@ -14,7 +14,7 @@
 // Supported: achievements, Steam Cloud, overlay, AND leaderboards (find/create,
 // upload score, download Global/Friends/AroundUser entries with global rank).
 
-const { ipcMain, app, BrowserWindow } = require('electron');
+const { ipcMain, app } = require('electron');
 const path = require('path');
 
 const APP_ID = 4910280;                 // WALLOP — matches steam_appid.txt
@@ -24,7 +24,6 @@ let steam = null;                       // the SteamworksSDK singleton (or null)
 let ready = false;
 let loggedUnavailable = false;
 let callbackTimer = null;
-let _overlayWasOpen = false;            // rising-edge tracking for overlay-open → pause
 
 // Leaderboard enums (numeric). Imported lazily inside initSteam so a missing
 // module never throws at require-time.
@@ -85,22 +84,14 @@ function initSteam() {
     const name = safe(() => steam.friends.getPersonaName(), '?');
     console.log(`[WALLOP steam] connected as "${name}" (app ${APP_ID})`);
     // Pump Steam callbacks so async leaderboard results + overlay events resolve.
-    callbackTimer = setInterval(() => {
-      try { steam.runCallbacks(); } catch (e) {}
-      // Steam-review request: pause on Steam Overlay. The lib exposes no
-      // GameOverlayActivated callback, so we poll BOverlayNeedsPresent (true while
-      // the overlay is up) and fire on the rising edge. NOTE: Steam docs say this
-      // can also read true for notification popups — if achievement toasts spuriously
-      // pause the game in testing, gate/remove this (it's a caution, not a blocker).
-      try {
-        const open = !!(steam && steam.utils && steam.utils.overlayNeedsPresent());
-        if (open && !_overlayWasOpen) {
-          const win = BrowserWindow.getAllWindows()[0];
-          if (win && !win.isDestroyed()) win.webContents.send('wallop:overlay-open');
-        }
-        _overlayWasOpen = open;
-      } catch (e) {}
-    }, 250);
+    // NOTE: pause-on-overlay was attempted via BOverlayNeedsPresent polling but
+    // that signal pulses true on its own (Steam housekeeping/notifications) without
+    // tracking the actual overlay — it caused spurious pauses and never fired on the
+    // real overlay. Removed. The proper fix needs the GameOverlayActivated_t
+    // broadcast callback, which this lib doesn't deliver (would require custom
+    // manual-dispatch FFI). Deferred post-launch; the renderer-side pause wiring
+    // (preload 'wallop:overlay-open' → ui.js) is left in place for that day.
+    callbackTimer = setInterval(() => { try { steam.runCallbacks(); } catch (e) {} }, 250);
     return true;
   } catch (e) {
     warnOnce('Steam init failed; features disabled', e);

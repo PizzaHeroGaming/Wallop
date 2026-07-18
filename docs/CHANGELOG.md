@@ -11,6 +11,24 @@ add an in-game patch-log entry (ABOUT screen in `wallop.html`), then build/uploa
 
 ---
 
+## v0.12.6 — 2026-07-17 (Steam review — clean resubmit build)
+
+### Reverted
+- **Pause-on-Steam-Overlay via `BOverlayNeedsPresent` (0.12.5) — removed.** On-device
+  it pulsed true on its own every couple seconds (Steam housekeeping/notifications)
+  without tracking the actual overlay → spurious pauses, and it never fired on the
+  real overlay. So that signal is unusable. Overlay-pause genuinely needs the
+  `GameOverlayActivated_t` broadcast callback, which `steamworks-ffi-node` doesn't
+  deliver (would need custom manual-dispatch FFI). **Deferred post-launch** — it's a
+  Steam *caution*, not a release blocker. The renderer-side pause wiring
+  (`preload` `wallop:overlay-open` event → `ui.js`) is left in place for that day.
+
+This is the clean resubmit build: controller works (before-launch + hotplug), pauses
+on unplug, overlay hooks, Developer's Recommended Configuration published; F10 debug
+tool stripped (0.12.5). Only the overlay-pause caution remains, post-launch.
+
+---
+
 ## v0.12.5 — 2026-07-17 (Steam review — overlay pause attempt + cleanup)
 
 ### Added

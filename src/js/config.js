@@ -3,7 +3,7 @@
 // ============================================================
 // Version: bump on every player-visible release. Displayed in the About
 // screen header; can also be referenced by any module that imports CFG.
-export const VERSION = '0.12.5';
+export const VERSION = '0.12.6';
 
 export const CFG = {
   ARENA: 110,
