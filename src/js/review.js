@@ -12,7 +12,7 @@
 // NOT pre-prompt ("Enjoying Wallop?") and show it only to people who say yes —
 // that's review filtering and it's a policy violation. So there is deliberately
 // no custom dialog here; we just pick a good moment and call the API.
-import { Profile } from './profile.js?v=76cf769';
+import { Profile } from './profile.js?v=4d39b32';
 
 const MIN_RUNS      = 3;                    // don't ask a first-time player
 const MAX_ASKS      = 3;                    // lifetime cap on our side

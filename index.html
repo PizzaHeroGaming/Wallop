@@ -3430,6 +3430,13 @@ window.addEventListener('load', () => {
       <div class="about-heading">PATCH LOG</div>
 
       <details class="patch-entry" open>
+        <summary class="patch-ver">v0.12.7 — Controller &amp; Polish</summary>
+        <ul class="patch-list">
+          <li><strong>Better controller detection</strong> — the game no longer mistakes headsets and other USB gadgets for a gamepad, so your real controller is picked up properly (including when you plug it in mid-run).</li>
+          <li><strong>Rate the game</strong> — after a win you may get a chance to leave a rating without leaving the game. Totally optional.</li>
+        </ul>
+      </details>
+      <details class="patch-entry">
         <summary class="patch-ver">v0.12.6 — Steam Polish</summary>
         <ul class="patch-list">
           <li><strong>Auto-pause when your controller unplugs</strong> — if your pad disconnects mid-run (battery dies, cable pops out), the game now pauses so you don't take hits you can't react to.</li>
@@ -3960,6 +3967,6 @@ window.addEventListener('load', () => {
 <script src="src/vendor/three/UnrealBloomPass.js"></script>
 <script src="src/vendor/three/GLTFLoader.js"></script>
 <script src="src/vendor/three/SkeletonUtils.js"></script>
-<script type="module" src="src/js/main.js?v=76cf769"></script>
+<script type="module" src="src/js/main.js?v=4d39b32"></script>
 </body>
 </html>
