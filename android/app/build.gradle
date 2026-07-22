@@ -16,8 +16,8 @@ android {
         applicationId "com.pizzaherogaming.wallop"
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionCode 14
-        versionName "0.12.0"
+        versionCode 15
+        versionName "0.12.7"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         aaptOptions {
              // Files and dirs to omit from the packaged assets dir, modified to accommodate modern web apps.
@@ -63,6 +63,9 @@ dependencies {
     // Play Games Services v2 — cloud save (Saved Games / Snapshots), and later
     // achievements + leaderboards. Silent auto sign-in; degrades to local-only.
     implementation 'com.google.android.gms:play-services-games-v2:20.1.2'
+    // Play In-App Review (ReviewBridge → window.PlayReview). Store-hosted rating
+    // card; no-ops in sideloaded/debug builds that didn't come from Play.
+    implementation 'com.google.android.play:review:2.0.2'
     testImplementation "junit:junit:$junitVersion"
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"

@@ -27,6 +27,7 @@ import {
 import { WEAPONS, ARMOR, TOMES, rebuildOrbits } from './weapons.js?v=76cf769';
 import { STAT_UPGRADES, SYNERGY_UPGRADES } from './upgrades.js?v=76cf769';
 import { gameState, cam } from './state.js?v=76cf769';
+import * as Review from './review.js?v=76cf769';
 import { Audio } from './audio.js?v=76cf769';
 import * as Steam from './steam.js?v=76cf769';
 import * as PGS from './pgs.js?v=76cf769'; // native Play Games UIs (achievements/leaderboard views)
@@ -1010,9 +1011,10 @@ export function triggerGameOver(victory) {
   const arenaName  = (ARENAS[gameState.arena] || ARENAS.pepperoni_pines).name;
   const isEndless  = gameState.mode === 'endless';
   let stageLine;
+  let isNewBest = false;
   if (isEndless) {
     // Record the survival time and note whether it's a new best for this arena.
-    const isNewBest = Profile.recordEndlessTime(gameState.arena, gameState.gameTime);
+    isNewBest = Profile.recordEndlessTime(gameState.arena, gameState.gameTime);
     const best = Profile.getEndlessBest(gameState.arena);
     const bm = Math.floor(best / 60).toString().padStart(2, '0');
     const bs = Math.floor(best % 60).toString().padStart(2, '0');
@@ -1116,6 +1118,16 @@ export function triggerGameOver(victory) {
   _rewardedWatchedThisRun = false;
   _pendingGameOverInterstitial = (__runsPlayed >= 2 && __runsPlayed % 2 === 0);
   window.GameAds.preload();
+
+  // Ask for a Play Store rating — but only on a genuinely good beat, and never on
+  // a run that already owes the player an interstitial (two full-screen overlays
+  // stacked on one game-over screen is how you earn a 1-star). review.js applies
+  // the run-count / cooldown / lifetime-cap gating and no-ops off Android.
+  // Delayed so the victory title + slice tally land first.
+  const _reviewWorthy = victory || (isEndless && isNewBest);
+  if (_reviewWorthy && !_pendingGameOverInterstitial) {
+    setTimeout(() => Review.maybeAsk(true), 1600);
+  }
 }
 
 // ============================================================

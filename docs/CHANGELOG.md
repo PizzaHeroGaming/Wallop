@@ -11,6 +11,38 @@ add an in-game patch-log entry (ABOUT screen in `wallop.html`), then build/uploa
 
 ---
 
+## v0.12.7 — 2026-07-21 (Play: rate prompt)
+
+First Android cut since 0.12.0 — 0.12.1–0.12.6 were Steam/desktop-only, so this
+build also carries their shared `ui.js` changes to mobile for the first time.
+
+### Added
+- **Play In-App Review prompt.** New `ReviewBridge.java` (→ `window.PlayReview`,
+  dep `com.google.android.play:review:2.0.2`) + `src/js/review.js`, which owns all
+  the gating. Fires from `triggerGameOver` only on a **win** or an **endless
+  personal best**, never after a death — and is suppressed on any run that already
+  owes a game-over interstitial, so two full-screen overlays can never stack.
+  Further gated on ≥3 runs played, a 45-day cooldown, and 3 asks lifetime.
+  - State lives on the profile under a new lazily-created `review` key — **no
+    `PROFILE_VERSION` bump**, so existing saves keep their unlocks. Cloud-syncs
+    with the rest of the profile for free.
+  - Deliberately **no "Enjoying Wallop?" pre-prompt**: filtering who sees the card
+    by opinion is a Play policy violation. Choosing a good *moment* is allowed;
+    choosing a good *audience* is not.
+  - Nothing is rewarded or gated on the outcome — the API returns no signal about
+    whether the card showed or what was rated, by design.
+  - Android-Play-only: gated on the bridge existing, not `isMobile()`, so a mobile
+    *browser* (no Play install to review) correctly no-ops along with Steam/web.
+
+### Carried over from the Steam-only 0.12.x line
+- `_isGamePad()` phantom-device filter — ignores non-gamepad HID devices (a
+  headset was enumerating as a pad). Should improve Android controller handling;
+  inert when no pad is connected.
+- Desktop blur-pause — gated on `window.WallopDesktop && !isMobile()`, so it
+  cannot affect Android.
+
+---
+
 ## v0.12.6 — 2026-07-17 (Steam review — clean resubmit build)
 
 ### Reverted

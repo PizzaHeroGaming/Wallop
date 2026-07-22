@@ -43,6 +43,11 @@ public class MainActivity extends BridgeActivity {
         getBridge().getWebView().addJavascriptInterface(
             new GamesBridge(this, getBridge().getWebView()), "AndroidGames");
 
+        // Play In-App Review bridge → window.PlayReview. js/review.js owns the
+        // "is this a good moment?" gating; this just runs the Play flow.
+        getBridge().getWebView().addJavascriptInterface(
+            new ReviewBridge(this, getBridge().getWebView()), "PlayReview");
+
         // Expose window.AndroidAds.* to the game's GameAds bridge (ui.js). Ad
         // loading is deferred (see startLoading) until UMP consent is resolved,
         // so no ad request fires before the user can consent (EEA/UK).

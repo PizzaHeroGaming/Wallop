@@ -61,3 +61,11 @@ steam/achievements/_contact_sheet.html
 
 # Derived PGS achievements import bundle (regenerate: python scripts/gen-pgs-import.py)
 store/pgs-import/*.zip
+
+# Trailer/video masters. Kept locally so the project stays together in one place,
+# but never committed — these are 70MB+ binaries that would bloat every clone
+# forever (and git can't really forget them later). The trailer is already hosted
+# on YouTube + Steam, which is where anything that needs it should point.
+*.mp4
+*.mov
+*.webm
